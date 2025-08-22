@@ -342,6 +342,21 @@ body {
     font-size: 12px;
 }
 
+/* Garantir que o modal de perfil tenha z-index adequado */
+#profileModal {
+    z-index: 1001;
+}
+
+/* Estilo específico para o modal de perfil */
+#profileModal .modal {
+    max-width: 500px;
+}
+
+#profileForm .form-actions {
+    margin-top: 25px;
+}
+
+
 /* Responsividade */
 @media (max-width: 768px) {
     .container {
