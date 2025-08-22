@@ -171,6 +171,13 @@ const BoardModule = (() => {
             
             sociousTableBody.appendChild(row);
         });
+    
+        // Configurar ordenação após renderizar a tabela
+        setTimeout(() => {
+            if (typeof TableSortModule !== 'undefined' && TableSortModule.setupColumnSorting) {
+                TableSortModule.setupColumnSorting();
+            }
+        }, 100);
     };
 
     // Mostrar visualização de board
