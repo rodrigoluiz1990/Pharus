@@ -3,40 +3,43 @@ const UtilsModule = (() => {
     // Formatar data
     const formatDate = (dateString) => {
         if (!dateString) return '-';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pt-BR');
+        try {
+            const date = new Date(dateString);
+            return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('pt-BR');
+        } catch (e) {
+            return '-';
+        }
     };
 
     // Obter texto do status
     const getStatusText = (status) => {
         const statusMap = {
-            'pending': 'Pendente',
-            'in_progress': 'Em Andamento',
-            'review': 'Em Revisão',
-            'completed': 'Concluído'
+            'pending': { text: 'Pendente', class: 'pendente' },
+            'in_progress': { text: 'Em Andamento', class: 'em-andamento' },
+            'review': { text: 'Em Teste', class: 'em-teste' },
+            'completed': { text: 'Concluído', class: 'concluido' }
         };
-        return statusMap[status] || status;
+        return statusMap[status] || { text: status, class: 'desconhecido' };
     };
 
     // Obter texto da prioridade
     const getPriorityText = (priority) => {
         const priorityMap = {
-            'low': 'Baixa',
-            'medium': 'Média',
-            'high': 'Alta'
+            'low': { text: 'Baixa', class: 'baixa' },
+            'medium': { text: 'Média', class: 'media' },
+            'high': { text: 'Alta', class: 'alta' }
         };
-        return priorityMap[priority] || priority;
+        return priorityMap[priority] || { text: priority, class: 'desconhecida' };
     };
 
     // Obter texto do tipo
     const getTypeText = (type) => {
         const typeMap = {
-            'task': 'Tarefa',
-            'bug': 'Bug',
-            'feature': 'Feature',
-            'improvement': 'Melhoria'
+            'task': { text: 'Novo', class: 'task' },
+            'bug': { text: 'Erro', class: 'bug' },
+            'improvement': { text: 'Melhoria', class: 'improvement' }
         };
-        return typeMap[type] || type;
+        return typeMap[type] || { text: type, class: 'outro' };
     };
 
     // Obter status baseado na coluna
@@ -48,7 +51,7 @@ const UtilsModule = (() => {
             switch (column.title) {
                 case 'Pendente': return 'pending';
                 case 'Em Andamento': return 'in_progress';
-                case 'Em Revisão': return 'review';
+                case 'Em Teste': return 'review';
                 case 'Concluído': return 'completed';
                 default: return 'pending';
             }

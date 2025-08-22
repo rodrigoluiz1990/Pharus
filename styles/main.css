@@ -378,3 +378,81 @@ body {
         flex-wrap: wrap;
     }
 }
+
+
+/* Estilos para as células de Status, Prioridade e Tipo na visualização de tabela */
+.socious-table td:nth-child(5),
+.socious-table td:nth-child(6),
+.socious-table td:nth-child(8) {
+    font-weight: bold;
+    text-align: center;
+    border-radius: 4px;
+}
+
+/* Cores de fundo específicas para cada status */
+.status-pendente {
+    background-color: #fff3cd; /* Amarelo claro */
+    color: #856404;
+}
+
+.status-em-andamento {
+    background-color: #cce5ff; /* Azul claro */
+    color: #004085;
+}
+
+.status-em-teste {
+    background-color: #d1ecf1; /* Azul claro */
+    color: #0c5460;
+}
+
+.status-concluido {
+    background-color: #d4edda; /* Verde claro */
+    color: #155724;
+}
+
+.status-desconhecido {
+    background-color: #e2e3e5; /* Cinza claro */
+    color: #383d41;
+}
+
+/* Cores de fundo específicas para cada prioridade */
+.prioridade-alta {
+    background-color: #f8d7da; /* Vermelho claro */
+    color: #721c24;
+}
+
+.prioridade-media {
+    background-color: #fff3cd; /* Amarelo claro */
+    color: #856404;
+}
+
+.prioridade-baixa {
+    background-color: #d4edda; /* Verde claro */
+    color: #155724;
+}
+
+.prioridade-desconhecida {
+    background-color: #e2e3e5; /* Cinza claro */
+    color: #383d41;
+}
+
+/* Cores de fundo específicas para cada tipo */
+.tipo-task {
+    background-color: #d1ecf1; /* Azul claro */
+    color: #0c5460;
+}
+
+.tipo-bug {
+    background-color: #f8d7da; /* Vermelho claro */
+    color: #721c24;
+}
+
+.tipo-improvement {
+    background-color: #d4edda; /* Verde claro */
+    color: #155724;
+}
+
+.tipo-outro {
+    background-color: #e2e3e5; /* Cinza claro */
+    color: #383d41;
+}

@@ -18,7 +18,7 @@ const StorageModule = (() => {
     const initialColumns = [
         { id: 1, title: "Pendente", type: "status" },
         { id: 2, title: "Em Andamento", type: "status" },
-        { id: 3, title: "Em Revisão", type: "status" },
+        { id: 3, title: "Em Teste", type: "status" },
         { id: 4, title: "Concluído", type: "status" }
     ];
 
@@ -27,31 +27,46 @@ const StorageModule = (() => {
             id: 1, 
             title: "Implementar login", 
             description: "Criar sistema de autenticação de usuários", 
-            status: "in_progress", 
-            priority: "high", 
+            status: "in_progress", // Alterado para string
+            priority: "medium", // Alterado para string
             assignee: 2, 
             requestDate: "2023-05-10", 
             dueDate: "2023-05-20", 
             observation: "Prioridade máxima", 
             jira: "PHAR-123", 
             client: "Interno", 
-            type: "feature",
+            type: "task", // Alterado para string
             columnId: 2
         },
         { 
             id: 2, 
             title: "Corrigir bug relatório", 
             description: "Relatório não está exibindo dados corretamente", 
-            status: "pending", 
-            priority: "medium", 
-            assignee: 3, 
+            status: "pending", // Alterado para string
+            priority: "medium", // Alterado para string
+            assignee: 2, 
             requestDate: "2023-05-15", 
             dueDate: "2023-05-25", 
             observation: "Verificar com equipe de dados", 
             jira: "PHAR-456", 
             client: "Cliente A", 
-            type: "bug",
+            type: "bug", // Alterado para string
             columnId: 1
+        },
+        {
+            id: 3,
+            title: 'Atualizar documentação',
+            description: 'Atualizar documentação do projeto',
+            status: "completed", // Alterado para string
+            priority: "low", // Alterado para string
+            assignee: 3,
+            requestDate: '2023-05-18',
+            dueDate: '2023-05-30',
+            observation: 'Documentação técnica',
+            jira: 'PHAR-789',
+            client: 'Interno',
+            type: "task", // Alterado para string
+            columnId: 3
         }
     ];
 

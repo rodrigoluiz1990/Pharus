@@ -51,7 +51,7 @@
         <div class="content">
             <div class="header">
                 <div class="project-title">
-                    <h2>Socíus</h2>
+                    <h2>Socius</h2>
                     <span class="task-tag tag-status">Prudentes</span>
                 </div>
                 
@@ -145,7 +145,7 @@
                         <select id="taskStatus" class="form-control">
                             <option value="pending">Pendente</option>
                             <option value="in_progress">Em Andamento</option>
-                            <option value="review">Em Revisão</option>
+                            <option value="review">Em Teste</option>
                             <option value="completed">Concluído</option>
                         </select>
                     </div>
@@ -186,9 +186,8 @@
                     <div class="form-group">
                         <label for="taskType">Tipo de Tarefa</label>
                         <select id="taskType" class="form-control">
-                            <option value="task">Tarefa</option>
-                            <option value="bug">Bug</option>
-                            <option value="feature">Feature</option>
+                            <option value="task">Novo</option>
+                            <option value="bug">Erro</option>
                             <option value="improvement">Melhoria</option>
                         </select>
                     </div>
@@ -247,5 +246,9 @@
     <script src="scripts/board.js"></script>
     <script src="scripts/profile-modal.js"></script>
     <script src="scripts/table-sort.js"></script>
+    <script>
+        // Inicializar o board quando a página carregar
+        document.addEventListener('DOMContentLoaded', BoardModule.initBoard);
+    </script>
 </body>
 </html>

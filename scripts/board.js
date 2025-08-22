@@ -10,33 +10,33 @@ const BoardModule = (() => {
     // Renderizar o board
     const renderBoard = () => {
         if (!taskBoard) return;
-        
+
         taskBoard.innerHTML = '';
-        
+
         const columns = StorageModule.getColumns();
         const users = StorageModule.getUsers();
-        
+
         columns.forEach(column => {
             const columnElement = document.createElement('div');
             columnElement.className = 'column';
             columnElement.dataset.columnId = column.id;
-            
+
             const columnHeader = document.createElement('div');
             columnHeader.className = 'column-header';
             columnHeader.innerHTML = `
                 <span>${column.title}</span>
                 <span>${getTasksByColumn(column.id).length}</span>
             `;
-            
+
             const columnContent = document.createElement('div');
             columnContent.className = 'column-content';
-            
+
             // Adicionar tarefas à coluna
             getTasksByColumn(column.id).forEach(task => {
                 const taskElement = createTaskElement(task, users);
                 columnContent.appendChild(taskElement);
             });
-            
+
             // Botão para adicionar nova tarefa
             const addButton = document.createElement('button');
             addButton.className = 'add-task-btn';
@@ -44,21 +44,21 @@ const BoardModule = (() => {
             addButton.addEventListener('click', () => {
                 ModalModule.showModal(column.id);
             });
-            
+
             columnContent.appendChild(addButton);
-            
+
             // Configurar drag and drop
             columnContent.addEventListener('dragover', (e) => {
                 e.preventDefault();
             });
-            
+
             columnContent.addEventListener('drop', (e) => {
                 e.preventDefault();
                 const taskId = e.dataTransfer.getData('taskId');
                 moveTaskToColumn(parseInt(taskId), column.id);
                 renderBoard();
             });
-            
+
             columnElement.appendChild(columnHeader);
             columnElement.appendChild(columnContent);
             taskBoard.appendChild(columnElement);
@@ -71,10 +71,10 @@ const BoardModule = (() => {
         taskElement.className = 'task';
         taskElement.draggable = true;
         taskElement.dataset.taskId = task.id;
-        
+
         const assignee = users.find(u => u.id === task.assignee);
         const priorityClass = `tag-priority-${task.priority}`;
-        
+
         taskElement.innerHTML = `
             <div class="task-title">${task.title}</div>
             <div>
@@ -86,22 +86,22 @@ const BoardModule = (() => {
                 <span>${UtilsModule.formatDate(task.dueDate)}</span>
             </div>
         `;
-        
+
         // Configurar drag and drop
         taskElement.addEventListener('dragstart', (e) => {
             e.dataTransfer.setData('taskId', task.id);
             taskElement.classList.add('dragging');
         });
-        
+
         taskElement.addEventListener('dragend', () => {
             taskElement.classList.remove('dragging');
         });
-        
+
         // Editar tarefa ao clicar
         taskElement.addEventListener('click', () => {
             ModalModule.showModal(null, task.id);
         });
-        
+
         return taskElement;
     };
 
@@ -115,7 +115,7 @@ const BoardModule = (() => {
     const moveTaskToColumn = (taskId, columnId) => {
         let tasks = StorageModule.getTasks();
         const taskIndex = tasks.findIndex(t => t.id === taskId);
-        
+
         if (taskIndex !== -1) {
             tasks[taskIndex].columnId = columnId;
             StorageModule.saveTasks(tasks);
@@ -127,51 +127,55 @@ const BoardModule = (() => {
     // Renderizar visualização Socíus
     const renderSociousView = () => {
         if (!sociousTableBody) return;
-        
+
         const tasks = StorageModule.getTasks();
         const users = StorageModule.getUsers();
         sociousTableBody.innerHTML = '';
-        
+
         tasks.forEach(task => {
             const assignee = users.find(u => u.id === task.assignee);
+            const statusInfo = UtilsModule.getStatusText(task.status);
+            const priorityInfo = UtilsModule.getPriorityText(task.priority);
+            const typeInfo = UtilsModule.getTypeText(task.type);
+
             const row = document.createElement('tr');
-            
+
             row.innerHTML = `
-                <td>
-                    <label class="checkbox-container">
-                        <div class="custom-checkbox"></div>
-                    </label>
-                </td>
-                <td>${task.title}</td>
-                <td>${assignee ? assignee.name : 'Não atribuído'}</td>
-                <td>${UtilsModule.formatDate(task.requestDate)}</td>
-                <td>${UtilsModule.getStatusText(task.status)}</td>
-                <td>${UtilsModule.getPriorityText(task.priority)}</td>
-                <td>${task.client || '-'}</td>
-                <td>${UtilsModule.getTypeText(task.type)}</td>
-                <td>
-                    <button class="action-btn" data-task-id="${task.id}">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </td>
-            `;
-            
+            <td>
+                <label class="checkbox-container">
+                    <div class="custom-checkbox"></div>
+                </label>
+            </td>
+            <td>${task.title}</td>
+            <td>${assignee ? assignee.name : 'Não atribuído'}</td>
+            <td>${UtilsModule.formatDate(task.requestDate)}</td>
+            <td class="status-${statusInfo.class}">${statusInfo.text}</td>
+            <td class="prioridade-${priorityInfo.class}">${priorityInfo.text}</td>
+            <td>${task.client || '-'}</td>
+            <td class="tipo-${typeInfo.class}">${typeInfo.text}</td>
+            <td>
+                <button class="action-btn" data-task-id="${task.id}">
+                    <i class="fas fa-edit"></i>
+                </button>
+            </td>
+        `;
+
             // Adicionar evento de clique para editar
             row.querySelector('button').addEventListener('click', (e) => {
                 const taskId = parseInt(e.currentTarget.dataset.taskId);
                 ModalModule.showModal(null, taskId);
             });
-            
+
             // Adicionar evento para o checkbox
             const checkbox = row.querySelector('.custom-checkbox');
             checkbox.addEventListener('click', (e) => {
                 e.stopPropagation();
                 checkbox.classList.toggle('checked');
             });
-            
+
             sociousTableBody.appendChild(row);
         });
-    
+
         // Configurar ordenação após renderizar a tabela
         setTimeout(() => {
             if (typeof TableSortModule !== 'undefined' && TableSortModule.setupColumnSorting) {
@@ -185,12 +189,12 @@ const BoardModule = (() => {
         if (taskBoard && sociousView) {
             taskBoard.style.display = 'flex';
             sociousView.style.display = 'none';
-            
+
             if (boardViewBtn && sociousViewBtn) {
                 boardViewBtn.classList.add('active');
                 sociousViewBtn.classList.remove('active');
             }
-            
+
             renderBoard();
         }
     };
@@ -200,12 +204,12 @@ const BoardModule = (() => {
         if (taskBoard && sociousView) {
             taskBoard.style.display = 'none';
             sociousView.style.display = 'block';
-            
+
             if (boardViewBtn && sociousViewBtn) {
                 boardViewBtn.classList.remove('active');
                 sociousViewBtn.classList.add('active');
             }
-            
+
             renderSociousView();
         }
     };
@@ -214,32 +218,32 @@ const BoardModule = (() => {
     const initBoard = () => {
         // Verificar se estamos na página correta
         if (!taskBoard && !sociousView) return;
-        
+
         // Configurar event listeners para alternância de visualização
         if (boardViewBtn) {
             boardViewBtn.addEventListener('click', showBoardView);
         }
-        
+
         if (sociousViewBtn) {
             sociousViewBtn.addEventListener('click', showSociousView);
         }
-        
+
         // Configurar botão de adicionar tarefa na visualização Socíus
         if (addTaskSocious) {
             addTaskSocious.addEventListener('click', () => {
                 ModalModule.showModal(1); // Coluna "Pendente"
             });
         }
-        
+
         // Configurar dropdown de usuário
         const userDropdown = document.getElementById('userDropdown');
         const userMenu = document.getElementById('userMenu');
-        
+
         if (userDropdown && userMenu) {
             userDropdown.addEventListener('click', () => {
                 userMenu.classList.toggle('show');
             });
-            
+
             // Fechar dropdown ao clicar fora
             document.addEventListener('click', (e) => {
                 if (!userDropdown.contains(e.target) && !userMenu.contains(e.target)) {
@@ -247,10 +251,10 @@ const BoardModule = (() => {
                 }
             });
         }
-        
+
         // Inicializar com a visualização de board
         showBoardView();
-        
+
         // Ouvir eventos de atualização de tarefas
         window.addEventListener('tasksUpdated', () => {
             if (taskBoard.style.display !== 'none') {
