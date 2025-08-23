@@ -31,7 +31,7 @@ const UtilsModule = (() => {
     const statusMap = {
       pending: { text: "Pendente", class: "pendente" },
       in_progress: { text: "Em Andamento", class: "em-andamento" },
-      review: { text: "Em Teste", class: "em-teste" },
+      review: { text: "Em Teste", class: "review" },
       completed: { text: "Concluído", class: "concluido" },
     };
     return statusMap[status] || { text: status, class: "desconhecido" };

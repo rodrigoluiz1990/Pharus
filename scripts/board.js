@@ -91,13 +91,12 @@ const BoardModule = (() => {
             <span class="task-tag ${typeClass}">${typeInfo.text}</span>
         </div>
         <div class="task-meta">
-            <span class="task-assignee">${
-              assignee ? assignee.name : "Não atribuído"
-            }</span>
+            <span class="task-assignee">${assignee ? assignee.name : "Não atribuído"
+      }</span>
             <span class="task-client">${task.client || "Sem cliente"}</span>
             <span class="task-due-date">${UtilsModule.formatDate(
-              task.dueDate
-            )}</span>
+        task.dueDate
+      )}</span>
         </div>
     `;
 
@@ -125,6 +124,29 @@ const BoardModule = (() => {
     return tasks.filter((task) => task.columnId === columnId);
   };
 
+  // Obter o status correspondente ao ID da coluna
+  const getStatusFromColumnId = (columnId) => {
+    const columns = StorageModule.getColumns();
+    const column = columns.find(c => c.id === columnId);
+
+    if (column) {
+      // Mapear o título da coluna para o valor de status correspondente
+      switch (column.title) {
+        case 'Pendente':
+          return 'pending';
+        case 'Em Andamento':
+          return 'in_progress';
+        case 'Em Teste':
+          return 'review';
+        case 'Concluído':
+          return 'completed';
+        default:
+          return 'pending'; // Valor padrão
+      }
+    }
+    return 'pending'; // Valor padrão se não encontrar a coluna
+  };
+
   // Mover tarefa para outra coluna
   const moveTaskToColumn = (taskId, columnId) => {
     let tasks = StorageModule.getTasks();
@@ -132,6 +154,7 @@ const BoardModule = (() => {
 
     if (taskIndex !== -1) {
       tasks[taskIndex].columnId = columnId;
+      tasks[taskIndex].status = getStatusFromColumnId(columnId); // Atualizar o status com base na coluna de destino
       StorageModule.saveTasks(tasks);
       return true;
     }
@@ -183,9 +206,8 @@ const BoardModule = (() => {
             <td>${UtilsModule.formatDate(task.requestDate)}</td>
             <td ${dataAttribute}>${UtilsModule.formatDate(task.dueDate)}</td>
             <td class="status-${statusInfo.class}">${statusInfo.text}</td>
-            <td class="prioridade-${priorityInfo.class}">${
-        priorityInfo.text
-      }</td>
+            <td class="prioridade-${priorityInfo.class}">${priorityInfo.text
+        }</td>
             <td>${task.client || "-"}</td>
             <td class="tipo-${typeInfo.class}">${typeInfo.text}</td>
             <td>
