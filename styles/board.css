@@ -73,7 +73,7 @@
     display: inline-block;
     padding: 3px 8px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
 }
 
@@ -122,7 +122,7 @@
 .task-meta {
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-light);
     margin-top: 8px;
 }
@@ -178,42 +178,26 @@
 .socious-table {
     width: 100%;
     border-collapse: collapse;
+    font-size: 14px;
 }
 
 .socious-table th {
     position: relative;
     user-select: none;
     background-color: var(--secondary-color);
-    padding: 12px 15px;
-    text-align: left;
+    padding: 12px 8px;
+    text-align: center;
     font-weight: 600;
     border-bottom: 1px solid var(--border-color);
-}
-
-.socious-table th.sort-asc::after {
-    content: ' ▲';
-    font-size: 12px;
-    opacity: 0.7;
-}
-
-.socious-table th.sort-desc::after {
-    content: ' ▼';
-    font-size: 12px;
-    opacity: 0.7;
-}
-
-.socious-table th:hover {
-    background-color: #e0e0e0;
-}
-
-/* Melhorar visualização dos cabeçalhos clicáveis */
-.socious-table th[title="Clique para ordenar"]:hover {
-    background-color: var(--secondary-color);
+    font-size: 16px;
+    white-space: nowrap;
 }
 
 .socious-table td {
-    padding: 12px 15px;
+    padding: 10px 8px;
     border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+    text-align: center;
 }
 
 .socious-table tr:last-child td {
@@ -221,7 +205,100 @@
 }
 
 .socious-table tr:hover {
-    background-color: var(--secondary-color);
+    background-color: #f8f9fa;
+}
+
+/* Striped rows para melhor legibilidade */
+.socious-table tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+.socious-table tr:nth-child(even):hover {
+    background-color: #f0f0f0;
+}
+
+/* ===== AJUSTES ESPECÍFICOS PARA AS COLUNAS ===== */
+
+/* Remover negrito das datas de entrega */
+.socious-table td:nth-child(5) {
+    font-weight: normal;
+}
+
+/* Ajustar largura das colunas de data */
+.socious-table th:nth-child(4),
+.socious-table th:nth-child(5),
+.socious-table td:nth-child(4),
+.socious-table td:nth-child(5) {
+    width: 120px;
+    min-width: 120px;
+    max-width: 120px;
+    font-size: 14px;
+}
+
+/* Coluna de tarefa com mais espaço */
+.socious-table td:nth-child(2) {
+    text-align: left;
+    min-width: 170px;
+}
+
+/* Coluna de responsável */
+.socious-table td:nth-child(3) {
+    text-align: center;
+    min-width: 110px;
+}
+
+/* Coluna de cliente */
+.socious-table td:nth-child(8) {
+    text-align: center;
+    min-width: 100px;
+    font-weight: normal;
+}
+
+/* Colunas de status, prioridade e tipo */
+.socious-table td:nth-child(6),
+.socious-table td:nth-child(7),
+.socious-table td:nth-child(9) {
+    min-width: 100px;
+    font-weight: normal;
+}
+
+/* Checkbox mais centralizado */
+.socious-table td:first-child {
+    padding: 10px 5px;
+    width: 40px;
+}
+
+/* Ação centralizada */
+.socious-table td:last-child {
+    padding: 10px 5px;
+    width: 80px;
+}
+
+/* Destaque para datas vencidas */
+.socious-table td:nth-child(5):not(:empty) {
+    position: relative;
+}
+
+.socious-table td[data-vencida="true"] {
+    color: #dc3545;
+    font-weight: normal;
+}
+
+.socious-table td[data-hoje="true"] {
+    color: #28a745;
+    font-weight: normal;
+}
+
+.socious-table td[data-futura="true"] {
+    color: #6c757d;
+    font-weight: normal;
+}
+
+/* Indicador visual para datas vencidas */
+.socious-table td[data-vencida="true"]::before {
+    content: "⚠️";
+    margin-right: 4px;
+    font-size: 14px;
 }
 
 /* Ajustes responsivos para telas menores */

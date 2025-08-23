@@ -144,6 +144,9 @@ const BoardModule = (() => {
 
     const tasks = StorageModule.getTasks();
     const users = StorageModule.getUsers();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Remover hora para comparar apenas datas
+
     sociousTableBody.innerHTML = "";
 
     tasks.forEach((task) => {
@@ -154,6 +157,21 @@ const BoardModule = (() => {
 
       const row = document.createElement("tr");
 
+      // Verificar se a data de entrega está vencida
+      let dataAttribute = "";
+      if (task.dueDate) {
+        const dueDate = new Date(task.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+
+        if (dueDate < today) {
+          dataAttribute = 'data-vencida="true"';
+        } else if (dueDate.getTime() === today.getTime()) {
+          dataAttribute = 'data-hoje="true"';
+        } else {
+          dataAttribute = 'data-futura="true"';
+        }
+      }
+
       row.innerHTML = `
             <td>
                 <label class="checkbox-container">
@@ -163,6 +181,7 @@ const BoardModule = (() => {
             <td>${task.title}</td>
             <td>${assignee ? assignee.name : "Não atribuído"}</td>
             <td>${UtilsModule.formatDate(task.requestDate)}</td>
+            <td ${dataAttribute}>${UtilsModule.formatDate(task.dueDate)}</td>
             <td class="status-${statusInfo.class}">${statusInfo.text}</td>
             <td class="prioridade-${priorityInfo.class}">${
         priorityInfo.text
