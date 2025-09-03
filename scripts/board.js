@@ -193,17 +193,87 @@ const BoardModule = (() => {
         if (btn) {
             btn.addEventListener("click", (e) => {
                 e.stopPropagation();
-                const id = e.currentTarget.dataset.taskId;
-                ModalModule.showModal(null, id);
+                const id = taskId;
+                console.log('Editando tarefa:', id);
+                
+                // Solução direta - sempre usar o fallback
+                openTaskModalFallback(id);
             });
         }
-
+    
         const checkbox = row.querySelector(".custom-checkbox");
         if (checkbox) {
             checkbox.addEventListener("click", (e) => {
                 e.stopPropagation();
                 checkbox.classList.toggle("checked");
             });
+        }
+    };
+
+    // Função fallback para abrir modal
+    const openTaskModalFallback = async (taskId) => {
+        const modalOverlay = document.getElementById('taskModal');
+        if (!modalOverlay) {
+            console.error('Modal não encontrado');
+            return;
+        }
+
+        try {
+            // Buscar tarefa
+            const tasks = await StorageModule.getTasks();
+            const task = tasks.find(t => t.id === taskId);
+
+            if (task) {
+                // Preencher formulário
+                document.getElementById('taskId').value = task.id;
+                document.getElementById('taskTitle').value = task.title || '';
+                document.getElementById('taskDescription').value = task.description || '';
+                document.getElementById('taskStatus').value = task.status || 'pending';
+                document.getElementById('taskPriority').value = task.priority || 'medium';
+                document.getElementById('taskAssignee').value = task.assignee || '';
+
+                // Format dates for input
+                document.getElementById('taskRequestDate').value = task.request_date ?
+                    UtilsModule.formatDateForInput(task.request_date) : '';
+                document.getElementById('taskDueDate').value = task.due_date ?
+                    UtilsModule.formatDateForInput(task.due_date) : '';
+
+                document.getElementById('taskObservation').value = task.observation || '';
+                document.getElementById('taskJira').value = task.jira || '';
+                document.getElementById('taskClient').value = task.client || '';
+                document.getElementById('taskType').value = task.type || 'task';
+
+                // Mostrar botão de excluir
+                const deleteTaskBtn = document.getElementById('deleteTask');
+                if (deleteTaskBtn) {
+                    deleteTaskBtn.style.display = 'block';
+                }
+
+                document.getElementById('modalTitle').textContent = 'Editar Tarefa';
+            }
+
+            // Mostrar modal
+            modalOverlay.classList.add('visible');
+
+        } catch (error) {
+            console.error('Erro ao abrir modal de edição:', error);
+            alert('Erro ao carregar dados da tarefa');
+        }
+    };
+
+    // Função para atualizar conclusão da tarefa
+    const updateTaskCompletion = async (taskId, completed) => {
+        try {
+            await StorageModule.updateTask(taskId, {
+                completed: completed,
+                status: completed ? 'completed' : 'pending'
+            });
+
+            // Atualizar interface
+            window.dispatchEvent(new CustomEvent('tasksUpdated'));
+
+        } catch (error) {
+            console.error('Erro ao atualizar status da tarefa:', error);
         }
     };
 
@@ -337,8 +407,8 @@ const BoardModule = (() => {
 
     const getDateAttribute = (dueDate) => {
         if (!dueDate) return '';
-        const today = new Date(); today.setHours(0,0,0,0);
-        const due = new Date(dueDate); due.setHours(0,0,0,0);
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const due = new Date(dueDate); due.setHours(0, 0, 0, 0);
         if (due < today) return 'data-vencida="true"';
         if (due.getTime() === today.getTime()) return 'data-hoje="true"';
         return 'data-futura="true"';
@@ -349,7 +419,7 @@ const BoardModule = (() => {
             const currentColumns = await StorageModule.getColumns();
             const column = currentColumns.find(c => c.id === columnId);
             if (column && column.status) return column.status;
-            const columnTypeMap = { 1:'pending',2:'in_progress',3:'review',4:'completed' };
+            const columnTypeMap = { 1: 'pending', 2: 'in_progress', 3: 'review', 4: 'completed' };
             return columnTypeMap[columnId] || 'pending';
         } catch (error) {
             console.error('Erro ao buscar status da coluna:', error);
