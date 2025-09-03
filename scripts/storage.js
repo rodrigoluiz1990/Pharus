@@ -1,140 +1,201 @@
-// Módulo de armazenamento de dados
 const StorageModule = (() => {
-    // Chaves para localStorage
-    const STORAGE_KEYS = {
-        USERS: 'pharus_users',
-        CURRENT_USER: 'pharus_currentUser',
-        COLUMNS: 'pharus_columns',
-        TASKS: 'pharus_tasks'
+    const LS_KEYS = {
+        CURRENT_USER: 'pharus_currentUser'
     };
 
-    // Dados iniciais
-    const initialUsers = [
-        { id: 1, name: "Admin", email: "admin@pharus.com", password: "admin123" },
-        { id: 2, name: "João Silva", email: "joao@pharus.com", password: "joao123" },
-        { id: 3, name: "Maria Santos", email: "maria@pharus.com", password: "maria123" }
-    ];
+    // --------- Sessão ----------
+    const getCurrentUser = () => {
+        const raw = localStorage.getItem(LS_KEYS.CURRENT_USER);
+        return raw ? JSON.parse(raw) : null;
+    };
 
-    const initialColumns = [
-        { id: 1, title: "Pendente", type: "status" },
-        { id: 2, title: "Em Andamento", type: "status" },
-        { id: 3, title: "Em Teste", type: "status" },
-        { id: 4, title: "Concluído", type: "status" }
-    ];
+    const saveCurrentUser = (user) => {
+        localStorage.setItem(LS_KEYS.CURRENT_USER, JSON.stringify(user));
+    };
 
-    const initialTasks = [
-        { 
-            id: 1, 
-            title: "Implementar login", 
-            description: "Criar sistema de autenticação de usuários", 
-            status: "in_progress", // Alterado para string
-            priority: "medium", // Alterado para string
-            assignee: 2, 
-            requestDate: "2023-05-10", 
-            dueDate: "2023-05-20", 
-            observation: "Prioridade máxima", 
-            jira: "PHAR-123", 
-            client: "Interno", 
-            type: "task", // Alterado para string
-            columnId: 2
-        },
-        { 
-            id: 2, 
-            title: "Corrigir bug relatório", 
-            description: "Relatório não está exibindo dados corretamente", 
-            status: "pending", // Alterado para string
-            priority: "medium", // Alterado para string
-            assignee: 2, 
-            requestDate: "2023-05-15", 
-            dueDate: "2023-05-25", 
-            observation: "Verificar com equipe de dados", 
-            jira: "PHAR-456", 
-            client: "Cliente A", 
-            type: "bug", // Alterado para string
-            columnId: 1
-        },
-        {
-            id: 3,
-            title: 'Atualizar documentação',
-            description: 'Atualizar documentação do projeto',
-            status: "completed", // Alterado para string
-            priority: "low", // Alterado para string
-            assignee: 3,
-            requestDate: '2023-05-18',
-            dueDate: '2023-05-30',
-            observation: 'Documentação técnica',
-            jira: 'PHAR-789',
-            client: 'Interno',
-            type: "task", // Alterado para string
-            columnId: 3
-        }
-    ];
+    const removeCurrentUser = () => {
+        localStorage.removeItem(LS_KEYS.CURRENT_USER);
+    };
 
-    // Inicializar dados se não existirem
-    const initializeData = () => {
-        if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-            localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(initialUsers));
-        }
-        
-        if (!localStorage.getItem(STORAGE_KEYS.COLUMNS)) {
-            localStorage.setItem(STORAGE_KEYS.COLUMNS, JSON.stringify(initialColumns));
-        }
-        
-        if (!localStorage.getItem(STORAGE_KEYS.TASKS)) {
-            localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(initialTasks));
+    // --------- Users ----------
+    const getUsers = async () => {
+        try {
+            const { data, error } = await supabaseClient
+                .from('users')
+                .select('id, name, email')
+                .order('name');
+            
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Erro ao buscar usuários:', error);
+            return [];
         }
     };
 
-    // Obter dados
-    const getData = (key) => {
-        const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : null;
+    const findUserByCredentials = async (email, password) => {
+        try {
+            const { data, error } = await supabaseClient
+                .from('users')
+                .select('id, name, email')
+                .eq('email', email)
+                .eq('password', password)
+                .maybeSingle();
+            
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Erro ao autenticar:', error);
+            return null;
+        }
     };
 
-    // Salvar dados
-    const saveData = (key, data) => {
-        localStorage.setItem(key, JSON.stringify(data));
+    const createUser = async (userData) => {
+        try {
+            const { data, error } = await supabaseClient
+                .from('users')
+                .insert([userData])
+                .select('id, name, email')
+                .single();
+            
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Erro ao criar usuário:', error);
+            return null;
+        }
     };
 
-    // Obter usuários
-    const getUsers = () => getData(STORAGE_KEYS.USERS) || [];
+    // --------- Columns ----------
+    const getColumns = async () => {
+        try {
+            const { data, error } = await supabaseClient
+                .from('columns')
+                .select('*')
+                .order('position');
+            
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Erro ao buscar colunas:', error);
+            return [];
+        }
+    };
 
-    // Salvar usuários
-    const saveUsers = (users) => saveData(STORAGE_KEYS.USERS, users);
+    const createDefaultColumns = async () => {
+        const defaultColumns = [
+            { title: 'A Fazer', type: 'pending', position: 0 },
+            { title: 'Em Andamento', type: 'in_progress', position: 1 },
+            { title: 'Em Teste', type: 'review', position: 2 },
+            { title: 'Concluído', type: 'completed', position: 3 }
+        ];
 
-    // Obter usuário atual
-    const getCurrentUser = () => getData(STORAGE_KEYS.CURRENT_USER);
+        try {
+            const { data, error } = await supabaseClient
+                .from('columns')
+                .insert(defaultColumns)
+                .select('*');
+            
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Erro ao criar colunas padrão:', error);
+            return [];
+        }
+    };
 
-    // Salvar usuário atual
-    const saveCurrentUser = (user) => saveData(STORAGE_KEYS.CURRENT_USER, user);
+    // --------- Tasks ----------
+    const getTasks = async () => {
+        try {
+            const { data, error } = await supabaseClient
+                .from('tasks')
+                .select(`
+                    *,
+                    assignee:users(id, name, email)
+                `)
+                .order('created_at');
+            
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Erro ao buscar tarefas:', error);
+            return [];
+        }
+    };
 
-    // Remover usuário atual (logout)
-    const removeCurrentUser = () => localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    const saveTask = async (task) => {
+        try {
+            const { data, error } = await supabaseClient
+                .from('tasks')
+                .insert([task])
+                .select(`
+                    *,
+                    assignee:users(id, name, email)
+                `)
+                .single();
+            
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Erro ao salvar tarefa:', error);
+            return null;
+        }
+    };
 
-    // Obter colunas
-    const getColumns = () => getData(STORAGE_KEYS.COLUMNS) || [];
+    const updateTask = async (id, updates) => {
+        try {
+            const { data, error } = await supabaseClient
+                .from('tasks')
+                .update({ ...updates, updated_at: new Date().toISOString() })
+                .eq('id', id)
+                .select(`
+                    *,
+                    assignee:users(id, name, email)
+                `)
+                .single();
+            
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Erro ao atualizar tarefa:', error);
+            return null;
+        }
+    };
 
-    // Salvar colunas
-    const saveColumns = (columns) => saveData(STORAGE_KEYS.COLUMNS, columns);
-
-    // Obter tarefas
-    const getTasks = () => getData(STORAGE_KEYS.TASKS) || [];
-
-    // Salvar tarefas
-    const saveTasks = (tasks) => saveData(STORAGE_KEYS.TASKS, tasks);
-
-    // Inicializar os dados ao carregar o script
-    initializeData();
+    const deleteTask = async (id) => {
+        try {
+            const { error } = await supabaseClient
+                .from('tasks')
+                .delete()
+                .eq('id', id);
+            
+            if (error) throw error;
+            return true;
+        } catch (error) {
+            console.error('Erro ao deletar tarefa:', error);
+            return false;
+        }
+    };
 
     return {
-        getUsers,
-        saveUsers,
+        // sessão
         getCurrentUser,
         saveCurrentUser,
         removeCurrentUser,
+        
+        // users
+        getUsers,
+        createUser,
+        findUserByCredentials,
+        
+        // colunas
         getColumns,
-        saveColumns,
+        createDefaultColumns,
+        
+        // tarefas
         getTasks,
-        saveTasks
+        saveTask,
+        updateTask,
+        deleteTask
     };
 })();

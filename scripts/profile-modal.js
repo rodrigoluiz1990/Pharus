@@ -1,149 +1,144 @@
-// Módulo do modal de perfil - Versão Simplificada
+// Módulo do modal de perfil - Supabase
 const ProfileModule = (() => {
-    
+
     // Mostrar modal de perfil
-    const showProfileModal = () => {
+    const showProfileModal = async () => {
         const profileModal = document.getElementById('profileModal');
-        const currentUser = JSON.parse(localStorage.getItem('pharus_currentUser'));
-        
-        if (profileModal && currentUser) {
-            // Preencher formulário com dados atuais
-            document.getElementById('profileName').value = currentUser.name || '';
-            document.getElementById('profileEmail').value = currentUser.email || '';
-            
-            // Limpar campos de senha
+        if (!profileModal) return;
+    
+        try {
+            // Obter sessão atual
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError) throw sessionError;
+    
+            const user = session?.user;
+            if (!user) throw new Error('Usuário não logado');
+    
+            // Buscar perfil completo na tabela profiles
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+            if (profileError) throw profileError;
+    
+            // Preencher formulário
+            document.getElementById('profileName').value = profile.full_name || '';
+            document.getElementById('profileEmail').value = user.email || '';
             document.getElementById('profileCurrentPassword').value = '';
             document.getElementById('profileNewPassword').value = '';
             document.getElementById('profileConfirmPassword').value = '';
-            
+    
             profileModal.style.display = 'flex';
+        } catch (error) {
+            console.error('Erro ao carregar perfil:', error);
+            alert('Erro ao carregar dados do perfil: ' + error.message);
         }
     };
-    
+   
+
     // Fechar modal de perfil
     const hideProfileModal = () => {
         const profileModal = document.getElementById('profileModal');
-        if (profileModal) {
-            profileModal.style.display = 'none';
-        }
+        if (profileModal) profileModal.style.display = 'none';
     };
-    
+
     // Salvar alterações do perfil
     const saveProfile = async (e) => {
         if (e) e.preventDefault();
-        
-        const currentUser = JSON.parse(localStorage.getItem('pharus_currentUser'));
-        if (!currentUser) {
-            alert('Usuário não encontrado. Faça login novamente.');
-            return;
-        }
-        
-        const name = document.getElementById('profileName').value;
-        const email = document.getElementById('profileEmail').value;
-        const currentPassword = document.getElementById('profileCurrentPassword').value;
-        const newPassword = document.getElementById('profileNewPassword').value;
-        const confirmPassword = document.getElementById('profileConfirmPassword').value;
-        
+
         try {
-            // Validar alterações de senha
+            const name = document.getElementById('profileName').value;
+            const email = document.getElementById('profileEmail').value;
+            const currentPassword = document.getElementById('profileCurrentPassword').value;
+            const newPassword = document.getElementById('profileNewPassword').value;
+            const confirmPassword = document.getElementById('profileConfirmPassword').value;
+
             if (newPassword && !currentPassword) {
                 throw new Error('Digite a senha atual para alterar a senha.');
             }
-            
-            if (newPassword !== confirmPassword) {
+            if (newPassword && newPassword !== confirmPassword) {
                 throw new Error('As novas senhas não coincidem.');
             }
-            
             if (newPassword && newPassword.length < 6) {
                 throw new Error('A nova senha deve ter pelo menos 6 caracteres.');
             }
-            
-            // Verificar senha atual se for alterar a senha
-            if (newPassword && currentPassword !== currentUser.password) {
-                throw new Error('Senha atual incorreta.');
+
+            // Obter usuário atual do Supabase
+            const { data, error: authError } = await supabase.auth.getUser();
+            if (authError) throw authError;
+            const user = data.user;
+            if (!user) throw new Error('Usuário não encontrado');
+
+            // Atualizar email se necessário
+            if (email !== user.email) {
+                const { data: updatedUser, error: updateError } = await supabase.auth.updateUser({ email });
+                if (updateError) throw updateError;
             }
-            
-            // Atualizar usuário
-            const users = await StorageModule.getUsers();
-            const userIndex = users.findIndex(u => u.id === currentUser.id);
-            
-            if (userIndex === -1) {
-                throw new Error('Usuário não encontrado.');
-            }
-            
-            // Atualizar dados
-            users[userIndex].name = name;
-            users[userIndex].email = email;
-            
+
             // Atualizar senha se fornecida
             if (newPassword) {
-                users[userIndex].password = newPassword;
+                const { data: pwdData, error: pwdError } = await supabase.auth.updateUser({ password: newPassword });
+                if (pwdError) throw pwdError;
             }
-            
-            // Salvar alterações
-            await StorageModule.saveUsers(users);
-            
-            // Atualizar usuário atual na sessão
-            if (currentUser.id === users[userIndex].id) {
-                localStorage.setItem('pharus_currentUser', JSON.stringify(users[userIndex]));
-                
-                // Atualizar nome exibido
-                const userNameElement = document.getElementById('userName');
-                if (userNameElement) {
-                    userNameElement.textContent = users[userIndex].name;
-                }
-            }
-            
+
+            // Atualizar nome na tabela profiles
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .update({ full_name: name, updated_at: new Date().toISOString() })
+                .eq('id', user.id);
+            if (profileError) throw profileError;
+
             alert('Perfil atualizado com sucesso!');
             hideProfileModal();
-            
+
+            // Atualizar nome exibido
+            const userNameElement = document.getElementById('userName');
+            if (userNameElement) userNameElement.textContent = name;
+
         } catch (error) {
+            console.error('Erro ao atualizar perfil:', error);
             alert('Erro ao atualizar perfil: ' + error.message);
         }
     };
-    
+
     // Inicializar módulo
     const initProfileModule = () => {
         const profileModal = document.getElementById('profileModal');
         if (!profileModal) return;
-        
-        // Configurar event listeners
+
         const profileForm = document.getElementById('profileForm');
         const closeProfileModal = document.getElementById('closeProfileModal');
         const cancelProfile = document.getElementById('cancelProfile');
-        
-        if (profileForm) {
-            profileForm.addEventListener('submit', saveProfile);
+        const profileBtn = document.getElementById('profileBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        if (profileForm) profileForm.addEventListener('submit', saveProfile);
+        if (closeProfileModal) closeProfileModal.addEventListener('click', hideProfileModal);
+        if (cancelProfile) cancelProfile.addEventListener('click', hideProfileModal);
+        if (profileModal) {
+            profileModal.addEventListener('click', (e) => {
+                if (e.target === profileModal) hideProfileModal();
+            });
         }
-        
-        if (closeProfileModal) {
-            closeProfileModal.addEventListener('click', hideProfileModal);
-        }
-        
-        if (cancelProfile) {
-            cancelProfile.addEventListener('click', hideProfileModal);
-        }
-        
-        // Fechar modal ao clicar fora dele
-        profileModal.addEventListener('click', (e) => {
-            if (e.target === profileModal) {
-                hideProfileModal();
-            }
-        });
-        
-        // Configurar item de menu "Meu Perfil" - CORREÇÃO PRINCIPAL
-        const profileMenuItems = document.querySelectorAll('.dropdown-item');
-        if (profileMenuItems.length > 0) {
-            // O primeiro item é "Meu Perfil"
-            profileMenuItems[0].addEventListener('click', (e) => {
+
+        if (profileBtn) {
+            profileBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 showProfileModal();
             });
         }
-        
+
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                AuthModule.logout();
+            });
+        }
+
         console.log('Módulo de perfil inicializado');
     };
-    
+
     return {
         initProfileModule,
         showProfileModal,

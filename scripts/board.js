@@ -1,201 +1,137 @@
-// Módulo do quadro de tarefas
+// board.js — VERSÃO AJUSTADA (mantém estrutura original, dropdown robusto)
+
 const BoardModule = (() => {
-  const taskBoard = document.getElementById("taskBoard");
-  const sociousView = document.getElementById("sociousView");
-  const sociousTableBody = document.getElementById("sociousTableBody");
-  const boardViewBtn = document.getElementById("boardViewBtn");
-  const sociousViewBtn = document.getElementById("sociousViewBtn");
-  const addTaskSocious = document.getElementById("addTaskSocious");
+    // Elementos do DOM (mantive fora para reuso)
+    const taskBoard = document.getElementById("taskBoard");
+    const sociousView = document.getElementById("sociousView");
+    const sociousTableBody = document.getElementById("sociousTableBody");
+    const boardViewBtn = document.getElementById("boardViewBtn");
+    const sociousViewBtn = document.getElementById("sociousViewBtn");
+    const addTaskSocious = document.getElementById("addTaskSocious");
 
-  // Renderizar o board
-  const renderBoard = () => {
-    if (!taskBoard) return;
+    // Dados
+    let tasks = [];
+    let columns = [];
+    let users = [];
 
-    taskBoard.innerHTML = "";
+    // proteção para inicializar dropdown só 1 vez
+    let dropdownInitialized = false;
 
-    const columns = StorageModule.getColumns();
-    const users = StorageModule.getUsers();
+    // ========== FUNÇÕES PRINCIPAIS ========== //
 
-    columns.forEach((column) => {
-      const columnElement = document.createElement("div");
-      columnElement.className = "column";
-      columnElement.dataset.columnId = column.id;
-
-      const columnHeader = document.createElement("div");
-      columnHeader.className = "column-header";
-      columnHeader.innerHTML = `
-                <span>${column.title}</span>
-                <span>${getTasksByColumn(column.id).length}</span>
-            `;
-
-      const columnContent = document.createElement("div");
-      columnContent.className = "column-content";
-
-      // Adicionar tarefas à coluna
-      getTasksByColumn(column.id).forEach((task) => {
-        const taskElement = createTaskElement(task, users);
-        columnContent.appendChild(taskElement);
-      });
-
-      // Botão para adicionar nova tarefa
-      const addButton = document.createElement("button");
-      addButton.className = "add-task-btn";
-      addButton.innerHTML = '<i class="fas fa-plus"></i> Adicionar tarefa';
-      addButton.addEventListener("click", () => {
-        ModalModule.showModal(column.id);
-      });
-
-      columnContent.appendChild(addButton);
-
-      // Configurar drag and drop
-      columnContent.addEventListener("dragover", (e) => {
-        e.preventDefault();
-      });
-
-      columnContent.addEventListener("drop", (e) => {
-        e.preventDefault();
-        const taskId = e.dataTransfer.getData("taskId");
-        moveTaskToColumn(parseInt(taskId), column.id);
-        renderBoard();
-      });
-
-      columnElement.appendChild(columnHeader);
-      columnElement.appendChild(columnContent);
-      taskBoard.appendChild(columnElement);
-    });
-  };
-
-  // Criar elemento de tarefa
-  const createTaskElement = (task, users) => {
-    const taskElement = document.createElement("div");
-    taskElement.className = "task";
-    taskElement.draggable = true;
-    taskElement.dataset.taskId = task.id;
-
-    const assignee = users.find((u) => u.id === task.assignee);
-
-    // Obter as informações corretamente (agora retornam objetos)
-    const statusInfo = UtilsModule.getStatusText(task.status);
-    const priorityInfo = UtilsModule.getPriorityText(task.priority);
-    const typeInfo = UtilsModule.getTypeText(task.type);
-
-    // Corrigir a classe de prioridade para usar o valor correto
-    const priorityClass = `tag-priority-${priorityInfo.class}`;
-    const typeClass = `tag-type-${typeInfo.class}`;
-
-    taskElement.innerHTML = `
-        <div class="task-title">${task.title}</div>
-        <div class="task-tags">
-            <span class="task-tag tag-status">${statusInfo.text}</span>
-            <span class="task-tag ${priorityClass}">${priorityInfo.text}</span>
-            <span class="task-tag ${typeClass}">${typeInfo.text}</span>
-        </div>
-        <div class="task-meta">
-            <span class="task-assignee">${assignee ? assignee.name : "Não atribuído"
-      }</span>
-            <span class="task-client">${task.client || "Sem cliente"}</span>
-            <span class="task-due-date">${UtilsModule.formatDate(
-        task.dueDate
-      )}</span>
-        </div>
-    `;
-
-    // Configurar drag and drop
-    taskElement.addEventListener("dragstart", (e) => {
-      e.dataTransfer.setData("taskId", task.id);
-      taskElement.classList.add("dragging");
-    });
-
-    taskElement.addEventListener("dragend", () => {
-      taskElement.classList.remove("dragging");
-    });
-
-    // Editar tarefa ao clicar
-    taskElement.addEventListener("click", () => {
-      ModalModule.showModal(null, task.id);
-    });
-
-    return taskElement;
-  };
-
-  // Obter tarefas por coluna
-  const getTasksByColumn = (columnId) => {
-    const tasks = StorageModule.getTasks();
-    return tasks.filter((task) => task.columnId === columnId);
-  };
-
-  // Obter o status correspondente ao ID da coluna
-  const getStatusFromColumnId = (columnId) => {
-    const columns = StorageModule.getColumns();
-    const column = columns.find(c => c.id === columnId);
-
-    if (column) {
-      // Mapear o título da coluna para o valor de status correspondente
-      switch (column.title) {
-        case 'Pendente':
-          return 'pending';
-        case 'Em Andamento':
-          return 'in_progress';
-        case 'Em Teste':
-          return 'review';
-        case 'Concluído':
-          return 'completed';
-        default:
-          return 'pending'; // Valor padrão
-      }
-    }
-    return 'pending'; // Valor padrão se não encontrar a coluna
-  };
-
-  // Mover tarefa para outra coluna
-  const moveTaskToColumn = (taskId, columnId) => {
-    let tasks = StorageModule.getTasks();
-    const taskIndex = tasks.findIndex((t) => t.id === taskId);
-
-    if (taskIndex !== -1) {
-      tasks[taskIndex].columnId = columnId;
-      tasks[taskIndex].status = getStatusFromColumnId(columnId); // Atualizar o status com base na coluna de destino
-      StorageModule.saveTasks(tasks);
-      return true;
-    }
-    return false;
-  };
-
-  // Renderizar visualização Socíus
-  const renderSociousView = () => {
-    if (!sociousTableBody) return;
-
-    const tasks = StorageModule.getTasks();
-    const users = StorageModule.getUsers();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Remover hora para comparar apenas datas
-
-    sociousTableBody.innerHTML = "";
-
-    tasks.forEach((task) => {
-      const assignee = users.find((u) => u.id === task.assignee);
-      const statusInfo = UtilsModule.getStatusText(task.status);
-      const priorityInfo = UtilsModule.getPriorityText(task.priority);
-      const typeInfo = UtilsModule.getTypeText(task.type);
-
-      const row = document.createElement("tr");
-
-      // Verificar se a data de entrega está vencida
-      let dataAttribute = "";
-      if (task.dueDate) {
-        const dueDate = new Date(task.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
-
-        if (dueDate < today) {
-          dataAttribute = 'data-vencida="true"';
-        } else if (dueDate.getTime() === today.getTime()) {
-          dataAttribute = 'data-hoje="true"';
-        } else {
-          dataAttribute = 'data-futura="true"';
+    const loadData = async () => {
+        try {
+            [columns, tasks, users] = await Promise.all([
+                StorageModule.getColumns(),
+                StorageModule.getTasks(),
+                StorageModule.getUsers()
+            ]);
+        } catch (error) {
+            console.error('Erro ao carregar dados:', error);
         }
-      }
+    };
 
-      row.innerHTML = `
+    const renderBoard = async () => {
+        if (!taskBoard) return;
+        await loadData();
+        taskBoard.innerHTML = "";
+        columns.forEach((column) => {
+            const columnElement = createColumnElement(column);
+            taskBoard.appendChild(columnElement);
+        });
+    };
+
+    const renderSociousView = async () => {
+        if (!sociousTableBody) return;
+        await loadData();
+        sociousTableBody.innerHTML = "";
+        tasks.forEach((task) => {
+            const row = createTableRow(task);
+            sociousTableBody.appendChild(row);
+        });
+        setupTableSorting();
+    };
+
+    // ========== FUNÇÕES AUXILIARES ========== //
+
+    const createColumnElement = (column) => {
+        const columnElement = document.createElement("div");
+        columnElement.className = "column";
+        columnElement.dataset.columnId = column.id;
+
+        const columnHeader = document.createElement("div");
+        columnHeader.className = "column-header";
+        columnHeader.innerHTML = `
+            <span>${column.title}</span>
+            <span>${getTasksByColumn(column.id).length}</span>
+        `;
+
+        const columnContent = document.createElement("div");
+        columnContent.className = "column-content";
+
+        getTasksByColumn(column.id).forEach((task) => {
+            const taskElement = createTaskElement(task);
+            columnContent.appendChild(taskElement);
+        });
+
+        const addButton = document.createElement("button");
+        addButton.className = "add-task-btn";
+        addButton.innerHTML = '<i class="fas fa-plus"></i> Adicionar tarefa';
+        addButton.addEventListener("click", () => {
+            ModalModule.showModal(column.id);
+        });
+
+        columnContent.appendChild(addButton);
+        setupColumnDragDrop(columnContent, column.id);
+
+        columnElement.appendChild(columnHeader);
+        columnElement.appendChild(columnContent);
+        return columnElement;
+    };
+
+    const createTaskElement = (task) => {
+        const taskElement = document.createElement("div");
+        taskElement.className = "task";
+        taskElement.draggable = true;
+        taskElement.dataset.taskId = task.id;
+
+        const assignee = users.find((u) => u.id === task.assignee);
+        const statusInfo = UtilsModule.getStatusText(task.status);
+        const priorityInfo = UtilsModule.getPriorityText(task.priority);
+        const typeInfo = UtilsModule.getTypeText(task.type);
+
+        const priorityClass = `tag-priority-${priorityInfo.class}`;
+        const typeClass = `tag-type-${typeInfo.class}`;
+
+        taskElement.innerHTML = `
+            <div class="task-title">${task.title}</div>
+            <div class="task-tags">
+                <span class="task-tag tag-status">${statusInfo.text}</span>
+                <span class="task-tag ${priorityClass}">${priorityInfo.text}</span>
+                <span class="task-tag ${typeClass}">${typeInfo.text}</span>
+            </div>
+            <div class="task-meta">
+                <span class="task-assignee">${assignee ? assignee.name : "Não atribuído"}</span>
+                <span class="task-client">${task.client || "Sem cliente"}</span>
+                <span class="task-due-date">${UtilsModule.formatDate(task.due_date)}</span>
+            </div>
+        `;
+
+        setupTaskDragDrop(taskElement, task.id);
+        setupTaskClick(taskElement, task.id);
+        return taskElement;
+    };
+
+    const createTableRow = (task) => {
+        const assignee = users.find((u) => u.id === task.assignee);
+        const statusInfo = UtilsModule.getStatusText(task.status);
+        const priorityInfo = UtilsModule.getPriorityText(task.priority);
+        const typeInfo = UtilsModule.getTypeText(task.type);
+
+        const row = document.createElement("tr");
+        const dataAttribute = getDateAttribute(task.due_date);
+
+        row.innerHTML = `
             <td>
                 <label class="checkbox-container">
                     <div class="custom-checkbox"></div>
@@ -203,11 +139,10 @@ const BoardModule = (() => {
             </td>
             <td>${task.title}</td>
             <td>${assignee ? assignee.name : "Não atribuído"}</td>
-            <td>${UtilsModule.formatDate(task.requestDate)}</td>
-            <td ${dataAttribute}>${UtilsModule.formatDate(task.dueDate)}</td>
+            <td>${UtilsModule.formatDate(task.request_date)}</td>
+            <td ${dataAttribute}>${UtilsModule.formatDate(task.due_date)}</td>
             <td class="status-${statusInfo.class}">${statusInfo.text}</td>
-            <td class="prioridade-${priorityInfo.class}">${priorityInfo.text
-        }</td>
+            <td class="prioridade-${priorityInfo.class}">${priorityInfo.text}</td>
             <td>${task.client || "-"}</td>
             <td class="tipo-${typeInfo.class}">${typeInfo.text}</td>
             <td>
@@ -217,122 +152,304 @@ const BoardModule = (() => {
             </td>
         `;
 
-      // Adicionar evento de clique para editar
-      row.querySelector("button").addEventListener("click", (e) => {
-        const taskId = parseInt(e.currentTarget.dataset.taskId);
-        ModalModule.showModal(null, taskId);
-      });
+        setupRowEvents(row, task.id);
+        return row;
+    };
 
-      // Adicionar evento para o checkbox
-      const checkbox = row.querySelector(".custom-checkbox");
-      checkbox.addEventListener("click", (e) => {
-        e.stopPropagation();
-        checkbox.classList.toggle("checked");
-      });
+    // ========== CONFIGURAÇÕES DE EVENTOS ========== //
 
-      sociousTableBody.appendChild(row);
-    });
+    const setupColumnDragDrop = (columnContent, columnId) => {
+        columnContent.addEventListener("dragover", (e) => {
+            e.preventDefault();
+        });
 
-    // Configurar ordenação após renderizar a tabela
-    setTimeout(() => {
-      if (
-        typeof TableSortModule !== "undefined" &&
-        TableSortModule.setupColumnSorting
-      ) {
-        TableSortModule.setupColumnSorting();
-      }
-    }, 100);
-  };
+        columnContent.addEventListener("drop", async (e) => {
+            e.preventDefault();
+            const taskId = e.dataTransfer.getData("taskId");
+            await moveTaskToColumn(taskId, columnId);
+            renderBoard();
+        });
+    };
 
-  // Mostrar visualização de board
-  const showBoardView = () => {
-    if (taskBoard && sociousView) {
-      taskBoard.style.display = "flex";
-      sociousView.style.display = "none";
+    const setupTaskDragDrop = (taskElement, taskId) => {
+        taskElement.addEventListener("dragstart", (e) => {
+            e.dataTransfer.setData("taskId", taskId);
+            taskElement.classList.add("dragging");
+        });
 
-      if (boardViewBtn && sociousViewBtn) {
-        boardViewBtn.classList.add("active");
-        sociousViewBtn.classList.remove("active");
-      }
+        taskElement.addEventListener("dragend", () => {
+            taskElement.classList.remove("dragging");
+        });
+    };
 
-      renderBoard();
-    }
-  };
+    const setupTaskClick = (taskElement, taskId) => {
+        taskElement.addEventListener("click", () => {
+            ModalModule.showModal(null, taskId);
+        });
+    };
 
-  // Mostrar visualização Socíus
-  const showSociousView = () => {
-    if (taskBoard && sociousView) {
-      taskBoard.style.display = "none";
-      sociousView.style.display = "block";
-
-      if (boardViewBtn && sociousViewBtn) {
-        boardViewBtn.classList.remove("active");
-        sociousViewBtn.classList.add("active");
-      }
-
-      renderSociousView();
-    }
-  };
-
-  // Inicializar módulo
-  const initBoard = () => {
-    // Verificar se estamos na página correta
-    if (!taskBoard && !sociousView) return;
-
-    // Configurar event listeners para alternância de visualização
-    if (boardViewBtn) {
-      boardViewBtn.addEventListener("click", showBoardView);
-    }
-
-    if (sociousViewBtn) {
-      sociousViewBtn.addEventListener("click", showSociousView);
-    }
-
-    // Configurar botão de adicionar tarefa na visualização Socíus
-    if (addTaskSocious) {
-      addTaskSocious.addEventListener("click", () => {
-        ModalModule.showModal(1); // Coluna "Pendente"
-      });
-    }
-
-    // Configurar dropdown de usuário
-    const userDropdown = document.getElementById("userDropdown");
-    const userMenu = document.getElementById("userMenu");
-
-    if (userDropdown && userMenu) {
-      userDropdown.addEventListener("click", () => {
-        userMenu.classList.toggle("show");
-      });
-
-      // Fechar dropdown ao clicar fora
-      document.addEventListener("click", (e) => {
-        if (!userDropdown.contains(e.target) && !userMenu.contains(e.target)) {
-          userMenu.classList.remove("show");
+    const setupRowEvents = (row, taskId) => {
+        const btn = row.querySelector("button");
+        if (btn) {
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const id = e.currentTarget.dataset.taskId;
+                ModalModule.showModal(null, id);
+            });
         }
-      });
-    }
 
-    // Inicializar com a visualização de board
-    showBoardView();
+        const checkbox = row.querySelector(".custom-checkbox");
+        if (checkbox) {
+            checkbox.addEventListener("click", (e) => {
+                e.stopPropagation();
+                checkbox.classList.toggle("checked");
+            });
+        }
+    };
 
-    // Ouvir eventos de atualização de tarefas
-    window.addEventListener("tasksUpdated", () => {
-      if (taskBoard.style.display !== "none") {
+    const setupTableSorting = () => {
+        setTimeout(() => {
+            if (typeof TableSortModule !== "undefined" && TableSortModule.setupColumnSorting) {
+                TableSortModule.setupColumnSorting();
+            }
+        }, 100);
+    };
+
+    // ========== DROPDOWN DO USUÁRIO (UNIFICADO E ROBUSTO) ========== //
+
+    const initUserDropdown = () => {
+        if (dropdownInitialized) return;
+        dropdownInitialized = true;
+
+        const userInfo = document.querySelector(".user-info");
+        const userMenu = document.getElementById("userMenu");
+        const userDropdown = document.getElementById("userDropdown");
+
+        if (!userInfo || !userMenu || !userDropdown) {
+            console.error("initUserDropdown: elementos do dropdown não encontrados (verifique IDs/classes).");
+            return;
+        }
+
+        // inicia fechado
+        userMenu.classList.remove("show");
+        userInfo.classList.remove("active");
+
+        // Clique no botão seta -> alterna (toggle)
+        userDropdown.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const isOpen = userMenu.classList.contains("show");
+            // fechar outros dropdowns na página (se houver)
+            document.querySelectorAll(".dropdown-menu.show").forEach(m => {
+                if (m !== userMenu) m.classList.remove("show");
+            });
+            document.querySelectorAll(".user-info.active").forEach(i => {
+                if (i !== userInfo) i.classList.remove("active");
+            });
+
+            if (isOpen) {
+                userMenu.classList.remove("show");
+                userInfo.classList.remove("active");
+            } else {
+                userMenu.classList.add("show");
+                userInfo.classList.add("active");
+            }
+            console.log("userDropdown toggled ->", !isOpen);
+        });
+
+        // Opcional: clique no container .user-info também abre (sem toggle duplicado)
+        userInfo.addEventListener("click", (e) => {
+            // se clicar no botão já tratado, será stopPropagation; aqui abrimos apenas se estiver fechado
+            if (!userMenu.classList.contains("show")) {
+                userMenu.classList.add("show");
+                userInfo.classList.add("active");
+                console.log("userInfo clicked -> opened menu");
+            }
+        });
+
+        // Fechar ao clicar fora
+        document.addEventListener("click", (e) => {
+            if (!userInfo.contains(e.target)) {
+                userMenu.classList.remove("show");
+                userInfo.classList.remove("active");
+            }
+        });
+
+        // Impedir fechamento ao clicar dentro do menu
+        userMenu.addEventListener("click", (e) => {
+            e.stopPropagation();
+            // delegação de itens do menu: usar data-action em cada .dropdown-item
+            const item = e.target.closest(".dropdown-item");
+            if (item) {
+                const action = item.dataset.action || item.id || null;
+                if (action) {
+                    handleMenuAction(action, userMenu, userInfo);
+                } else {
+                    // se não tiver action, apenas fecha
+                    userMenu.classList.remove("show");
+                    userInfo.classList.remove("active");
+                }
+            }
+        });
+
+        console.log("initUserDropdown: inicializado");
+    };
+
+    const handleMenuAction = (action, menu, userInfo) => {
+        // aqui as ações comuns (adicione o que precisar)
+        console.log("handleMenuAction:", action);
+        // fechar o menu
+        if (menu) menu.classList.remove("show");
+        if (userInfo) userInfo.classList.remove("active");
+
+        switch (action) {
+            case "profile":
+                if (typeof ModalModule !== "undefined" && ModalModule.showProfile) {
+                    ModalModule.showProfile();
+                } else {
+                    // fallback: abrir modal profile se existir id
+                    const profileModal = document.getElementById("profileModal");
+                    if (profileModal) profileModal.style.display = "block";
+                }
+                break;
+            case "settings":
+                UtilsModule.showNotification("Abrir configurações (implemente a ação)", "info");
+                break;
+            case "logout":
+                if (typeof AuthModule !== "undefined" && AuthModule.logout) {
+                    AuthModule.logout();
+                } else if (typeof StorageModule !== "undefined" && StorageModule.logout) {
+                    StorageModule.logout();
+                } else {
+                    // fallback simples
+                    window.location.href = "login.html";
+                }
+                break;
+            default:
+                console.warn("Ação do menu não mapeada:", action);
+        }
+    };
+
+    // ========== UTILITÁRIAS ========== //
+
+    const getTasksByColumn = (columnId) => {
+        return tasks.filter((task) => task.column_id === columnId);
+    };
+
+    const getDateAttribute = (dueDate) => {
+        if (!dueDate) return '';
+        const today = new Date(); today.setHours(0,0,0,0);
+        const due = new Date(dueDate); due.setHours(0,0,0,0);
+        if (due < today) return 'data-vencida="true"';
+        if (due.getTime() === today.getTime()) return 'data-hoje="true"';
+        return 'data-futura="true"';
+    };
+
+    const getStatusFromColumnId = async (columnId) => {
+        try {
+            const currentColumns = await StorageModule.getColumns();
+            const column = currentColumns.find(c => c.id === columnId);
+            if (column && column.status) return column.status;
+            const columnTypeMap = { 1:'pending',2:'in_progress',3:'review',4:'completed' };
+            return columnTypeMap[columnId] || 'pending';
+        } catch (error) {
+            console.error('Erro ao buscar status da coluna:', error);
+            return 'pending';
+        }
+    };
+
+    const moveTaskToColumn = async (taskId, columnId) => {
+        try {
+            const status = await getStatusFromColumnId(columnId);
+            await StorageModule.updateTask(taskId, { column_id: columnId, status: status });
+            await loadData();
+            window.dispatchEvent(new CustomEvent('tasksUpdated'));
+            return true;
+        } catch (error) {
+            console.error('Erro ao mover tarefa:', error);
+            return false;
+        }
+    };
+
+    // ========== CONTROLES DE VISUALIZAÇÃO ========== //
+
+    const showBoardView = () => {
+        if (!taskBoard || !sociousView) return;
+        taskBoard.style.display = "flex";
+        sociousView.style.display = "none";
+        if (boardViewBtn && sociousViewBtn) {
+            boardViewBtn.classList.add("active");
+            sociousViewBtn.classList.remove("active");
+        }
         renderBoard();
-      } else {
-        renderSociousView();
-      }
-    });
-  };
+    };
 
-  return {
-    initBoard,
-    renderBoard,
-    renderSociousView,
-    showBoardView,
-    showSociousView,
-  };
+    const showSociousView = () => {
+        if (!taskBoard || !sociousView) return;
+        taskBoard.style.display = "none";
+        sociousView.style.display = "block";
+        if (boardViewBtn && sociousViewBtn) {
+            boardViewBtn.classList.remove("active");
+            sociousViewBtn.classList.add("active");
+        }
+        renderSociousView();
+    };
+
+    // ========== INICIALIZAÇÃO ========== //
+
+    const initBoard = async () => {
+        if (!taskBoard && !sociousView) return;
+        try {
+            await loadData();
+            setupEventListeners();
+            initUserDropdown();
+            showBoardView();
+            setupAutoRefresh();
+        } catch (error) {
+            console.error('Erro na inicialização do board:', error);
+        }
+    };
+
+    const setupEventListeners = () => {
+        if (boardViewBtn) boardViewBtn.addEventListener("click", showBoardView);
+        if (sociousViewBtn) sociousViewBtn.addEventListener("click", showSociousView);
+        if (addTaskSocious) {
+            addTaskSocious.addEventListener("click", () => {
+                const pendingColumn = columns.find(col => col.type === 'pending');
+                ModalModule.showModal(pendingColumn ? pendingColumn.id : null);
+            });
+        }
+        window.addEventListener("tasksUpdated", handleTasksUpdated);
+    };
+
+    const handleTasksUpdated = async () => {
+        await loadData();
+        // se o board estiver visível, renderiza; senão renderiza tabela
+        const boardHidden = taskBoard ? (getComputedStyle(taskBoard).display === "none") : true;
+        if (!boardHidden) {
+            renderBoard();
+        } else {
+            renderSociousView();
+        }
+    };
+
+    const setupAutoRefresh = () => {
+        setInterval(async () => {
+            await loadData();
+            if (taskBoard && getComputedStyle(taskBoard).display !== "none") {
+                renderBoard();
+            }
+        }, 30000);
+    };
+
+    // ========== API PÚBLICA ========== //
+    return {
+        initBoard,
+        renderBoard,
+        renderSociousView,
+        showBoardView,
+        showSociousView,
+    };
 })();
 
-// Inicializar o módulo quando o DOM estiver carregado
+// Inicializar o módulo
 document.addEventListener("DOMContentLoaded", BoardModule.initBoard);

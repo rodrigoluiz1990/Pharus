@@ -1,100 +1,137 @@
-// Módulo de autenticação
-const AuthModule = (() => {
-    // Verificar se o usuário está logado
-    const checkAuth = () => {
-        const currentUser = StorageModule.getCurrentUser();
-        if (!currentUser && !window.location.href.includes('login.html')) {
-            window.location.href = 'login.html';
-            return false;
-        }
-        return !!currentUser;
-    };
+// scripts/auth.js
+document.addEventListener("DOMContentLoaded", () => {
+  // Só executa se estiver na página de login
+  if (!window.location.pathname.includes('login.html')) {
+      return;
+  }
 
-    // Fazer login
-    const login = (email, password) => {
-        const users = StorageModule.getUsers();
-        const user = users.find(u => u.email === email && u.password === password);
-        
-        if (user) {
-            StorageModule.saveCurrentUser(user);
-            return true;
-        }
-        return false;
-    };
+  const loginForm = document.getElementById("loginForm");
+  const registerLink = document.getElementById("registerLink");
+  const loginBtn = document.getElementById("loginBtn");
 
-    // Fazer logout
-    const logout = () => {
-        StorageModule.removeCurrentUser();
-        window.location.href = 'login.html';
-    };
+  // Verificar se já está logado (redirecionamento será tratado pelo supabase-config)
+  checkIfAlreadyLoggedIn();
 
-    // Registrar novo usuário
-    const register = (userData) => {
-        const users = StorageModule.getUsers();
-        const newId = Math.max(0, ...users.map(u => u.id)) + 1;
-        
-        const newUser = {
-            id: newId,
-            ...userData
-        };
-        
-        users.push(newUser);
-        StorageModule.saveUsers(users);
-        StorageModule.saveCurrentUser(newUser);
-        
-        return newUser;
-    };
+  if (loginForm) {
+      loginForm.addEventListener("submit", handleLogin);
+  }
 
-    // Inicializar a autenticação
-    const initAuth = () => {
-        // Configurar evento de login
-        const loginForm = document.getElementById('loginForm');
-        if (loginForm) {
-            loginForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                
-                const email = document.getElementById('email').value;
-                const password = document.getElementById('password').value;
-                
-                if (login(email, password)) {
-                    window.location.href = 'quadrodetarefas.html';
-                } else {
-                    alert('E-mail ou senha incorretos!');
-                }
-            });
-        }
-        
-        // Configurar evento de logout
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', logout);
-        }
-        
-        // Verificar autenticação em páginas protegidas
-        if (!window.location.href.includes('login.html')) {
-            if (!checkAuth()) {
-                return false;
-            }
-            
-            // Exibir nome do usuário logado
-            const currentUser = StorageModule.getCurrentUser();
-            const userNameElement = document.getElementById('userName');
-            if (userNameElement && currentUser) {
-                userNameElement.textContent = currentUser.name;
-            }
-        }
-        
-        return true;
-    };
+  if (registerLink) {
+      registerLink.addEventListener("click", handleRegister);
+  }
+});
 
-    return {
-        initAuth,
-        login,
-        logout,
-        register,
-        checkAuth
-    };
-})();
+async function checkIfAlreadyLoggedIn() {
+  try {
+      const { data: { session } } = await window.supabaseClient.auth.getSession();
+      if (session) {
+          // Já está logado, mostrar mensagem e redirecionar
+          console.log("Usuário já autenticado, redirecionando...");
+      }
+  } catch (error) {
+      console.error("Erro ao verificar sessão:", error);
+  }
+}
 
-// Inicializar a autenticação quando o DOM estiver carregado
-document.addEventListener('DOMContentLoaded', AuthModule.initAuth);
+async function handleLogin(e) {
+  e.preventDefault();
+  
+  const loginBtn = document.getElementById("loginBtn");
+  const originalText = loginBtn.innerHTML;
+  loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Entrando...';
+  loginBtn.disabled = true;
+
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+
+  if (!emailInput || !passwordInput) {
+      console.error("Campos de login não encontrados no DOM.");
+      resetLoginButton(loginBtn, originalText);
+      return;
+  }
+
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  if (!email || !password) {
+      alert("Preencha todos os campos!");
+      resetLoginButton(loginBtn, originalText);
+      return;
+  }
+
+  try {
+      const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+          email,
+          password,
+      });
+
+      if (error) {
+          alert("E-mail ou senha inválidos!");
+          console.error(error.message);
+          resetLoginButton(loginBtn, originalText);
+          return;
+      }
+
+      console.log("Login realizado com sucesso, redirecionando...");
+      // O redirecionamento será tratado pelo onAuthStateChange no supabase-config
+      
+  } catch (err) {
+      console.error("Erro no login:", err.message);
+      alert("Erro inesperado ao tentar logar.");
+      resetLoginButton(loginBtn, originalText);
+  }
+}
+
+function resetLoginButton(button, originalText) {
+  button.innerHTML = originalText;
+  button.disabled = false;
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+
+  const email = prompt("Digite seu e-mail:");
+  if (!email) {
+      alert("E-mail é obrigatório!");
+      return;
+  }
+
+  const password = prompt("Digite sua senha:");
+  if (!password) {
+      alert("Senha é obrigatória!");
+      return;
+  }
+
+  if (password.length < 6) {
+      alert("A senha deve ter pelo menos 6 caracteres!");
+      return;
+  }
+
+  const confirmPassword = prompt("Confirme sua senha:");
+  if (password !== confirmPassword) {
+      alert("As senhas não coincidem!");
+      return;
+  }
+
+  try {
+      const { data, error } = await window.supabaseClient.auth.signUp({
+          email,
+          password,
+          options: {
+              emailRedirectTo: window.location.origin + '/quadrodetarefas.html'
+          }
+      });
+
+      if (error) {
+          alert("Erro ao registrar: " + error.message);
+          console.error(error);
+          return;
+      }
+
+      alert("Cadastro realizado! Verifique seu e-mail para confirmar a conta.");
+      
+  } catch (err) {
+      console.error("Erro no cadastro:", err.message);
+      alert("Erro ao criar conta.");
+  }
+}

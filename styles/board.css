@@ -1,4 +1,127 @@
-/* Board - Visualização Monday */
+/* ================================================== */
+/* === ESTRUTURA PRINCIPAL === */
+/* ================================================== */
+
+/* HEADER E COMPONENTES SUPERIORES */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: white;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    position: relative;
+    z-index: 1000;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* TÍTULO DO PROJETO */
+.project-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.project-title h2 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.5rem;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+/* BOTÕES DE AÇÃO */
+.project-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.action-btn {
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    color: #495057;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.action-btn:hover {
+    background: #e9ecef;
+    border-color: #ced4da;
+}
+
+.action-btn i {
+    font-size: 12px;
+}
+
+/* FILTROS */
+.filters-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    position: relative;
+}
+
+.filter-select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: white;
+    min-width: 150px;
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.clear-filters {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    color: #666;
+    padding: 8px 12px;
+}
+
+.clear-filters:hover {
+    background: #e9ecef;
+    border-color: #ccc;
+}
+
+/* ================================================== */
+/* === BOARD E COLUNAS === */
+/* ================================================== */
+
+/* Container principal do board */
 .board {
     display: flex;
     gap: 15px;
@@ -6,6 +129,7 @@
     padding-bottom: 20px;
 }
 
+/* Colunas do board */
 .column {
     background-color: var(--column-bg);
     border-radius: 8px;
@@ -31,6 +155,10 @@
     max-height: 70vh;
     overflow-y: auto;
 }
+
+/* ================================================== */
+/* === TAREFAS E CARDS === */
+/* ================================================== */
 
 .task {
     background-color: white;
@@ -153,7 +281,10 @@
     background-color: var(--secondary-color);
 }
 
-/* Visualização Socíus (Tabela) */
+/* ================================================== */
+/* === VISUALIZAÇÃO SOCÍUS (TABELA) === */
+/* ================================================== */
+
 .socious-view {
     display: none;
     background: white;
@@ -217,13 +348,6 @@
     background-color: #f0f0f0;
 }
 
-/* ===== AJUSTES ESPECÍFICOS PARA AS COLUNAS ===== */
-
-/* Remover negrito das datas de entrega */
-.socious-table td:nth-child(5) {
-    font-weight: normal;
-}
-
 /* Ajustar largura das colunas de data */
 .socious-table th:nth-child(4),
 .socious-table th:nth-child(5),
@@ -238,28 +362,26 @@
 /* Coluna de tarefa com mais espaço */
 .socious-table td:nth-child(2) {
     text-align: left;
-    min-width: 170px;
+    min-width: 250px;
 }
 
 /* Coluna de responsável */
 .socious-table td:nth-child(3) {
     text-align: center;
-    min-width: 110px;
+    min-width: 200px;
 }
 
 /* Coluna de cliente */
 .socious-table td:nth-child(8) {
     text-align: center;
-    min-width: 100px;
-    font-weight: normal;
+    min-width: 200px;
 }
 
 /* Colunas de status, prioridade e tipo */
 .socious-table td:nth-child(6),
 .socious-table td:nth-child(7),
 .socious-table td:nth-child(9) {
-    min-width: 100px;
-    font-weight: normal;
+    min-width: 150px;
 }
 
 /* Checkbox mais centralizado */
@@ -275,23 +397,16 @@
 }
 
 /* Destaque para datas vencidas */
-.socious-table td:nth-child(5):not(:empty) {
-    position: relative;
-}
-
 .socious-table td[data-vencida="true"] {
     color: #dc3545;
-    font-weight: normal;
 }
 
 .socious-table td[data-hoje="true"] {
     color: #28a745;
-    font-weight: normal;
 }
 
 .socious-table td[data-futura="true"] {
     color: #6c757d;
-    font-weight: normal;
 }
 
 /* Indicador visual para datas vencidas */
@@ -301,7 +416,148 @@
     font-size: 14px;
 }
 
-/* Ajustes responsivos para telas menores */
+/* ================================================== */
+/* === MENU DO USUÁRIO === */
+/* ================================================== */
+
+.user-info {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: #f8f9fa;
+    border-radius: 20px;
+    border: 1px solid #e9ecef;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.user-info:hover {
+    background: #e9ecef;
+    border-color: #dee2e6;
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#userName {
+    font-weight: 500;
+    color: #495057;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+}
+
+.dropdown {
+    position: relative;
+}
+
+.btn-secondary {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    color: #6c757d;
+    font-size: 10px;
+    transition: color 0.2s;
+    margin-left: 4px;
+}
+
+.btn-secondary:hover {
+    color: #495057;
+    background: #e9ecef;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    min-width: 180px;
+    z-index: 1001;
+    padding: 6px 0;
+    margin: 0;
+}
+
+.dropdown-menu.show {
+    display: block;
+    animation: dropdownFadeIn 0.2s ease;
+}
+
+.dropdown-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    color: #495057;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: #007bff;
+}
+
+.dropdown-item:active {
+    background-color: #e9ecef;
+}
+
+.dropdown-item:not(:last-child) {
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.dropdown-item:focus {
+    outline: 2px solid #007bff;
+    outline-offset: -2px;
+}
+
+.user-info.active {
+    background: #e3f2fd;
+    border-color: #007bff;
+}
+
+/* ================================================== */
+/* === RESPONSIVIDADE === */
+/* ================================================== */
+
+@media (max-width: 1200px) {
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+    
+    .header-left, .header-right {
+        justify-content: center;
+    }
+}
+
 @media (max-width: 1024px) {
     .column {
         min-width: 280px;
@@ -319,6 +575,30 @@
 }
 
 @media (max-width: 768px) {
+    .header {
+        padding: 12px 15px;
+    }
+    
+    .filters-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filter-select {
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .header-left, .header-right {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .project-actions {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
     .board {
         flex-direction: column;
     }
@@ -343,5 +623,36 @@
     .task-tag {
         font-size: 10px;
         padding: 2px 6px;
+    }
+    
+    /* Ajustes para o dropdown mobile */
+    #userName {
+        display: none;
+    }
+    
+    .dropdown-menu {
+        min-width: 160px;
+        right: -10px;
+    }
+    
+    .avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+}
+
+/* ================================================== */
+/* === ANIMAÇÕES === */
+/* ================================================== */
+
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }

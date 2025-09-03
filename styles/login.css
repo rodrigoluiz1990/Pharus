@@ -3,45 +3,203 @@
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    background-color: var(--secondary-color);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
 }
 
 .login-box {
     background-color: white;
     padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     width: 400px;
     max-width: 90%;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.login-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
 }
 
 .login-box .logo {
     text-align: center;
-    border-bottom: none;
     margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--border-color);
 }
 
 .login-box .logo h1 {
-    font-size: 28px;
-    margin-bottom: 5px;
+    font-size: 32px;
+    margin-bottom: 8px;
+    color: var(--primary-color);
+    font-weight: 700;
 }
 
 .login-box .logo p {
     color: var(--text-light);
     font-size: 14px;
+    font-weight: 400;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-color);
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    background-color: var(--secondary-color);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(66, 98, 255, 0.1);
+}
+
+.form-control::placeholder {
+    color: #a0a0a0;
+}
+
+.btn {
+    padding: 14px 20px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background-color: #2a4fd8;
+    transform: translateY(-2px);
+}
+
+.btn-primary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-block {
+    width: 100%;
 }
 
 .form-footer {
     text-align: center;
-    margin-top: 20px;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
     font-size: 14px;
+    color: var(--text-light);
 }
 
 .form-footer a {
     color: var(--primary-color);
     text-decoration: none;
+    font-weight: 600;
+    transition: color 0.3s ease;
 }
 
 .form-footer a:hover {
+    color: #2a4fd8;
     text-decoration: underline;
+}
+
+/* Estados de loading */
+.btn-loading {
+    position: relative;
+    color: transparent;
+}
+
+.btn-loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid transparent;
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsividade melhorada */
+@media (max-width: 480px) {
+    .login-box {
+        padding: 25px 20px;
+    }
+    
+    .login-box .logo h1 {
+        font-size: 28px;
+    }
+    
+    .form-control {
+        padding: 10px 14px;
+    }
+    
+    .btn {
+        padding: 12px 18px;
+        font-size: 15px;
+    }
+}
+
+/* Animações de entrada */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-box {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+/* Feedback visual para erros */
+.form-control.error {
+    border-color: var(--danger-color);
+    box-shadow: 0 0 0 3px rgba(255, 98, 64, 0.1);
+}
+
+.error-message {
+    color: var(--danger-color);
+    font-size: 12px;
+    margin-top: 5px;
+    display: none;
+}
+
+.error-message.show {
+    display: block;
 }

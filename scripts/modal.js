@@ -8,39 +8,67 @@ const ModalModule = (() => {
     const taskAssignee = document.getElementById('taskAssignee');
 
     // Mostrar modal
-    const showModal = (columnId, taskId = null) => {
+    const showModal = async (columnId, taskId = null) => {
+        if (!modalOverlay) return;
+        
         // Limpar formulário
         taskForm.reset();
-        deleteTaskBtn.classList.add('hidden');
+        
+        // Esconder botão de excluir inicialmente
+        if (deleteTaskBtn) {
+            deleteTaskBtn.style.display = 'none';
+        }
         
         // Popular dropdown de responsáveis
-        populateAssignees();
+        await populateAssignees();
         
         if (taskId) {
-            // Modo edição
-            const task = StorageModule.getTasks().find(t => t.id === taskId);
-            if (task) {
-                document.getElementById('taskId').value = task.id;
-                document.getElementById('taskTitle').value = task.title;
-                document.getElementById('taskDescription').value = task.description || '';
-                document.getElementById('taskStatus').value = task.status;
-                document.getElementById('taskPriority').value = task.priority;
-                document.getElementById('taskAssignee').value = task.assignee;
-                document.getElementById('taskRequestDate').value = task.requestDate || '';
-                document.getElementById('taskDueDate').value = task.dueDate || '';
-                document.getElementById('taskObservation').value = task.observation || '';
-                document.getElementById('taskJira').value = task.jira || '';
-                document.getElementById('taskClient').value = task.client || '';
-                document.getElementById('taskType').value = task.type || 'task';
+            // Modo edição - Buscar tarefa do Supabase
+            try {
+                const tasks = await StorageModule.getTasks();
+                const task = tasks.find(t => t.id === taskId);
                 
-                document.getElementById('modalTitle').textContent = 'Editar Tarefa';
-                deleteTaskBtn.classList.remove('hidden');
+                if (task) {
+                    document.getElementById('taskId').value = task.id;
+                    document.getElementById('taskTitle').value = task.title || '';
+                    document.getElementById('taskDescription').value = task.description || '';
+                    document.getElementById('taskStatus').value = task.status || 'pending';
+                    document.getElementById('taskPriority').value = task.priority || 'medium';
+                    document.getElementById('taskAssignee').value = task.assignee || '';
+                    document.getElementById('taskRequestDate').value = task.request_date ? UtilsModule.formatDateForInput(task.request_date) : '';
+                    document.getElementById('taskDueDate').value = task.due_date ? UtilsModule.formatDateForInput(task.due_date) : '';
+                    document.getElementById('taskObservation').value = task.observation || '';
+                    document.getElementById('taskJira').value = task.jira || '';
+                    document.getElementById('taskClient').value = task.client || '';
+                    document.getElementById('taskType').value = task.type || 'task';
+                    
+                    document.getElementById('modalTitle').textContent = 'Editar Tarefa';
+                    if (deleteTaskBtn) {
+                        deleteTaskBtn.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao carregar tarefa:', error);
+                UtilsModule.showNotification('Erro ao carregar tarefa para edição.', 'error');
             }
         } else {
             // Modo criação
             document.getElementById('taskId').value = '';
-            document.getElementById('taskStatus').value = UtilsModule.getColumnStatus(columnId);
+            document.getElementById('taskStatus').value = 'pending';
             document.getElementById('modalTitle').textContent = 'Nova Tarefa';
+            
+            // Se columnId foi fornecido, usar o status correspondente
+            if (columnId) {
+                try {
+                    const status = await UtilsModule.getColumnStatus(columnId);
+                    document.getElementById('taskStatus').value = status;
+                } catch (error) {
+                    console.error('Erro ao buscar status da coluna:', error);
+                }
+            }
+            
+            // Definir data de solicitação como hoje
+            document.getElementById('taskRequestDate').value = new Date().toISOString().split('T')[0];
         }
         
         modalOverlay.classList.add('visible');
@@ -48,86 +76,149 @@ const ModalModule = (() => {
 
     // Esconder modal
     const hideModal = () => {
-        modalOverlay.classList.remove('visible');
+        if (modalOverlay) {
+            modalOverlay.classList.remove('visible');
+        }
     };
 
     // Popular dropdown de responsáveis
-    const populateAssignees = () => {
+    const populateAssignees = async () => {
         if (!taskAssignee) return;
         
-        taskAssignee.innerHTML = '';
-        const users = StorageModule.getUsers();
+        taskAssignee.innerHTML = '<option value="">Selecionar responsável</option>';
         
-        users.forEach(user => {
-            const option = document.createElement('option');
-            option.value = user.id;
-            option.textContent = user.name;
-            taskAssignee.appendChild(option);
-        });
+        try {
+            const users = await StorageModule.getUsers();
+            
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.name;
+                taskAssignee.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Erro ao carregar usuários:', error);
+        }
     };
 
     // Salvar tarefa
-    const saveTask = (e) => {
+    const saveTask = async (e) => {
         e.preventDefault();
         
         const taskId = document.getElementById('taskId').value;
         const title = document.getElementById('taskTitle').value;
         
         if (!title) {
-            alert('O título da tarefa é obrigatório!');
+            UtilsModule.showNotification('O título da tarefa é obrigatório!', 'error');
             return;
         }
         
+        // Preparar dados da tarefa
         const taskData = {
             title: title,
-            description: document.getElementById('taskDescription').value,
+            description: document.getElementById('taskDescription').value || null,
             status: document.getElementById('taskStatus').value,
             priority: document.getElementById('taskPriority').value,
-            assignee: parseInt(document.getElementById('taskAssignee').value),
-            requestDate: document.getElementById('taskRequestDate').value,
-            dueDate: document.getElementById('taskDueDate').value,
-            observation: document.getElementById('taskObservation').value,
-            jira: document.getElementById('taskJira').value,
-            client: document.getElementById('taskClient').value,
+            assignee: document.getElementById('taskAssignee').value || null,
+            request_date: document.getElementById('taskRequestDate').value || null,
+            due_date: document.getElementById('taskDueDate').value || null,
+            observation: document.getElementById('taskObservation').value || null,
+            jira: document.getElementById('taskJira').value || null,
+            client: document.getElementById('taskClient').value || null,
             type: document.getElementById('taskType').value
         };
         
-        let tasks = StorageModule.getTasks();
+        // Mostrar loading
+        const submitBtn = taskForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        submitBtn.disabled = true;
         
-        if (taskId) {
-            // Editar tarefa existente
-            const taskIndex = tasks.findIndex(t => t.id === parseInt(taskId));
-            if (taskIndex !== -1) {
-                tasks[taskIndex] = { ...tasks[taskIndex], ...taskData };
+        try {
+            let result;
+            
+            if (taskId) {
+                // Editar tarefa existente
+                result = await StorageModule.updateTask(taskId, taskData);
+            } else {
+                // Criar nova tarefa - Buscar column_id baseado no status
+                const columns = await StorageModule.getColumns();
+                const column = columns.find(c => c.type === taskData.status);
+                
+                if (column) {
+                    taskData.column_id = column.id;
+                } else {
+                    // Fallback: usar primeira coluna
+                    taskData.column_id = columns[0]?.id;
+                }
+                
+                result = await StorageModule.saveTask(taskData);
             }
-        } else {
-            // Criar nova tarefa
-            const columns = StorageModule.getColumns();
-            taskData.id = UtilsModule.generateId(tasks);
-            taskData.columnId = columns.find(c => c.title === 'Pendente').id;
-            tasks.push(taskData);
+            
+            if (result) {
+                hideModal();
+                UtilsModule.showNotification(
+                    taskId ? 'Tarefa atualizada com sucesso!' : 'Tarefa criada com sucesso!', 
+                    'success'
+                );
+                
+                // Disparar evento personalizado para atualizar a interface
+                window.dispatchEvent(new CustomEvent('tasksUpdated'));
+            } else {
+                throw new Error('Falha na operação');
+            }
+            
+        } catch (error) {
+            console.error('Erro ao salvar tarefa:', error);
+            UtilsModule.showNotification('Erro ao salvar tarefa. Verifique o console para mais detalhes.', 'error');
+        } finally {
+            // Restaurar botão
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
         }
-        
-        StorageModule.saveTasks(tasks);
-        hideModal();
-        
-        // Disparar evento personalizado para atualizar a interface
-        window.dispatchEvent(new CustomEvent('tasksUpdated'));
     };
 
     // Excluir tarefa
-    const deleteTask = () => {
-        if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
-            const taskId = parseInt(document.getElementById('taskId').value);
-            let tasks = StorageModule.getTasks();
+    const deleteTask = async () => {
+        if (!confirm('Tem certeza que deseja excluir esta tarefa?')) {
+            return;
+        }
+        
+        const taskId = document.getElementById('taskId').value;
+        
+        if (!taskId) {
+            UtilsModule.showNotification('ID da tarefa não encontrado.', 'error');
+            return;
+        }
+        
+        // Mostrar loading
+        if (deleteTaskBtn) {
+            const originalText = deleteTaskBtn.textContent;
+            deleteTaskBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Excluindo...';
+            deleteTaskBtn.disabled = true;
+        }
+        
+        try {
+            const success = await StorageModule.deleteTask(taskId);
             
-            tasks = tasks.filter(t => t.id !== taskId);
-            StorageModule.saveTasks(tasks);
-            
-            hideModal();
-            
-            // Disparar evento personalizado para atualizar a interface
-            window.dispatchEvent(new CustomEvent('tasksUpdated'));
+            if (success) {
+                hideModal();
+                UtilsModule.showNotification('Tarefa excluída com sucesso!', 'success');
+                
+                // Disparar evento personalizado para atualizar a interface
+                window.dispatchEvent(new CustomEvent('tasksUpdated'));
+            } else {
+                UtilsModule.showNotification('Erro ao excluir tarefa.', 'error');
+            }
+        } catch (error) {
+            console.error('Erro ao excluir tarefa:', error);
+            UtilsModule.showNotification('Erro ao excluir tarefa. Verifique o console para mais detalhes.', 'error');
+        } finally {
+            // Restaurar botão
+            if (deleteTaskBtn) {
+                deleteTaskBtn.textContent = 'Excluir';
+                deleteTaskBtn.disabled = false;
+            }
         }
     };
 
@@ -136,10 +227,21 @@ const ModalModule = (() => {
         if (!modalOverlay) return;
         
         // Configurar event listeners
-        closeModalBtn.addEventListener('click', hideModal);
-        cancelTaskBtn.addEventListener('click', hideModal);
-        taskForm.addEventListener('submit', saveTask);
-        deleteTaskBtn.addEventListener('click', deleteTask);
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', hideModal);
+        }
+        
+        if (cancelTaskBtn) {
+            cancelTaskBtn.addEventListener('click', hideModal);
+        }
+        
+        if (taskForm) {
+            taskForm.addEventListener('submit', saveTask);
+        }
+        
+        if (deleteTaskBtn) {
+            deleteTaskBtn.addEventListener('click', deleteTask);
+        }
         
         // Fechar modal ao clicar fora dele
         modalOverlay.addEventListener('click', (e) => {
@@ -147,6 +249,14 @@ const ModalModule = (() => {
                 hideModal();
             }
         });
+        
+        // Prevenir fechamento ao clicar dentro do modal
+        const modal = modalOverlay.querySelector('.modal');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
     };
 
     return {
