@@ -291,21 +291,45 @@
         <script>
             // Inicialização da página do quadro de tarefas
             document.addEventListener("DOMContentLoaded", async () => {
+                // Aguardar o supabase-config.js inicializar
+                await waitForSupabaseClient();
+
                 try {
                     // Verificar se temos uma sessão válida
-                    const { data: { session } } = await window.supabaseClient.auth.getSession();
+                    const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+
+                    if (error) {
+                        console.error("Erro ao obter sessão:", error);
+                        return;
+                    }
 
                     if (session && session.user) {
                         // Usuário autenticado - inicializar a página
                         initializePage(session.user);
                     } else {
                         // Não autenticado - o supabase-config.js vai redirecionar para login
-                        console.log("Usuário não autenticado, aguardando redirecionamento...");
+                        console.log("Usuário não autenticado");
                     }
                 } catch (error) {
                     console.error("Erro ao inicializar página:", error);
                 }
             });
+
+            // Função para aguardar o supabaseClient estar disponível
+            function waitForSupabaseClient() {
+                return new Promise((resolve) => {
+                    if (window.supabaseClient) {
+                        resolve();
+                    } else {
+                        const checkInterval = setInterval(() => {
+                            if (window.supabaseClient) {
+                                clearInterval(checkInterval);
+                                resolve();
+                            }
+                        }, 100);
+                    }
+                });
+            }
 
             function initializePage(user) {
                 // Mostrar informações do usuário
@@ -314,22 +338,49 @@
                     userNameElement.textContent = user.email || 'Usuário';
                 }
 
-                // Configurar evento de logout
-                const logoutBtn = document.getElementById("logoutBtn");
-                if (logoutBtn) {
-                    logoutBtn.addEventListener("click", async (e) => {
-                        e.preventDefault();
-                        await window.logoutUser();
-                    });
-                }
-
                 // Inicializar outras funcionalidades da página aqui
                 console.log("Página inicializada para o usuário:", user.email);
-
-                // Exemplo: carregar tarefas, configurar eventos, etc.
-                // initializeBoard();
-                // initializeTable();
             }
+
+            // Função para carregar dados do perfil
+            async function loadProfileData() {
+                try {
+                    console.log("Iniciando carregamento do perfil...");
+
+                    const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+
+                    if (error) {
+                        console.error("Erro ao obter sessão:", error);
+                        alert("Erro ao carregar perfil. Tente novamente.");
+                        return; // Sai da função se houver erro
+                    }
+
+                    if (session && session.user) {
+                        console.log("Usuário encontrado:", session.user.email);
+
+                        // Preencher o formulário do perfil
+                        document.getElementById("profileEmail").value = session.user.email;
+                        document.getElementById("profileName").value = session.user.user_metadata?.full_name || "";
+
+                        // Mostrar o modal do perfil apenas se os dados forem carregados
+                        document.getElementById("profileModal").style.display = 'flex';
+                    } else {
+                        console.log("Nenhuma sessão encontrada");
+                        alert("Sessão expirada. Faça login novamente.");
+                    }
+                } catch (error) {
+                    console.error("Erro ao carregar dados do perfil:", error);
+                    alert("Erro inesperado ao carregar perfil.");
+                }
+            }
+
+            // Função para fechar o modal de perfil
+            function closeProfileModal() {
+                document.getElementById("profileModal").style.display = 'none';
+            }
+
+            // Configurar evento de fechar o modal
+            document.getElementById("closeProfileModal")?.addEventListener("click", closeProfileModal);
         </script>
 </body>
 
