@@ -11,7 +11,7 @@
     background: white;
     border-bottom: 1px solid var(--border-color);
     margin-bottom: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     position: relative;
     z-index: 1000;
     flex-wrap: wrap;
@@ -135,7 +135,7 @@
     border-radius: 8px;
     min-width: 320px;
     max-width: 320px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .column-header {
@@ -165,13 +165,13 @@
     border-radius: 6px;
     padding: 12px;
     margin-bottom: 10px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     cursor: grab;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .task:hover {
-    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
 }
 
 .task:active {
@@ -255,7 +255,9 @@
     margin-top: 8px;
 }
 
-.task-assignee, .task-client, .task-due-date {
+.task-assignee,
+.task-client,
+.task-due-date {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -290,7 +292,7 @@
     background: white;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .socious-header {
@@ -552,8 +554,9 @@
         align-items: stretch;
         gap: 15px;
     }
-    
-    .header-left, .header-right {
+
+    .header-left,
+    .header-right {
         justify-content: center;
     }
 }
@@ -563,13 +566,15 @@
         min-width: 280px;
         max-width: 280px;
     }
-    
+
     .task-meta {
         flex-direction: column;
         gap: 3px;
     }
-    
-    .task-assignee, .task-client, .task-due-date {
+
+    .task-assignee,
+    .task-client,
+    .task-due-date {
         max-width: 100%;
     }
 }
@@ -578,63 +583,64 @@
     .header {
         padding: 12px 15px;
     }
-    
+
     .filters-container {
         flex-direction: column;
         align-items: stretch;
     }
-    
+
     .filter-select {
         min-width: auto;
         width: 100%;
     }
-    
-    .header-left, .header-right {
+
+    .header-left,
+    .header-right {
         flex-direction: column;
         gap: 10px;
     }
-    
+
     .project-actions {
         justify-content: center;
         flex-wrap: wrap;
     }
-    
+
     .board {
         flex-direction: column;
     }
-    
+
     .column {
         min-width: 100%;
         max-width: 100%;
     }
-    
+
     .socious-view {
         overflow-x: auto;
     }
-    
+
     .socious-table {
         min-width: 800px;
     }
-    
+
     .task-tags {
         gap: 3px;
     }
-    
+
     .task-tag {
         font-size: 10px;
         padding: 2px 6px;
     }
-    
+
     /* Ajustes para o dropdown mobile */
     #userName {
         display: none;
     }
-    
+
     .dropdown-menu {
         min-width: 160px;
         right: -10px;
     }
-    
+
     .avatar {
         width: 28px;
         height: 28px;
@@ -651,8 +657,143 @@
         opacity: 0;
         transform: translateY(-5px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* ================================================== */
+/* === BOTÃO DE EDIÇÃO NAS TAREFAS === */
+/* ================================================== */
+
+.task-edit-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    color: #666;
+    cursor: pointer;
+    padding: 4px 6px;
+    font-size: 10px;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+}
+
+.task-edit-btn:hover {
+    opacity: 1;
+    background: white;
+    border-color: #007bff;
+    color: #007bff;
+}
+
+.task {
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.task.dragging {
+    transform: rotate(5deg);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Efeito de hover para as colunas durante o drag */
+.column-content.drag-over {
+    background-color: #f0f8ff !important;
+    border: 2px dashed #007bff;
+}
+
+/* ================================================== */
+/* === LOADING OVERLAY === */
+/* ================================================== */
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.loading-spinner {
+    font-size: 2rem;
+    color: #007bff;
+}
+
+.loading-overlay span {
+    font-size: 1.1rem;
+    color: #495057;
+    font-weight: 500;
+}
+
+/* Loading states para elementos específicos */
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
+    position: relative;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ================================================== */
+/* === ESTADOS DE CARREGAMENTO DA TABELA === */
+/* ================================================== */
+
+.table-loading {
+    position: relative;
+    min-height: 200px;
+}
+
+.table-loading::before {
+    content: 'Carregando tarefas...';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #6c757d;
+    font-style: italic;
+}
+
+.socious-table tbody tr.loading-row {
+    background: #f8f9fa !important;
+}
+
+.socious-table tbody tr.loading-row td {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    padding: 30px;
+}
+
+.socious-table tbody tr.loading-row td::after {
+    content: 'Carregando...';
 }

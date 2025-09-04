@@ -1,7 +1,7 @@
 // board.js — VERSÃO AJUSTADA (mantém estrutura original, dropdown robusto)
 
 const BoardModule = (() => {
-    // Elementos do DOM (mantive fora para reuso)
+    // Elementos do DOM
     const taskBoard = document.getElementById("taskBoard");
     const sociousView = document.getElementById("sociousView");
     const sociousTableBody = document.getElementById("sociousTableBody");
@@ -13,43 +13,90 @@ const BoardModule = (() => {
     let tasks = [];
     let columns = [];
     let users = [];
-
-    // proteção para inicializar dropdown só 1 vez
     let dropdownInitialized = false;
 
     // ========== FUNÇÕES PRINCIPAIS ========== //
 
     const loadData = async () => {
         try {
-            [columns, tasks, users] = await Promise.all([
+            UtilsModule.showLoading('Carregando dados...');
+
+            const [columnsData, tasksData, usersData] = await Promise.all([
                 StorageModule.getColumns(),
                 StorageModule.getTasks(),
                 StorageModule.getUsers()
             ]);
+
+            columns = columnsData;
+            tasks = tasksData;
+            users = usersData;
+
+            UtilsModule.hideLoading();
+            return [columns, tasks, users];
         } catch (error) {
-            console.error('Erro ao carregar dados:', error);
+            UtilsModule.hideLoading();
+            UtilsModule.handleApiError(error, 'carregar dados do board');
+            return [[], [], []];
         }
     };
 
     const renderBoard = async () => {
         if (!taskBoard) return;
-        await loadData();
-        taskBoard.innerHTML = "";
-        columns.forEach((column) => {
-            const columnElement = createColumnElement(column);
-            taskBoard.appendChild(columnElement);
-        });
+
+        try {
+            await loadData();
+            taskBoard.innerHTML = "";
+
+            columns.forEach((column) => {
+                const columnElement = createColumnElement(column);
+                taskBoard.appendChild(columnElement);
+            });
+        } catch (error) {
+            UtilsModule.handleApiError(error, 'renderizar board');
+        }
     };
 
     const renderSociousView = async () => {
         if (!sociousTableBody) return;
-        await loadData();
-        sociousTableBody.innerHTML = "";
-        tasks.forEach((task) => {
-            const row = createTableRow(task);
-            sociousTableBody.appendChild(row);
-        });
-        setupTableSorting();
+
+        try {
+            // Mostrar estado de carregamento na tabela
+            sociousTableBody.innerHTML = `
+                <tr class="loading-row">
+                    <td colspan="10">Carregando tarefas...</td>
+                </tr>
+            `;
+
+            await loadData();
+            sociousTableBody.innerHTML = "";
+
+            if (tasks.length === 0) {
+                sociousTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="10" style="text-align: center; padding: 30px; color: #6c757d;">
+                            Nenhuma tarefa encontrada.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tasks.forEach((task) => {
+                const row = createTableRow(task);
+                sociousTableBody.appendChild(row);
+            });
+
+            setupTableSorting();
+        } catch (error) {
+            UtilsModule.handleApiError(error, 'renderizar visualização de tabela');
+            sociousTableBody.innerHTML = `
+                <tr>
+                    <td colspan="10" style="text-align: center; padding: 30px; color: #dc3545;">
+                        Erro ao carregar tarefas.
+                    </td>
+                </tr>
+            `;
+        }
     };
 
     // ========== FUNÇÕES AUXILIARES ========== //
@@ -158,106 +205,50 @@ const BoardModule = (() => {
 
     // ========== CONFIGURAÇÕES DE EVENTOS ========== //
 
-    const setupColumnDragDrop = (columnContent, columnId) => {
-        columnContent.addEventListener("dragover", (e) => {
-            e.preventDefault();
-        });
-
-        columnContent.addEventListener("drop", async (e) => {
-            e.preventDefault();
-            const taskId = e.dataTransfer.getData("taskId");
-            await moveTaskToColumn(taskId, columnId);
-            renderBoard();
-        });
-    };
-
-    const setupTaskDragDrop = (taskElement, taskId) => {
-        taskElement.addEventListener("dragstart", (e) => {
-            e.dataTransfer.setData("taskId", taskId);
-            taskElement.classList.add("dragging");
-        });
-
-        taskElement.addEventListener("dragend", () => {
-            taskElement.classList.remove("dragging");
-        });
-    };
-
-    const setupTaskClick = (taskElement, taskId) => {
-        taskElement.addEventListener("click", () => {
-            ModalModule.showModal(null, taskId);
-        });
-    };
-
     const setupRowEvents = (row, taskId) => {
         const btn = row.querySelector("button");
         if (btn) {
             btn.addEventListener("click", (e) => {
                 e.stopPropagation();
-                const id = taskId;
-                console.log('Editando tarefa:', id);
-                
-                // Solução direta - sempre usar o fallback
-                openTaskModalFallback(id);
+                openTaskModalFallback(taskId);
             });
         }
-    
+
         const checkbox = row.querySelector(".custom-checkbox");
         if (checkbox) {
             checkbox.addEventListener("click", (e) => {
                 e.stopPropagation();
                 checkbox.classList.toggle("checked");
+                updateTaskCompletion(taskId, checkbox.classList.contains("checked"));
             });
         }
     };
 
-    // Função fallback para abrir modal
+    // Função fallback melhorada para abrir modal
     const openTaskModalFallback = async (taskId) => {
-        const modalOverlay = document.getElementById('taskModal');
-        if (!modalOverlay) {
-            console.error('Modal não encontrado');
-            return;
-        }
+        console.log('Abrindo modal para tarefa:', taskId);
 
         try {
-            // Buscar tarefa
-            const tasks = await StorageModule.getTasks();
-            const task = tasks.find(t => t.id === taskId);
+            UtilsModule.showLoading('Carregando tarefa...');
 
-            if (task) {
-                // Preencher formulário
-                document.getElementById('taskId').value = task.id;
-                document.getElementById('taskTitle').value = task.title || '';
-                document.getElementById('taskDescription').value = task.description || '';
-                document.getElementById('taskStatus').value = task.status || 'pending';
-                document.getElementById('taskPriority').value = task.priority || 'medium';
-                document.getElementById('taskAssignee').value = task.assignee || '';
+            // Buscar tarefa específica do Supabase
+            const { data: task, error } = await window.supabaseClient
+                .from('tasks')
+                .select('*')
+                .eq('id', taskId)
+                .single();
 
-                // Format dates for input
-                document.getElementById('taskRequestDate').value = task.request_date ?
-                    UtilsModule.formatDateForInput(task.request_date) : '';
-                document.getElementById('taskDueDate').value = task.due_date ?
-                    UtilsModule.formatDateForInput(task.due_date) : '';
+            if (error) throw error;
+            if (!task) throw new Error('Tarefa não encontrada');
 
-                document.getElementById('taskObservation').value = task.observation || '';
-                document.getElementById('taskJira').value = task.jira || '';
-                document.getElementById('taskClient').value = task.client || '';
-                document.getElementById('taskType').value = task.type || 'task';
+            UtilsModule.hideLoading();
 
-                // Mostrar botão de excluir
-                const deleteTaskBtn = document.getElementById('deleteTask');
-                if (deleteTaskBtn) {
-                    deleteTaskBtn.style.display = 'block';
-                }
-
-                document.getElementById('modalTitle').textContent = 'Editar Tarefa';
-            }
-
-            // Mostrar modal
-            modalOverlay.classList.add('visible');
+            // USAR A FUNÇÃO DO MODALMODULE EM VEZ DE MANIPULAR DIRETAMENTE
+            ModalModule.showModal(null, taskId);
 
         } catch (error) {
-            console.error('Erro ao abrir modal de edição:', error);
-            alert('Erro ao carregar dados da tarefa');
+            UtilsModule.hideLoading();
+            UtilsModule.handleApiError(error, 'carregar tarefa para edição');
         }
     };
 
@@ -437,6 +428,104 @@ const BoardModule = (() => {
         } catch (error) {
             console.error('Erro ao mover tarefa:', error);
             return false;
+        }
+    };
+
+    // ========== FUNÇÕES DRAG & DROP ========== //
+
+    const setupTaskDragDrop = (taskElement, taskId) => {
+        taskElement.addEventListener("dragstart", (e) => {
+            e.dataTransfer.setData("taskId", taskId);
+            taskElement.classList.add("dragging");
+
+            // Adicionar efeito visual durante o drag
+            setTimeout(() => {
+                taskElement.style.opacity = "0.4";
+            }, 0);
+        });
+
+        taskElement.addEventListener("dragend", () => {
+            taskElement.classList.remove("dragging");
+            taskElement.style.opacity = "1";
+        });
+
+        taskElement.addEventListener("drag", (e) => {
+            // Prevenir comportamento padrão
+            e.preventDefault();
+        });
+    };
+
+    const setupColumnDragDrop = (columnContent, columnId) => {
+        columnContent.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            // Efeito visual durante o dragover
+            columnContent.style.backgroundColor = "#f8f9fa";
+        });
+
+        columnContent.addEventListener("dragleave", () => {
+            // Restaurar cor original
+            columnContent.style.backgroundColor = "";
+        });
+
+        columnContent.addEventListener("drop", async (e) => {
+            e.preventDefault();
+            columnContent.style.backgroundColor = "";
+
+            const taskId = e.dataTransfer.getData("taskId");
+            if (taskId) {
+                await moveTaskToColumn(taskId, columnId);
+                renderBoard();
+            }
+        });
+
+        // Permitir drop em toda a área da coluna
+        columnContent.addEventListener("drop", async (e) => {
+            e.preventDefault();
+            const taskId = e.dataTransfer.getData("taskId");
+            if (taskId) {
+                await moveTaskToColumn(taskId, columnId);
+                renderBoard();
+            }
+        });
+    };
+
+    const setupTaskClick = (taskElement, taskId) => {
+        taskElement.addEventListener("click", (e) => {
+            // Só abre o modal se não foi um clique em elementos interiores
+            if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                openTaskModalFallback(taskId);
+            }
+        });
+
+        // Adicionar botão de edição dentro do card
+        const editBtn = document.createElement('button');
+        editBtn.className = 'task-edit-btn';
+        editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+        editBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openTaskModalFallback(taskId);
+        });
+
+        // Adicionar o botão ao card da tarefa
+        if (!taskElement.querySelector('.task-edit-btn')) {
+            taskElement.style.position = 'relative';
+            editBtn.style.position = 'absolute';
+            editBtn.style.top = '8px';
+            editBtn.style.right = '8px';
+            editBtn.style.padding = '4px 6px';
+            editBtn.style.fontSize = '10px';
+            editBtn.style.opacity = '0.7';
+            editBtn.style.transition = 'opacity 0.2s';
+
+            editBtn.addEventListener('mouseenter', () => {
+                editBtn.style.opacity = '1';
+            });
+
+            editBtn.addEventListener('mouseleave', () => {
+                editBtn.style.opacity = '0.7';
+            });
+
+            taskElement.appendChild(editBtn);
         }
     };
 

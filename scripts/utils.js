@@ -96,7 +96,74 @@ const UtilsModule = (() => {
     alert(`${type.toUpperCase()}: ${message}`);
   };
 
+  // Mostrar loading global
+  const showLoading = function (message = 'Carregando...') {
+    const loading = document.getElementById('globalLoading');
+    if (loading) {
+      loading.querySelector('span').textContent = message;
+      loading.style.display = 'flex';
+    }
+  };
+
+  // Esconder loading global
+  const hideLoading = function () {
+    const loading = document.getElementById('globalLoading');
+    if (loading) {
+      loading.style.display = 'none';
+    }
+  };
+
+  // Tratamento de erros de API
+  const handleApiError = function (error, context = 'operação') {
+    console.error(`Erro em ${context}:`, error);
+
+    let message = 'Erro inesperado';
+    if (error.message) {
+      message = error.message;
+    } else if (error.code) {
+      message = `Erro ${error.code}: ${error.message}`;
+    }
+
+    showNotification(`Erro ao ${context}: ${message}`, 'error');
+    return false;
+  };
+
+  // Formatar data para input type="date"
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+
+      // Ajustar para o fuso horário local
+      const offset = date.getTimezoneOffset();
+      const adjustedDate = new Date(date.getTime() - (offset * 60 * 1000));
+      return adjustedDate.toISOString().split('T')[0];
+    } catch (error) {
+      console.error('Erro ao formatar data:', error);
+      return '';
+    }
+  };
+
+  // Obter status da coluna do Supabase
+  const getColumnStatusFromSupabase = async (columnId) => {
+    try {
+      const { data: column, error } = await window.supabaseClient
+        .from('columns')
+        .select('type')
+        .eq('id', columnId)
+        .single();
+
+      if (error) throw error;
+      return column?.type || 'pending';
+    } catch (error) {
+      console.error('Erro ao buscar status da coluna:', error);
+      return 'pending';
+    }
+  };
+
   return {
+    // Mantenha todas as exportações existentes
     formatDate,
     getStatusText,
     getPriorityText,
@@ -105,5 +172,12 @@ const UtilsModule = (() => {
     generateId,
     validateEmail,
     showNotification,
+
+    // Adicione as novas exportações
+    showLoading,
+    hideLoading,
+    handleApiError,
+    formatDateForInput,
+    getColumnStatusFromSupabase
   };
 })();
