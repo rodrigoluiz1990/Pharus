@@ -600,7 +600,7 @@ const BoardModule = (() => {
             if (taskBoard && getComputedStyle(taskBoard).display !== "none") {
                 renderBoard();
             }
-        }, 30000);
+        }, 300000);
     };
 
     // ========== API PÚBLICA ========== //
