@@ -672,8 +672,8 @@ textarea:disabled {
 }
 
 .status-completed {
-    background-color: #d4edda;
-    color: #155724;
+    background-color: #15d448;
+    color: #464b47;
     border: 1px solid #c3e6cb;
 }
 
@@ -740,8 +740,8 @@ textarea:disabled {
 }
 
 .tipo-bug {
-    background-color: #eb5461;
-    color: #856404;
+    background-color: #f13939;
+    color: #3a3a31;
     border: 1px solid #ffb9a7;
 }
 
