@@ -82,20 +82,30 @@ const ModalModule = (() => {
     };
 
     // Popular dropdown de responsáveis
-    const populateAssignees = async () => {
+    const populateAssignees = async (selectedValue = null) => {
         if (!taskAssignee) return;
-
+    
         taskAssignee.innerHTML = '<option value="">Selecionar responsável</option>';
-
+    
         try {
             const users = await StorageModule.getUsers();
-
+    
             users.forEach(user => {
                 const option = document.createElement('option');
-                option.value = user.id;
+                option.value = user.id; // UUID agora
                 option.textContent = user.name;
+                
+                if (selectedValue && user.id === selectedValue) {
+                    option.selected = true;
+                }
+                
                 taskAssignee.appendChild(option);
             });
+    
+            // Fallback para garantir que o valor seja definido
+            if (selectedValue && taskAssignee.value !== selectedValue) {
+                taskAssignee.value = selectedValue;
+            }
         } catch (error) {
             console.error('Erro ao carregar usuários:', error);
         }

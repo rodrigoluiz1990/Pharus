@@ -142,7 +142,7 @@ const BoardModule = (() => {
         taskElement.draggable = true;
         taskElement.dataset.taskId = task.id;
 
-        const assignee = users.find((u) => u.id === task.assignee);
+        const assignee = users.find((u) => String(u.id) === String(task.assignee));
         const statusInfo = UtilsModule.getStatusText(task.status);
         const priorityInfo = UtilsModule.getPriorityText(task.priority);
         const typeInfo = UtilsModule.getTypeText(task.type);
@@ -170,7 +170,7 @@ const BoardModule = (() => {
     };
 
     const createTableRow = (task) => {
-        const assignee = users.find((u) => u.id === task.assignee);
+        const assignee = users.find((u) => String(u.id) === String(task.assignee));
         const statusInfo = UtilsModule.getStatusText(task.status);
         const priorityInfo = UtilsModule.getPriorityText(task.priority);
         const typeInfo = UtilsModule.getTypeText(task.type);
@@ -393,7 +393,10 @@ const BoardModule = (() => {
     // ========== UTILITÁRIAS ========== //
 
     const getTasksByColumn = (columnId) => {
-        return tasks.filter((task) => task.column_id === columnId);
+        return tasks.filter((task) => {
+            // Converter ambos para string para comparação segura
+            return String(task.column_id) === String(columnId);
+        });
     };
 
     const getDateAttribute = (dueDate) => {
