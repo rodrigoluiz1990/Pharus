@@ -29,10 +29,10 @@ const UtilsModule = (() => {
   // Obter texto do status
   const getStatusText = (status) => {
     const statusMap = {
-      pending: { text: "Pendente", class: "pendente" },
-      in_progress: { text: "Em Andamento", class: "em-andamento" },
+      pending: { text: "Pendente", class: "pending" },
+      in_progress: { text: "Em Andamento", class: "in_progress" },
       review: { text: "Em Teste", class: "review" },
-      completed: { text: "Concluído", class: "concluido" },
+      completed: { text: "Concluído", class: "completed" },
     };
     return statusMap[status] || { text: status, class: "desconhecido" };
   };
