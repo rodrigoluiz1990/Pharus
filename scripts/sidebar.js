@@ -19,8 +19,69 @@ class SidebarManager {
         this.setupNavigation();
         this.setupViewToggle();
         this.initSidebarUserProfile();
+        this.setupChatMenuItem(); // MOVER para depois do setupNavigation
 
         console.log('Sidebar inicializado com sucesso');
+    }
+
+    setupChatMenuItem() {
+        const chatMenuItem = document.getElementById('chatMenuItem');
+        if (chatMenuItem) {
+            // Remover qualquer event listener existente para evitar duplicação
+            chatMenuItem.replaceWith(chatMenuItem.cloneNode(true));
+            const newChatMenuItem = document.getElementById('chatMenuItem');
+            
+            newChatMenuItem.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('Clicou no menu de chat');
+                if (typeof ChatModule !== 'undefined' && ChatModule.toggleChat) {
+                    ChatModule.toggleChat();
+                } else {
+                    console.log('Módulo de chat não disponível, carregando...');
+                    // Carregar o módulo de chat se necessário
+                    this.loadChatModule();
+                }
+            });
+        }
+    }
+
+    loadChatModule() {
+        // Verificar se o script já está carregado
+        if (typeof ChatModule === 'undefined') {
+            // Carregar dinamicamente o script do chat
+            const script = document.createElement('script');
+            script.src = 'scripts/chat.js';
+            script.onload = () => {
+                console.log('Módulo de chat carregado com sucesso');
+                if (typeof ChatModule.initChatModule === 'function') {
+                    ChatModule.initChatModule();
+                    // Abrir o chat após carregar
+                    setTimeout(() => {
+                        if (typeof ChatModule.toggleChat === 'function') {
+                            ChatModule.toggleChat();
+                        }
+                    }, 100);
+                }
+            };
+            script.onerror = () => {
+                console.error('Falha ao carregar o módulo de chat');
+                alert('Não foi possível carregar o sistema de chat. Recarregue a página e tente novamente.');
+            };
+            document.head.appendChild(script);
+
+            // Carregar os estilos do chat
+            if (!document.querySelector('link[href="styles/chat.css"]')) {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'styles/chat.css';
+                document.head.appendChild(link);
+            }
+        } else if (typeof ChatModule.toggleChat === 'function') {
+            // Se já estiver carregado, apenas abrir o chat
+            ChatModule.toggleChat();
+        }
     }
 
     // Configurar navegação do menu
@@ -30,23 +91,25 @@ class SidebarManager {
         menuItems.forEach(item => {
             const targetPage = item.getAttribute('data-page');
 
-            // Destacar item do menu atual
-            if (targetPage === this.currentPage) {
+            // Destacar item do menu atual (apenas para itens com data-page)
+            if (targetPage && targetPage === this.currentPage) {
                 item.classList.add('active');
                 console.log('Destacando menu:', targetPage);
             }
 
-            // Adicionar evento de clique para navegação
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                const clickedPage = item.getAttribute('data-page');
-                console.log('Clicou no menu:', clickedPage);
+            // Adicionar evento de clique para navegação (apenas para itens com data-page)
+            if (targetPage) {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const clickedPage = item.getAttribute('data-page');
+                    console.log('Clicou no menu:', clickedPage);
 
-                if (clickedPage && clickedPage !== this.currentPage) {
-                    console.log('Navegando para:', clickedPage);
-                    window.location.href = clickedPage;
-                }
-            });
+                    if (clickedPage && clickedPage !== this.currentPage) {
+                        console.log('Navegando para:', clickedPage);
+                        window.location.href = clickedPage;
+                    }
+                });
+            }
         });
     }
 
