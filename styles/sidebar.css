@@ -1,0 +1,285 @@
+/* styles/sidebar.css */
+.sidebar {
+    width: 250px;
+    background-color: #2c3e50;
+    color: white;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+}
+
+.logo {
+    padding: 20px;
+    border-bottom: 1px solid #34495e;
+    text-align: center;
+}
+
+.logo h1 {
+    margin: 0;
+    font-size: 24px;
+    color: #ecf0f1;
+}
+
+.menu-items {
+    flex: 1;
+    padding: 20px 0;
+}
+
+.menu-item {
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.menu-item:hover {
+    background-color: #34495e;
+}
+
+.menu-item.active {
+    background-color: #3498db;
+}
+
+.menu-item i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+.menu-item span {
+    font-size: 14px;
+}
+
+.view-toggle {
+    padding: 15px;
+    border-top: 1px solid #34495e;
+}
+
+.toggle-buttons {
+    display: flex;
+    background-color: #34495e;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.toggle-btn {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    background: none;
+    color: #bdc3c7;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.toggle-btn.active {
+    background-color: #3498db;
+    color: white;
+}
+
+/* ================================================== */
+/* === MENU DO USUÁRIO NO TOPO DO SIDEBAR === */
+/* ================================================== */
+
+.sidebar-user-section.top-user-menu {
+    padding: 15px;
+    border-bottom: 1px solid #34495e;
+    margin-bottom: 15px;
+    background-color: rgba(255, 255, 255, 0.05);
+    order: -1; /* Coloca no topo */
+}
+
+.sidebar-user-section.top-user-menu .user-info {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    width: 100%;
+}
+
+.sidebar-user-section.top-user-menu .user-info:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.sidebar-user-section.top-user-menu .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.sidebar-user-section.top-user-menu .user-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar-user-section.top-user-menu .user-name {
+    display: block;
+    font-weight: 600;
+    font-size: 14px;
+    color: #ecf0f1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-user-section.top-user-menu .user-email {
+    display: block;
+    font-size: 12px;
+    color: #bdc3c7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-user-section.top-user-menu .dropdown {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.sidebar-user-section.top-user-menu .btn {
+    background: none;
+    border: none;
+    color: #bdc3c7;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 3px;
+    transition: color 0.3s;
+    font-size: 12px;
+}
+
+.sidebar-user-section.top-user-menu .btn:hover {
+    color: #ecf0f1;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-user-section.top-user-menu .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    min-width: 180px;
+    z-index: 1000;
+    display: none;
+    margin-top: 5px;
+    animation: dropdownFadeIn 0.2s ease;
+}
+
+.sidebar-user-section.top-user-menu .dropdown-menu.show {
+    display: block;
+}
+
+.sidebar-user-section.top-user-menu .dropdown-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #2c3e50;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+}
+
+.sidebar-user-section.top-user-menu .dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: #3498db;
+}
+
+.sidebar-user-section.top-user-menu .dropdown-item i {
+    width: 16px;
+    text-align: center;
+    color: #7f8c8d;
+}
+
+.sidebar-user-section.top-user-menu .dropdown-item:hover i {
+    color: #3498db;
+}
+
+/* Ajustes para o layout do sidebar com menu no topo */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-user-section.top-user-menu {
+    order: -1; /* Garante que fica no topo */
+}
+
+.logo {
+    order: 0;
+    padding: 20px 25px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 15px;
+}
+
+.menu-items {
+    order: 1;
+    flex-grow: 1;
+}
+
+.view-toggle {
+    order: 2;
+}
+
+/* Animações */
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .sidebar-user-section.top-user-menu .user-details {
+        display: none;
+    }
+    
+    .sidebar-user-section.top-user-menu .user-info {
+        justify-content: center;
+        padding: 8px;
+    }
+    
+    .sidebar-user-section.top-user-menu .avatar {
+        width: 35px;
+        height: 35px;
+        font-size: 14px;
+        margin: 0;
+    }
+    
+    .sidebar-user-section.top-user-menu .dropdown-menu {
+        right: -10px;
+        min-width: 160px;
+    }
+}

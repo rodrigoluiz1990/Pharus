@@ -34,6 +34,13 @@ body {
     min-height: 100vh;
 }
 
+.content {
+    flex: 1;
+    margin-left: 250px; /* Largura do sidebar */
+    display: flex;
+    flex-direction: column;
+}
+
 /* Sidebar Melhorado */
 .sidebar {
     width: 280px;
@@ -139,16 +146,15 @@ body {
 }
 
 .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
     background: white;
-    border-radius: 12px;
-    padding: 25px;
-    margin-bottom: 25px;
-    box-shadow: var(--shadow);
+    padding: 15px 20px;
+    border-bottom: 1px solid #e9ecef;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 20px;
 }
 
 .project-title h2 {
@@ -182,16 +188,6 @@ body {
     border-color: var(--primary-color);
     color: var(--primary-color);
     box-shadow: var(--shadow);
-}
-
-.user-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--secondary-color);
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-weight: 500;
 }
 
 .avatar {
@@ -454,10 +450,6 @@ textarea.form-control {
     }
     
     .project-actions {
-        justify-content: center;
-    }
-    
-    .user-info {
         justify-content: center;
     }
     

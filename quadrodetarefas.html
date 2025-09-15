@@ -7,54 +7,20 @@
     <title>Pharus - Quadro de Tarefas</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/sidebar.css">
     <link rel="stylesheet" href="styles/board.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="styles/users.css">
 </head>
 
 <body>
     <div class="container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="logo">
-                <h1>Pharus</h1>
-            </div>
-
-            <div class="menu-items">
-                <div class="menu-item active">
-                    <i class="fas fa-th"></i>
-                    <span>Quadro de Tarefas</span>
-                </div>
-                <div class="menu-item">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Dashboard</span>
-                </div>
-                <div class="menu-item">
-                    <i class="fas fa-file-alt"></i>
-                    <span>Relatórios</span>
-                </div>
-                <div class="menu-item">
-                    <i class="fas fa-cog"></i>
-                    <span>Configurações</span>
-                </div>
-            </div>
-
-            <div class="view-toggle">
-                <div class="toggle-buttons">
-                    <button class="toggle-btn active" id="boardViewBtn">
-                        <i class="fas fa-th"></i> Board
-                    </button>
-                    <button class="toggle-btn" id="sociousViewBtn">
-                        <i class="fas fa-table"></i> Tabela
-                    </button>
-                </div>
-            </div>
-        </div>
+        <div id="sidebar-container"></div>
 
         <!-- Área de Conteúdo -->
         <div class="content">
             <div class="header">
                 <div class="project-title">
-                    <h2>Socius</h2>
+                    <h2>Pharus</h2>
                 </div>
 
                 <div class="project-actions">
@@ -71,67 +37,55 @@
                         <i class="fas fa-layer-group"></i> Agrupar por
                     </button>
                 </div>
+            </div>
 
-                <div class="user-info">
-                    <span id="userName">Usuário</span>
-                    <div class="avatar">U</div>
-                    <div class="dropdown">
-                        <button class="btn btn-secondary" id="userDropdown">▼</button>
-                        <div class="dropdown-menu" id="userMenu">
-                            <div class="dropdown-item" id="profileBtn">
-                                <i class="fas fa-user"></i> Meu Perfil
-                            </div>
-                            <div class="dropdown-item">
-                                <i class="fas fa-cog"></i> Configurações
-                            </div>
-                            <div class="dropdown-item" id="logoutBtn">
-                                <i class="fas fa-sign-out-alt"></i> Sair
-                            </div>
-                        </div>
+            <!-- Loading State -->
+            <div id="loadingIndicator" style="display: none; text-align: center; padding: 20px;">
+                <i class="fas fa-spinner fa-spin"></i> Carregando...
+            </div>
+
+            <!-- Board com Colunas (Visual Monday) -->
+            <div class="board" id="taskBoard">
+                <!-- Colunas serão adicionadas dinamicamente via JavaScript -->
+                <div class="loading-columns">
+                    <i class="fas fa-spinner fa-spin"></i> Carregando quadro...
+                </div>
+            </div>
+
+            <!-- Visualização Socíus (Tabela) -->
+            <div class="socious-view" id="sociousView" style="display: none;">
+                <div class="socious-header">
+                    <h3>Tarefas</h3>
+                    <div class="socious-filters">
+                        <button class="action-btn" id="addTaskSocious">
+                            <i class="fas fa-plus"></i> Nova Tarefa
+                        </button>
                     </div>
                 </div>
 
-                <!-- Loading State -->
-                <div id="loadingIndicator" style="display: none; text-align: center; padding: 20px;">
-                    <i class="fas fa-spinner fa-spin"></i> Carregando...
-                </div>
-
-                <!-- Board com Colunas (Visual Monday) -->
-                <div class="board" id="taskBoard">
-                    <!-- Colunas serão adicionadas dinamicamente via JavaScript -->
-                </div>
-
-                <!-- Visualização Socíus (Tabela) -->
-                <div class="socious-view" id="sociousView" style="display: none;">
-                    <div class="socious-header">
-                        <h3>Tarefas</h3>
-                        <div class="socious-filters">
-                            <button class="action-btn" id="addTaskSocious">
-                                <i class="fas fa-plus"></i> Nova Tarefa
-                            </button>
-                        </div>
-                    </div>
-
-                    <table class="socious-table">
-                        <thead>
-                            <tr>
-                                <th width="40px"></th>
-                                <th>Tarefa</th>
-                                <th>Responsável</th>
-                                <th>Data Solicitação</th>
-                                <th>Data Entrega</th>
-                                <th>Status</th>
-                                <th>Prioridade</th>
-                                <th>Cliente</th>
-                                <th>Tipo</th>
-                                <th width="100px">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sociousTableBody">
-                            <!-- Conteúdo preenchido via JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
+                <table class="socious-table">
+                    <thead>
+                        <tr>
+                            <th width="40px"></th>
+                            <th>Tarefa</th>
+                            <th>Responsável</th>
+                            <th>Data Solicitação</th>
+                            <th>Data Entrega</th>
+                            <th>Status</th>
+                            <th>Prioridade</th>
+                            <th>Cliente</th>
+                            <th>Tipo</th>
+                            <th width="100px">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sociousTableBody">
+                        <tr>
+                            <td colspan="10" style="text-align: center; padding: 20px;">
+                                <i class="fas fa-spinner fa-spin"></i> Carregando tarefas...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -215,174 +169,6 @@
             </div>
         </div>
 
-        <!-- Modal de Meu Perfil -->
-        <div class="modal-overlay" id="profileModal">
-            <div class="modal">
-                <div class="modal-header">
-                    <h3>Meu Perfil</h3>
-                    <button class="modal-close" id="closeProfileModal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <form id="profileForm">
-                        <div class="form-group">
-                            <label for="profileName">Nome Completo *</label>
-                            <input type="text" id="profileName" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="profileEmail">E-mail *</label>
-                            <input type="email" id="profileEmail" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="profileCurrentPassword">Senha Atual (para alterar senha)</label>
-                            <input type="password" id="profileCurrentPassword" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="profileNewPassword">Nova Senha</label>
-                            <input type="password" id="profileNewPassword" class="form-control" minlength="6">
-                        </div>
-                        <div class="form-group">
-                            <label for="profileConfirmPassword">Confirmar Nova Senha</label>
-                            <input type="password" id="profileConfirmPassword" class="form-control">
-                        </div>
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" id="cancelProfile">Cancelar</button>
-                            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal de Login -->
-        <div class="modal-overlay" id="loginModal">
-            <div class="modal">
-                <div class="modal-header">
-                    <h3>Login</h3>
-                </div>
-                <div class="modal-body">
-                    <form id="loginForm">
-                        <div class="form-group">
-                            <label for="loginEmail">E-mail</label>
-                            <input type="email" id="loginEmail" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="loginPassword">Senha</label>
-                            <input type="password" id="loginPassword" class="form-control" required>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Entrar</button>
-                            <button type="button" class="btn btn-secondary" id="showRegister">Criar Conta</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Scripts -->
-        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-        <script src="scripts/supabase-config.js"></script>
-        <script src="scripts/storage.js"></script>
-        <script src="scripts/utils.js"></script>
-        <script src="scripts/auth.js"></script>
-        <script src="scripts/modal.js"></script>
-        <script src="scripts/board.js"></script>
-        <script src="scripts/profile-modal.js"></script>
-        <script src="scripts/table-sort.js"></script>
-        <script>
-            // Inicialização da página do quadro de tarefas
-            document.addEventListener("DOMContentLoaded", async () => {
-                // Aguardar o supabase-config.js inicializar
-                await waitForSupabaseClient();
-
-                try {
-                    // Verificar se temos uma sessão válida
-                    const { data: { session }, error } = await window.supabaseClient.auth.getSession();
-
-                    if (error) {
-                        console.error("Erro ao obter sessão:", error);
-                        return;
-                    }
-
-                    if (session && session.user) {
-                        // Usuário autenticado - inicializar a página
-                        initializePage(session.user);
-                    } else {
-                        // Não autenticado - o supabase-config.js vai redirecionar para login
-                        console.log("Usuário não autenticado");
-                    }
-                } catch (error) {
-                    console.error("Erro ao inicializar página:", error);
-                }
-            });
-
-            // Função para aguardar o supabaseClient estar disponível
-            function waitForSupabaseClient() {
-                return new Promise((resolve) => {
-                    if (window.supabaseClient) {
-                        resolve();
-                    } else {
-                        const checkInterval = setInterval(() => {
-                            if (window.supabaseClient) {
-                                clearInterval(checkInterval);
-                                resolve();
-                            }
-                        }, 100);
-                    }
-                });
-            }
-
-            function initializePage(user) {
-                // Mostrar informações do usuário
-                const userNameElement = document.getElementById("userName");
-                if (userNameElement && user) {
-                    userNameElement.textContent = user.email || 'Usuário';
-                }
-
-                // Inicializar outras funcionalidades da página aqui
-                console.log("Página inicializada para o usuário:", user.email);
-            }
-
-            // Função para carregar dados do perfil
-            async function loadProfileData() {
-                try {
-                    console.log("Iniciando carregamento do perfil...");
-
-                    const { data: { session }, error } = await window.supabaseClient.auth.getSession();
-
-                    if (error) {
-                        console.error("Erro ao obter sessão:", error);
-                        alert("Erro ao carregar perfil. Tente novamente.");
-                        return; // Sai da função se houver erro
-                    }
-
-                    if (session && session.user) {
-                        console.log("Usuário encontrado:", session.user.email);
-
-                        // Preencher o formulário do perfil
-                        document.getElementById("profileEmail").value = session.user.email;
-                        document.getElementById("profileName").value = session.user.user_metadata?.full_name || "";
-
-                        // Mostrar o modal do perfil apenas se os dados forem carregados
-                        document.getElementById("profileModal").style.display = 'flex';
-                    } else {
-                        console.log("Nenhuma sessão encontrada");
-                        alert("Sessão expirada. Faça login novamente.");
-                    }
-                } catch (error) {
-                    console.error("Erro ao carregar dados do perfil:", error);
-                    alert("Erro inesperado ao carregar perfil.");
-                }
-            }
-
-            // Função para fechar o modal de perfil
-            function closeProfileModal() {
-                document.getElementById("profileModal").style.display = 'none';
-            }
-
-            // Configurar evento de fechar o modal
-            document.getElementById("closeProfileModal")?.addEventListener("click", closeProfileModal);
-        </script>
-
         <!-- Loading Overlay global -->
         <div id="globalLoading" class="loading-overlay">
             <div class="loading-spinner">
@@ -391,6 +177,87 @@
             <span>Carregando...</span>
         </div>
 
-</body>
+    </div>
 
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="scripts/supabase-config.js"></script>
+    <script src="scripts/utils.js"></script>
+    <script src="scripts/auth.js"></script>
+    <script src="scripts/storage.js"></script>
+    <script src="scripts/modal.js"></script>
+    <script src="scripts/board.js"></script>
+    <script src="scripts/component-loader.js"></script>
+    <script src="scripts/profile-modal.js"></script>
+    <script src="scripts/table-sort.js"></script>
+    <script>
+        // Inicialização da página do quadro de tarefas
+        document.addEventListener("DOMContentLoaded", async () => {
+            // Aguardar o supabase-config.js inicializar
+            await waitForSupabaseClient();
+
+            try {
+                // Verificar se temos uma sessão válida
+                const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+
+                if (error) {
+                    console.error("Erro ao obter sessão:", error);
+                    return;
+                }
+
+                if (session && session.user) {
+                    // Usuário autenticado - inicializar a página
+                    initializePage(session.user);
+                } else {
+                    // Não autenticado - o supabase-config.js vai redirecionar para login
+                    console.log("Usuário não autenticado");
+                }
+            } catch (error) {
+                console.error("Erro ao inicializar página:", error);
+            }
+        });
+
+        // Função para aguardar o supabaseClient estar disponível
+        function waitForSupabaseClient() {
+            return new Promise((resolve) => {
+                if (window.supabaseClient) {
+                    resolve();
+                } else {
+                    const checkInterval = setInterval(() => {
+                        if (window.supabaseClient) {
+                            clearInterval(checkInterval);
+                            resolve();
+                        }
+                    }, 100);
+                }
+            });
+        }
+
+        function initializePage(user) {
+        // Mostrar informações do usuário
+        const userNameElement = document.getElementById("userName");
+        if (userNameElement && user) {
+            userNameElement.textContent = user.email || 'Usuário';
+        }
+
+        // Inicializar outras funcionalidades da página aqui
+        console.log("Página inicializada para o usuário:", user.email);
+        
+        // INICIALIZAR O BOARD - ESSENCIAL!
+        if (typeof BoardModule !== 'undefined' && BoardModule.initBoard) {
+            console.log("Inicializando BoardModule...");
+            BoardModule.initBoard();
+        } else {
+            console.error("BoardModule não disponível");
+            // Tentar recarregar após um delay se o módulo não estiver disponível
+            setTimeout(() => {
+                if (typeof BoardModule !== 'undefined' && BoardModule.initBoard) {
+                    BoardModule.initBoard();
+                }
+            }, 500);
+        }
+    };
+        
+    </script>
+</body>
 </html>

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharus - Quadro de Tarefas</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/sidebar.css">
+</head>
+
+<body>
+
+    <!-- sidebar.html -->
+    <div class="sidebar">
+        <!-- Menu do usuário na parte superior -->
+        <div class="sidebar-user-section top-user-menu">
+            <div class="user-info" id="sidebarUserInfo">
+                <div class="avatar" id="sidebarUserAvatar">U</div>
+                <div class="user-details">
+                    <span class="user-name" id="sidebarUserName">Usuário</span>
+                    <span class="user-email" id="sidebarUserEmail">carregando...</span>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-secondary" id="sidebarUserDropdown">▼</button>
+                    <div class="dropdown-menu" id="sidebarUserMenu">
+                        <div class="dropdown-item" data-action="profile">
+                            <i class="fas fa-user"></i> Meu Perfil
+                        </div>
+                        <div class="dropdown-item" data-action="settings">
+                            <i class="fas fa-cog"></i> Configurações
+                        </div>
+                        <div class="dropdown-item" data-action="logout">
+                            <i class="fas fa-sign-out-alt"></i> Sair
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Meu Perfil -->
+        <div class="modal-overlay" id="profileModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Meu Perfil</h3>
+                    <button class="modal-close" id="closeProfileModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="profileForm">
+                        <div class="form-group">
+                            <label for="profileName">Nome Completo *</label>
+                            <input type="text" id="profileName" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profileEmail">E-mail *</label>
+                            <input type="email" id="profileEmail" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profileCurrentPassword">Senha Atual (para alterar senha)</label>
+                            <input type="password" id="profileCurrentPassword" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="profileNewPassword">Nova Senha</label>
+                            <input type="password" id="profileNewPassword" class="form-control" minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="profileConfirmPassword">Confirmar Nova Senha</label>
+                            <input type="password" id="profileConfirmPassword" class="form-control">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="cancelProfile">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="logo">
+            <h1>Pharus</h1>
+        </div>
+
+        <div class="menu-items">
+            <div class="menu-item" data-page="quadrodetarefas.html">
+                <i class="fas fa-th"></i>
+                <span>Quadro de Tarefas</span>
+            </div>
+            <div class="menu-item" data-page="dashboard.html">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </div>
+            <div class="menu-item" data-page="relatorios.html">
+                <i class="fas fa-file-alt"></i>
+                <span>Relatórios</span>
+            </div>
+            <div class="menu-item" data-page="users.html">
+                <i class="fas fa-users"></i>
+                <span>Usuários</span>
+            </div>
+            <div class="menu-item" data-page="configuracoes.html">
+                <i class="fas fa-cog"></i>
+                <span>Configurações</span>
+            </div>
+        </div>
+
+        <div class="view-toggle" id="boardViewToggle" style="display: none;">
+            <div class="toggle-buttons">
+                <button class="toggle-btn active" id="boardViewBtn">
+                    <i class="fas fa-th"></i> Quadro
+                </button>
+                <button class="toggle-btn" id="sociousViewBtn">
+                    <i class="fas fa-table"></i> Tabela
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+    // Inicialização específica para elementos do sidebar
+    document.addEventListener('DOMContentLoaded', function() {
+        // Esperar um pouco para garantir que o sidebar foi injetado
+        setTimeout(function() {
+            // Configurar event listeners para o modal de perfil
+            const closeProfileModal = document.getElementById('closeProfileModal');
+            const cancelProfile = document.getElementById('cancelProfile');
+            const profileForm = document.getElementById('profileForm');
+            
+            if (closeProfileModal) {
+                closeProfileModal.addEventListener('click', function() {
+                    const profileModal = document.getElementById('profileModal');
+                    if (profileModal) profileModal.style.display = 'none';
+                });
+            }
+            
+            if (cancelProfile) {
+                cancelProfile.addEventListener('click', function() {
+                    const profileModal = document.getElementById('profileModal');
+                    if (profileModal) profileModal.style.display = 'none';
+                });
+            }
+            
+            if (profileForm) {
+                profileForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    alert('Funcionalidade de salvar perfil seria executada aqui.');
+                    // Esta função seria implementada no profile-modal.js
+                });
+            }
+            
+            // Configurar dropdown do usuário
+            const dropdownBtn = document.getElementById('sidebarUserDropdown');
+            const dropdownMenu = document.getElementById('sidebarUserMenu');
+            
+            if (dropdownBtn && dropdownMenu) {
+                dropdownBtn.addEventListener('click', function() {
+                    dropdownMenu.style.display = dropdownMenu.style.display === 'block' ? 'none' : 'block';
+                });
+                
+                // Fechar dropdown ao clicar fora
+                document.addEventListener('click', function(e) {
+                    if (!dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                        dropdownMenu.style.display = 'none';
+                    }
+                });
+                
+                // Ações do dropdown
+                const dropdownItems = dropdownMenu.querySelectorAll('.dropdown-item');
+                dropdownItems.forEach(item => {
+                    item.addEventListener('click', function() {
+                        const action = this.getAttribute('data-action');
+                        if (action === 'profile') {
+                            const profileModal = document.getElementById('profileModal');
+                            if (profileModal) profileModal.style.display = 'flex';
+                        } else if (action === 'logout') {
+                            alert('Funcionalidade de logout seria executada aqui.');
+                        }
+                        dropdownMenu.style.display = 'none';
+                    });
+                });
+            }
+        }, 100);
+    });
+    </script>
+
+</body>
+
+</html>

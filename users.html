@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharus - Controle de Usuários</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/sidebar.css">
+    <link rel="stylesheet" href="styles/users.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Container para o sidebar component -->
+        <div id="sidebar-container"></div>
+
+        <!-- Área de Conteúdo -->
+        <div class="content">
+            <div class="header">
+                <div class="project-title">
+                    <h2>Controle de Usuários</h2>
+                </div>
+            </div>
+
+            <!-- Tela de Controle de Usuários -->
+            <div class="users-view">
+                <div class="users-header">
+                    <h3>Gerenciamento de Usuários</h3>
+                    <button class="btn-add-user" id="addUserBtn">
+                        <i class="fas fa-plus"></i> Novo Usuário
+                    </button>
+                </div>
+
+                <div id="usersTableContainer">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>E-mail</th>
+                                <th>Função</th>
+                                <th>Status</th>
+                                <th>Último Acesso</th>
+                                <th>Criado em</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr>
+                                <td colspan="7" class="loading-users">
+                                    <i class="fas fa-spinner fa-spin"></i> Carregando usuários...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para Criar/Editar Usuário -->
+        <div class="modal-overlay user-modal" id="userModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 id="userModalTitle">Novo Usuário</h3>
+                    <button class="modal-close" id="closeUserModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="userForm" class="user-form">
+                        <input type="hidden" id="userId">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="userName">Nome Completo *</label>
+                                <input type="text" id="userName" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="userEmail">E-mail *</label>
+                                <input type="email" id="userEmail" class="form-control" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="userRole">Função *</label>
+                                <select id="userRole" class="form-control" required>
+                                    <option value="user">Usuário</option>
+                                    <option value="manager">Gerente</option>
+                                    <option value="admin">Administrador</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="userStatus">Status *</label>
+                                <select id="userStatus" class="form-control" required>
+                                    <option value="active">Ativo</option>
+                                    <option value="inactive">Inativo</option>
+                                    <option value="pending">Pendente</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="userPassword">Senha</label>
+                                <input type="password" id="userPassword" class="form-control" 
+                                    autocomplete="new-password" minlength="6">
+                                <small class="form-text">Deixe em branco para não alterar</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="userConfirmPassword">Confirmar Senha</label>
+                                <input type="password" id="userConfirmPassword" class="form-control" 
+                                    autocomplete="new-password">
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="cancelUser">Cancelar</button>
+                            <button type="button" class="btn btn-danger" id="deleteUser" style="display: none;">Excluir</button>
+                            <button type="submit" class="btn btn-primary">Salvar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay global -->
+        <div id="globalLoading" class="loading-overlay">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+            </div>
+            <span>Carregando...</span>
+        </div>
+
+        <!-- Scripts -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        <script src="scripts/supabase-config.js"></script>
+        <script src="scripts/storage.js"></script>
+        <script src="scripts/utils.js"></script>
+        <script src="scripts/auth.js"></script>
+        <script src="scripts/component-loader.js"></script>
+        <script src="scripts/modal.js"></script>
+        <script src="scripts/board.js"></script>
+        <script src="scripts/profile-modal.js"></script>
+        <script src="scripts/table-sort.js"></script>
+        <script src="scripts/users.js"></script>
+        
+        <script>
+            // Inicialização da página de usuários
+            document.addEventListener("DOMContentLoaded", async () => {
+                console.log('DOM carregado, inicializando página de usuários...');
+                
+                // Aguardar o supabase-config.js inicializar
+                await waitForSupabaseClient();
+        
+                try {
+                    // Verificar se temos uma sessão válida
+                    const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+        
+                    if (error) {
+                        console.error("Erro ao obter sessão:", error);
+                        window.location.href = 'login.html';
+                        return;
+                    }
+        
+                    if (session && session.user) {
+                        console.log("Usuário autenticado:", session.user.email);
+                        
+                        // Inicializar a página
+                        initializePage(session.user);
+                        
+                        // Mostrar a tela de usuários
+                        const usersView = document.querySelector('.users-view');
+                        if (usersView) {
+                            usersView.style.display = 'block';
+                        }
+                        
+                        // Carregar os usuários
+                        if (typeof UsersModule !== 'undefined' && UsersModule.loadUsers) {
+                            console.log('Carregando usuários...');
+                            UsersModule.loadUsers();
+                        } else {
+                            console.error('Módulo de usuários não disponível');
+                        }
+                    } else {
+                        console.log("Usuário não autenticado, redirecionando...");
+                        window.location.href = 'login.html';
+                    }
+                } catch (error) {
+                    console.error("Erro ao inicializar página:", error);
+                }
+            });
+        
+            // Função para aguardar o supabaseClient estar disponível
+            function waitForSupabaseClient() {
+                return new Promise((resolve) => {
+                    if (window.supabaseClient) {
+                        console.log('Supabase client já disponível');
+                        resolve();
+                    } else {
+                        console.log('Aguardando supabase client...');
+                        const checkInterval = setInterval(() => {
+                            if (window.supabaseClient) {
+                                clearInterval(checkInterval);
+                                console.log('Supabase client disponível');
+                                resolve();
+                            }
+                        }, 100);
+                        
+                        // Timeout após 5 segundos
+                        setTimeout(() => {
+                            clearInterval(checkInterval);
+                            console.log('Timeout aguardando supabase client');
+                            resolve();
+                        }, 5000);
+                    }
+                });
+            }
+        
+            function initializePage(user) {
+                console.log("Página inicializada para o usuário:", user.email);
+            }
+        </script>
+    </div>
+</body>
+</html>

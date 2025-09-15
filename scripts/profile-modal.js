@@ -21,37 +21,37 @@ const ProfileModule = (() => {
     const showProfileModal = async () => {
         const profileModal = document.getElementById('profileModal');
         if (!profileModal) return;
-    
+
         try {
             // Aguardar supabaseClient estar disponível
             const supabase = await waitForSupabaseClient();
-            
+
             // Obter sessão atual
             const { data: { session }, error: sessionError } = await supabase.auth.getSession();
             if (sessionError) throw sessionError;
-    
+
             const user = session?.user;
             if (!user) throw new Error('Usuário não logado');
-    
+
             // Buscar perfil completo na tabela profiles
             const { data: profile, error: profileError } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', user.id)
                 .single();
-                
+
             // Se não encontrar perfil, usar dados básicos do auth
             if (profileError) {
                 console.warn('Perfil não encontrado na tabela profiles, usando dados do auth:', profileError);
             }
-    
+
             // Preencher formulário
             document.getElementById('profileName').value = profile?.full_name || user.user_metadata?.full_name || '';
             document.getElementById('profileEmail').value = user.email || '';
             document.getElementById('profileCurrentPassword').value = '';
             document.getElementById('profileNewPassword').value = '';
             document.getElementById('profileConfirmPassword').value = '';
-    
+
             profileModal.style.display = 'flex';
         } catch (error) {
             console.error('Erro ao carregar perfil:', error);
@@ -79,7 +79,7 @@ const ProfileModule = (() => {
 
             // Aguardar supabaseClient estar disponível
             const supabase = await waitForSupabaseClient();
-            
+
             const name = document.getElementById('profileName').value;
             const email = document.getElementById('profileEmail').value;
             const currentPassword = document.getElementById('profileCurrentPassword').value;
@@ -131,10 +131,10 @@ const ProfileModule = (() => {
             try {
                 const { error: profileError } = await supabase
                     .from('profiles')
-                    .upsert({ 
-                        id: user.id, 
-                        full_name: name, 
-                        updated_at: new Date().toISOString() 
+                    .upsert({
+                        id: user.id,
+                        full_name: name,
+                        updated_at: new Date().toISOString()
                     });
                 if (profileError) {
                     console.warn('Não foi possível atualizar tabela profiles:', profileError);
@@ -166,7 +166,7 @@ const ProfileModule = (() => {
             const supabase = await waitForSupabaseClient();
             const { error } = await supabase.auth.signOut();
             if (error) throw error;
-            
+
             localStorage.removeItem('supabaseSession');
             window.location.href = 'login.html';
         } catch (error) {
@@ -177,40 +177,27 @@ const ProfileModule = (() => {
 
     // Inicializar módulo
     const initProfileModule = () => {
-        const profileModal = document.getElementById('profileModal');
-        if (!profileModal) return;
-
-        const profileForm = document.getElementById('profileForm');
-        const closeProfileModal = document.getElementById('closeProfileModal');
-        const cancelProfile = document.getElementById('cancelProfile');
-        const profileBtn = document.getElementById('profileBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-
-        if (profileForm) profileForm.addEventListener('submit', saveProfile);
-        if (closeProfileModal) closeProfileModal.addEventListener('click', hideProfileModal);
-        if (cancelProfile) cancelProfile.addEventListener('click', hideProfileModal);
-        
-        if (profileModal) {
-            profileModal.addEventListener('click', (e) => {
-                if (e.target === profileModal) hideProfileModal();
-            });
-        }
-
-        if (profileBtn) {
-            profileBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                showProfileModal();
-            });
-        }
-
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                logout();
-            });
-        }
-
-        console.log('Módulo de perfil inicializado');
+        // Aguardar o sidebar ser carregado
+        const checkForElements = setInterval(() => {
+            const profileModal = document.getElementById('profileModal');
+            const closeProfileModal = document.getElementById('closeProfileModal');
+            const cancelProfile = document.getElementById('cancelProfile');
+            
+            if (profileModal && closeProfileModal && cancelProfile) {
+                clearInterval(checkForElements);
+                
+                // Configurar event listeners
+                closeProfileModal.addEventListener('click', hideProfileModal);
+                cancelProfile.addEventListener('click', hideProfileModal);
+                
+                // Fechar modal ao clicar fora
+                profileModal.addEventListener('click', (e) => {
+                    if (e.target === profileModal) hideProfileModal();
+                });
+                
+                console.log('Módulo de perfil inicializado no sidebar');
+            }
+        }, 100);
     };
 
     return {

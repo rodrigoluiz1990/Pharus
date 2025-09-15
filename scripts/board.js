@@ -13,7 +13,6 @@ const BoardModule = (() => {
     let tasks = [];
     let columns = [];
     let users = [];
-    let dropdownInitialized = false;
 
     // ========== FUNÇÕES PRINCIPAIS ========== //
 
@@ -110,16 +109,25 @@ const BoardModule = (() => {
         columnHeader.className = "column-header";
         columnHeader.innerHTML = `
             <span>${column.title}</span>
-            <span>${getTasksByColumn(column.id).length}</span>
+            <span class="task-count">${getTasksByColumn(column.id).length}</span>
         `;
 
         const columnContent = document.createElement("div");
         columnContent.className = "column-content";
 
-        getTasksByColumn(column.id).forEach((task) => {
-            const taskElement = createTaskElement(task);
-            columnContent.appendChild(taskElement);
-        });
+        const columnTasks = getTasksByColumn(column.id);
+        if (columnTasks.length === 0) {
+            columnContent.innerHTML = `
+                <div class="empty-column">
+                    <p>Nenhuma tarefa</p>
+                </div>
+            `;
+        } else {
+            columnTasks.forEach((task) => {
+                const taskElement = createTaskElement(task);
+                columnContent.appendChild(taskElement);
+            });
+        }
 
         const addButton = document.createElement("button");
         addButton.className = "add-task-btn";
@@ -184,7 +192,7 @@ const BoardModule = (() => {
                     <div class="custom-checkbox"></div>
                 </label>
             </td>
-            <td>${task.title}</td>
+            <td>${task.title || 'Sem título'}</td>
             <td>${assignee ? assignee.name : "Não atribuído"}</td>
             <td>${UtilsModule.formatDate(task.request_date)}</td>
             <td ${dataAttribute}>${UtilsModule.formatDate(task.due_date)}</td>
@@ -244,11 +252,17 @@ const BoardModule = (() => {
             UtilsModule.hideLoading();
 
             // USAR A FUNÇÃO DO MODALMODULE EM VEZ DE MANIPULAR DIRETAMENTE
-            ModalModule.showModal(null, taskId);
+            if (typeof ModalModule !== 'undefined' && ModalModule.showModal) {
+                ModalModule.showModal(null, taskId);
+            } else {
+                console.error('ModalModule não disponível');
+                alert('Módulo de modal não carregado');
+            }
 
         } catch (error) {
             UtilsModule.hideLoading();
-            UtilsModule.handleApiError(error, 'carregar tarefa para edição');
+            console.error('Erro ao abrir modal:', error);
+            alert('Erro ao carregar tarefa: ' + error.message);
         }
     };
 
@@ -274,120 +288,6 @@ const BoardModule = (() => {
                 TableSortModule.setupColumnSorting();
             }
         }, 100);
-    };
-
-    // ========== DROPDOWN DO USUÁRIO (UNIFICADO E ROBUSTO) ========== //
-
-    const initUserDropdown = () => {
-        if (dropdownInitialized) return;
-        dropdownInitialized = true;
-
-        const userInfo = document.querySelector(".user-info");
-        const userMenu = document.getElementById("userMenu");
-        const userDropdown = document.getElementById("userDropdown");
-
-        if (!userInfo || !userMenu || !userDropdown) {
-            console.error("initUserDropdown: elementos do dropdown não encontrados (verifique IDs/classes).");
-            return;
-        }
-
-        // inicia fechado
-        userMenu.classList.remove("show");
-        userInfo.classList.remove("active");
-
-        // Clique no botão seta -> alterna (toggle)
-        userDropdown.addEventListener("click", (e) => {
-            e.stopPropagation();
-            const isOpen = userMenu.classList.contains("show");
-            // fechar outros dropdowns na página (se houver)
-            document.querySelectorAll(".dropdown-menu.show").forEach(m => {
-                if (m !== userMenu) m.classList.remove("show");
-            });
-            document.querySelectorAll(".user-info.active").forEach(i => {
-                if (i !== userInfo) i.classList.remove("active");
-            });
-
-            if (isOpen) {
-                userMenu.classList.remove("show");
-                userInfo.classList.remove("active");
-            } else {
-                userMenu.classList.add("show");
-                userInfo.classList.add("active");
-            }
-            console.log("userDropdown toggled ->", !isOpen);
-        });
-
-        // Opcional: clique no container .user-info também abre (sem toggle duplicado)
-        userInfo.addEventListener("click", (e) => {
-            // se clicar no botão já tratado, será stopPropagation; aqui abrimos apenas se estiver fechado
-            if (!userMenu.classList.contains("show")) {
-                userMenu.classList.add("show");
-                userInfo.classList.add("active");
-                console.log("userInfo clicked -> opened menu");
-            }
-        });
-
-        // Fechar ao clicar fora
-        document.addEventListener("click", (e) => {
-            if (!userInfo.contains(e.target)) {
-                userMenu.classList.remove("show");
-                userInfo.classList.remove("active");
-            }
-        });
-
-        // Impedir fechamento ao clicar dentro do menu
-        userMenu.addEventListener("click", (e) => {
-            e.stopPropagation();
-            // delegação de itens do menu: usar data-action em cada .dropdown-item
-            const item = e.target.closest(".dropdown-item");
-            if (item) {
-                const action = item.dataset.action || item.id || null;
-                if (action) {
-                    handleMenuAction(action, userMenu, userInfo);
-                } else {
-                    // se não tiver action, apenas fecha
-                    userMenu.classList.remove("show");
-                    userInfo.classList.remove("active");
-                }
-            }
-        });
-
-        console.log("initUserDropdown: inicializado");
-    };
-
-    const handleMenuAction = (action, menu, userInfo) => {
-        // aqui as ações comuns (adicione o que precisar)
-        console.log("handleMenuAction:", action);
-        // fechar o menu
-        if (menu) menu.classList.remove("show");
-        if (userInfo) userInfo.classList.remove("active");
-
-        switch (action) {
-            case "profile":
-                if (typeof ModalModule !== "undefined" && ModalModule.showProfile) {
-                    ModalModule.showProfile();
-                } else {
-                    // fallback: abrir modal profile se existir id
-                    const profileModal = document.getElementById("profileModal");
-                    if (profileModal) profileModal.style.display = "block";
-                }
-                break;
-            case "settings":
-                UtilsModule.showNotification("Abrir configurações (implemente a ação)", "info");
-                break;
-            case "logout":
-                if (typeof AuthModule !== "undefined" && AuthModule.logout) {
-                    AuthModule.logout();
-                } else if (typeof StorageModule !== "undefined" && StorageModule.logout) {
-                    StorageModule.logout();
-                } else {
-                    // fallback simples
-                    window.location.href = "login.html";
-                }
-                break;
-            default:
-                console.warn("Ação do menu não mapeada:", action);
-        }
     };
 
     // ========== UTILITÁRIAS ========== //
@@ -563,7 +463,6 @@ const BoardModule = (() => {
         try {
             await loadData();
             setupEventListeners();
-            initUserDropdown();
             showBoardView();
             setupAutoRefresh();
         } catch (error) {
@@ -599,8 +498,10 @@ const BoardModule = (() => {
             await loadData();
             if (taskBoard && getComputedStyle(taskBoard).display !== "none") {
                 renderBoard();
+            } else if (sociousView && getComputedStyle(sociousView).display !== "none") {
+                renderSociousView();
             }
-        }, 300000);
+        }, 50000);
     };
 
     // ========== API PÚBLICA ========== //
