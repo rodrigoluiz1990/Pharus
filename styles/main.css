@@ -36,7 +36,7 @@ body {
 
 .content {
     flex: 1;
-    margin-left: 250px; /* Largura do sidebar */
+    margin-left: 250px;    /* Largura do sidebar */
     display: flex;
     flex-direction: column;
 }
@@ -165,7 +165,7 @@ body {
 
 .project-actions {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     flex-wrap: wrap;
 }
 
@@ -231,9 +231,9 @@ body {
 
 .modal {
     background-color: white;
-    border-radius: 12px;
-    width: 600px;
-    max-width: 95%;
+    border-radius: 10px;
+    width: 1000px;
+    max-width: 100%;
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: var(--shadow-hover);
@@ -252,13 +252,13 @@ body {
 }
 
 .modal-header {
-    padding: 20px 25px;
+    padding: 10px 20px;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
     background: var(--secondary-color);
-    border-radius: 12px 12px 0 0;
+    border-radius: 10px 10px 0 0;
 }
 
 .modal-header h3 {
@@ -284,16 +284,18 @@ body {
 }
 
 .modal-body {
-    padding: 25px;
+    padding: 20px;
+    padding-top: 0px;
 }
 
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 8px;
+    margin-top: 20px;
+    margin-bottom: 10px;
     color: var(--text-color);
     font-weight: 600;
     font-size: 14px;
@@ -301,9 +303,9 @@ body {
 
 .form-control {
     width: 100%;
-    padding: 12px 16px;
+    padding: 10px 10px;
     border: 2px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 16px;
     transition: all 0.3s ease;
     background-color: white;
@@ -323,10 +325,33 @@ textarea.form-control {
 .form-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
-    margin-top: 25px;
+    gap: 10px;
+    margin-top: 20px;
     padding-top: 20px;
     border-top: 1px solid var(--border-color);
+    grid-column: span 3
+}
+
+/* === Layout em colunas para o formulário do modal === */
+#taskForm {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);    /* 3 colunas (ajuste se quiser 2) */
+    column-gap: 20px;    /* espaço horizontal entre colunas */
+    row-gap: 0px;    /* espaço vertical entre linhas */
+    align-items: start;    /* <--- força cada célula a alinhar pelo topo */
+    grid-auto-rows: min-content;    /* evita que linhas "cresçam" por causa de textareas */
+}
+
+#taskForm .form-group {
+    display: flex;
+    flex-direction: column;
+    align-self: start;    /* reforça o alinhamento no nível do item */
+    margin-bottom: 0;    /* o espaço vertical agora é controlado por row-gap */
+}
+
+/* Campos que devem ocupar as duas colunas */
+#taskForm .form-group.full-width {
+    grid-column: span 3;
 }
 
 .btn {
@@ -405,11 +430,11 @@ textarea.form-control {
     .sidebar {
         width: 220px;
     }
-    
+
     .content {
         padding: 20px;
     }
-    
+
     .header {
         padding: 20px;
     }
@@ -419,40 +444,40 @@ textarea.form-control {
     .container {
         flex-direction: column;
     }
-    
+
     .sidebar {
         width: 100%;
         height: auto;
         position: sticky;
         top: 0;
     }
-    
+
     .menu-items {
         display: flex;
         overflow-x: auto;
         padding: 10px;
     }
-    
+
     .menu-item {
         white-space: nowrap;
         margin-bottom: 0;
         margin-right: 10px;
     }
-    
+
     .content {
         padding: 15px;
     }
-    
+
     .header {
         flex-direction: column;
         align-items: stretch;
         gap: 15px;
     }
-    
+
     .project-actions {
         justify-content: center;
     }
-    
+
     .modal {
         margin: 20px;
         width: calc(100% - 40px);
@@ -463,17 +488,17 @@ textarea.form-control {
     .form-actions {
         flex-direction: column;
     }
-    
+
     .btn {
         width: 100%;
         justify-content: center;
     }
-    
+
     .project-title h2 {
         font-size: 20px;
         text-align: center;
     }
-    
+
     .action-btn {
         flex: 1;
         min-width: 120px;
@@ -530,7 +555,7 @@ textarea:disabled {
     .btn {
         border: 2px solid currentColor;
     }
-    
+
     .action-btn {
         border: 2px solid currentColor;
     }
@@ -819,13 +844,13 @@ textarea:disabled {
         display: block;
         overflow-x: auto;
     }
-    
+
     .socious-table th,
     .socious-table td {
         white-space: nowrap;
         min-width: 120px;
     }
-    
+
     .status-cell,
     .prioridade-cell,
     .tipo-cell {
@@ -841,20 +866,20 @@ textarea:disabled {
         gap: 15px;
         align-items: stretch;
     }
-    
+
     .socious-filters {
         justify-content: center;
     }
-    
+
     .socious-table {
         font-size: 13px;
     }
-    
+
     .socious-table th,
     .socious-table td {
         padding: 8px;
     }
-    
+
     .status-cell,
     .prioridade-cell,
     .tipo-cell {
@@ -868,16 +893,16 @@ textarea:disabled {
     .socious-view {
         padding: 15px;
     }
-    
+
     .socious-table {
         font-size: 12px;
     }
-    
+
     .socious-table th,
     .socious-table td {
         padding: 6px;
     }
-    
+
     /* Ocultar colunas menos importantes em mobile */
     .socious-table th:nth-child(4), /* Data Solicitação */
     .socious-table td:nth-child(4),
@@ -942,22 +967,22 @@ tr.vencida .status-cell {
     .socious-view {
         background: #2d3748;
     }
-    
+
     .socious-table {
         background: #2d3748;
         color: white;
     }
-    
+
     .socious-table th {
         background-color: #4a5568;
         color: white;
     }
-    
+
     .socious-table td {
         border-color: #4a5568;
         color: #e2e8f0;
     }
-    
+
     .socious-table tbody tr:hover {
         background-color: #4a5568;
     }
