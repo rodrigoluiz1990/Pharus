@@ -294,7 +294,7 @@ body {
 
 .form-group label {
     display: block;
-    margin-top: 20px;
+    margin-top: 10px;
     margin-bottom: 10px;
     color: var(--text-color);
     font-weight: 600;
