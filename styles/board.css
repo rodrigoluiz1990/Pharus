@@ -7,15 +7,15 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
+    padding: 12px 16px;
     background: white;
     border-bottom: 1px solid var(--border-color);
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     position: relative;
     z-index: 1000;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 10px;
 }
 
 .header-left {
@@ -49,7 +49,7 @@
 /* BOTÕES DE AÇÃO */
 .project-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
 }
 
@@ -124,9 +124,9 @@
 /* Container principal do board */
 .board {
     display: flex;
-    gap: 15px;
+    gap: 10px;
     overflow-x: auto;
-    padding-bottom: 20px;
+    padding-bottom: 12px;
 }
 
 /* Colunas do board */
@@ -139,7 +139,7 @@
 }
 
 .column-header {
-    padding: 15px;
+    padding: 12px;
     border-bottom: 1px solid var(--border-color);
     font-weight: 600;
     display: flex;
@@ -150,8 +150,8 @@
 }
 
 .column-content {
-    padding: 10px;
-    min-height: 500px;
+    padding: 8px;
+    min-height: 360px;
     max-height: 70vh;
     overflow-y: auto;
 }
@@ -163,8 +163,8 @@
 .task {
     background-color: white;
     border-radius: 6px;
-    padding: 12px;
-    margin-bottom: 10px;
+    padding: 10px;
+    margin-bottom: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     cursor: grab;
     transition: transform 0.2s, box-shadow 0.2s;
@@ -185,7 +185,7 @@
 
 .task-title {
     font-weight: 600;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     font-size: 14px;
 }
 
@@ -194,7 +194,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .task-tag {
@@ -252,7 +252,7 @@
     justify-content: space-between;
     font-size: 12px;
     color: var(--text-light);
-    margin-top: 8px;
+    margin-top: 6px;
 }
 
 .task-assignee,
@@ -266,7 +266,7 @@
 
 .add-task-btn {
     width: 100%;
-    padding: 10px;
+    padding: 8px;
     background-color: transparent;
     border: 1px dashed var(--border-color);
     border-radius: 6px;
@@ -290,13 +290,15 @@
 .socious-view {
     display: none;
     background: white;
-    border-radius: 8px;
+    border-radius: 6px;
+    padding: 10px;
+    margin-top: 8px;
     overflow: hidden;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .socious-header {
-    padding: 15px;
+    padding: 10px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -305,7 +307,7 @@
 
 .socious-filters {
     display: flex;
-    gap: 10px;
+    gap: 8px;
 }
 
 .socious-table {
@@ -318,7 +320,7 @@
     position: relative;
     user-select: none;
     background-color: var(--secondary-color);
-    padding: 12px 8px;
+    padding: 8px 6px;
     text-align: center;
     font-weight: 600;
     border-bottom: 1px solid var(--border-color);
@@ -327,7 +329,7 @@
 }
 
 .socious-table td {
-    padding: 10px 8px;
+    padding: 6px 6px;
     border-bottom: 1px solid var(--border-color);
     vertical-align: middle;
     text-align: center;
@@ -348,6 +350,46 @@
 
 .socious-table tr:nth-child(even):hover {
     background-color: #f0f0f0;
+}
+
+/* Modo tabela: somente titulo da tarefa */
+.socious-view.title-only-mode .socious-table {
+    table-layout: fixed;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+.socious-view.title-only-mode {
+    overflow-x: hidden;
+}
+
+.socious-view.title-only-mode .socious-table th:not(:nth-child(2)),
+.socious-view.title-only-mode .socious-table td:not(:nth-child(2)) {
+    display: none;
+}
+
+.socious-view.title-only-mode .socious-table th:nth-child(2) {
+    text-align: left;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none;
+    white-space: normal !important;
+}
+
+.socious-view.title-only-mode .socious-table td:nth-child(2) {
+    text-align: left;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: none;
+}
+
+.socious-view.title-only-mode .socious-table th,
+.socious-view.title-only-mode .socious-table td {
+    min-width: 0 !important;
 }
 
 /* Ajustar largura das colunas de data */
@@ -455,7 +497,14 @@
 
 @media (max-width: 768px) {
     .header {
-        padding: 12px 15px;
+        padding: 10px 12px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        gap: 6px;
+        margin-bottom: 8px;
+        overflow: hidden;
     }
 
     .filters-container {
@@ -475,8 +524,84 @@
     }
 
     .project-actions {
+        justify-content: flex-end;
+        flex-wrap: nowrap;
+        gap: 4px;
+        width: auto;
+        margin-left: auto;
+        overflow: hidden;
+        padding-bottom: 0;
+        flex-shrink: 0;
+    }
+
+    .project-title {
+        min-width: 0;
+        flex: 0 0 auto;
+        max-width: 38%;
+    }
+
+    .project-title h2 {
+        font-size: 0.95rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.1;
+    }
+
+    .project-actions .action-btn {
+        padding: 4px 6px;
+        font-size: 11px;
+        gap: 2px;
+        white-space: nowrap;
+        flex: 0 0 auto;
+    }
+
+    .socious-header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        gap: 6px;
+        padding: 8px;
+        margin-bottom: 8px;
+        padding-bottom: 8px;
+        overflow: hidden;
+    }
+
+    .socious-view {
+        margin-top: 4px;
+        padding: 8px;
+    }
+
+    #addTaskSocious.action-btn {
+        padding: 4px 6px;
+        font-size: 11px;
+        gap: 2px;
+        white-space: nowrap;
+        flex: 0 0 auto;
+    }
+
+    .add-task-btn {
+        padding: 9px 10px;
+        font-size: 13px;
         justify-content: center;
-        flex-wrap: wrap;
+    }
+
+    .socious-filters {
+        width: auto;
+        margin-left: auto;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .socious-header h3 {
+        min-width: 0;
+        flex: 0 0 auto;
+        max-width: 38%;
+        font-size: 1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .board {
@@ -493,7 +618,18 @@
     }
 
     .socious-table {
-        min-width: 800px;
+        min-width: 520px;
+    }
+
+    .socious-view.title-only-mode .socious-table {
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+
+    .socious-table th,
+    .socious-table td {
+        padding: 6px 5px;
+        font-size: 12px;
     }
 
     .task-tags {
@@ -649,9 +785,90 @@
     text-align: center;
     color: #6c757d;
     font-style: italic;
-    padding: 30px;
+    padding: 18px;
 }
 
 .socious-table tbody tr.loading-row td::after {
     content: 'Carregando...';
+}
+
+@media (max-width: 420px) {
+    .header {
+        padding: 10px 10px;
+        gap: 6px;
+    }
+
+    .project-title h2 {
+        font-size: 1rem;
+    }
+
+    .project-actions .action-btn {
+        padding: 3px 5px;
+        font-size: 10px;
+        gap: 2px;
+    }
+
+    .project-actions {
+        gap: 3px;
+    }
+
+    #addTaskSocious.action-btn {
+        padding: 3px 5px;
+        font-size: 10px;
+    }
+
+    .socious-header {
+        padding: 6px;
+    }
+
+    .socious-table {
+        min-width: 460px;
+    }
+}
+
+@media (max-width: 560px) {
+    .project-actions .action-btn .btn-label,
+    #addTaskSocious.action-btn .btn-label {
+        display: none;
+    }
+
+    .project-actions .action-btn,
+    #addTaskSocious.action-btn {
+        padding: 4px 5px;
+        gap: 0;
+    }
+
+    .project-actions .action-btn i,
+    #addTaskSocious.action-btn i {
+        margin: 0;
+    }
+}
+
+/* Overrides finais do modo "Titulo" para telas pequenas */
+.socious-view.title-only-mode .socious-table {
+    display: table !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+}
+
+.socious-view.title-only-mode .socious-table thead {
+    display: table-header-group !important;
+}
+
+.socious-view.title-only-mode .socious-table tbody {
+    display: table-row-group !important;
+}
+
+.socious-view.title-only-mode .socious-table tr {
+    display: table-row !important;
+    width: 100% !important;
+}
+
+.socious-view.title-only-mode .socious-table th:nth-child(2),
+.socious-view.title-only-mode .socious-table td:nth-child(2) {
+    display: table-cell !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
 }

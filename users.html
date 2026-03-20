@@ -130,95 +130,15 @@
         </div>
 
         <!-- Scripts -->
-        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        <script src="scripts/local-supabase-client.js"></script>
         <script src="scripts/supabase-config.js"></script>
-        <script src="scripts/storage.js"></script>
-        <script src="scripts/utils.js"></script>
         <script src="scripts/auth.js"></script>
         <script src="scripts/component-loader.js"></script>
-        <script src="scripts/modal.js"></script>
-        <script src="scripts/board.js"></script>
+        <script src="scripts/page-bootstrap.js"></script>
         <script src="scripts/profile-modal.js"></script>
-        <script src="scripts/table-sort.js"></script>
-        <script src="scripts/users.js"></script>
         <script src="scripts/chat.js"></script>
-        
-        <script>
-            // Inicialização da página de usuários
-            document.addEventListener("DOMContentLoaded", async () => {
-                console.log('DOM carregado, inicializando página de usuários...');
-                
-                // Aguardar o supabase-config.js inicializar
-                await waitForSupabaseClient();
-        
-                try {
-                    // Verificar se temos uma sessão válida
-                    const { data: { session }, error } = await window.supabaseClient.auth.getSession();
-        
-                    if (error) {
-                        console.error("Erro ao obter sessão:", error);
-                        window.location.href = 'login.html';
-                        return;
-                    }
-        
-                    if (session && session.user) {
-                        console.log("Usuário autenticado:", session.user.email);
-                        
-                        // Inicializar a página
-                        initializePage(session.user);
-                        
-                        // Mostrar a tela de usuários
-                        const usersView = document.querySelector('.users-view');
-                        if (usersView) {
-                            usersView.style.display = 'block';
-                        }
-                        
-                        // Carregar os usuários
-                        if (typeof UsersModule !== 'undefined' && UsersModule.loadUsers) {
-                            console.log('Carregando usuários...');
-                            UsersModule.loadUsers();
-                        } else {
-                            console.error('Módulo de usuários não disponível');
-                        }
-                    } else {
-                        console.log("Usuário não autenticado, redirecionando...");
-                        window.location.href = 'login.html';
-                    }
-                } catch (error) {
-                    console.error("Erro ao inicializar página:", error);
-                }
-            });
-        
-            // Função para aguardar o supabaseClient estar disponível
-            function waitForSupabaseClient() {
-                return new Promise((resolve) => {
-                    if (window.supabaseClient) {
-                        console.log('Supabase client já disponível');
-                        resolve();
-                    } else {
-                        console.log('Aguardando supabase client...');
-                        const checkInterval = setInterval(() => {
-                            if (window.supabaseClient) {
-                                clearInterval(checkInterval);
-                                console.log('Supabase client disponível');
-                                resolve();
-                            }
-                        }, 100);
-                        
-                        // Timeout após 5 segundos
-                        setTimeout(() => {
-                            clearInterval(checkInterval);
-                            console.log('Timeout aguardando supabase client');
-                            resolve();
-                        }, 5000);
-                    }
-                });
-            }
-        
-            function initializePage(user) {
-                console.log("Página inicializada para o usuário:", user.email);
-            }
-        </script>
     </div>
 </body>
 </html>
+
+

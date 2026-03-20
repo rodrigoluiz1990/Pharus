@@ -6,6 +6,7 @@ const ModalModule = (() => {
     const cancelTaskBtn = document.getElementById('cancelTask');
     const deleteTaskBtn = document.getElementById('deleteTask');
     const taskAssignee = document.getElementById('taskAssignee');
+    let isInitialized = false;
 
     // Mostrar modal
     const showModal = async (columnId, taskId = null) => {
@@ -44,7 +45,7 @@ const ModalModule = (() => {
 
                     document.getElementById('modalTitle').textContent = 'Editar Tarefa';
                     if (deleteTaskBtn) {
-                        deleteTaskBtn.style.display = 'block';
+                        deleteTaskBtn.style.display = 'inline-flex';
                     }
                 }
             } catch (error) {
@@ -233,7 +234,7 @@ const ModalModule = (() => {
 
     // Inicializar módulo
     const initModal = () => {
-        if (!modalOverlay) return;
+        if (!modalOverlay || isInitialized) return;
 
         // Configurar event listeners
         if (closeModalBtn) {
@@ -266,6 +267,7 @@ const ModalModule = (() => {
                 e.stopPropagation();
             });
         }
+        isInitialized = true;
     };
 
     return {
@@ -276,4 +278,8 @@ const ModalModule = (() => {
 })();
 
 // Inicializar o módulo quando o DOM estiver carregado
-document.addEventListener('DOMContentLoaded', ModalModule.initModal);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ModalModule.initModal);
+} else {
+    ModalModule.initModal();
+}

@@ -63,28 +63,22 @@ const UtilsModule = (() => {
   };
 
   // Obter status baseado na coluna
-  const getColumnStatus = (columnId) => {
-      // Verificar se StorageModule está disponível
-      if (typeof StorageModule !== 'undefined' && StorageModule.getColumns) {
-          const columns = StorageModule.getColumns();
-          const column = columns.find((c) => c.id === columnId);
-
-          if (column) {
-              switch (column.title) {
-                  case "Pendente":
-                      return "pending";
-                  case "Em Andamento":
-                      return "in_progress";
-                  case "Em Teste":
-                      return "review";
-                  case "Concluído":
-                      return "completed";
-                  default:
-                      return "pending";
-              }
+  const getColumnStatus = async (columnId) => {
+      try {
+          if (typeof StorageModule === 'undefined' || !StorageModule.getColumns) {
+              return "pending";
           }
+
+          const columns = await StorageModule.getColumns();
+          const column = (columns || []).find((c) => String(c.id) === String(columnId));
+
+          if (column?.type) return column.type;
+          if (column?.status) return column.status;
+          return "pending";
+      } catch (error) {
+          console.error("Erro ao obter status da coluna:", error);
+          return "pending";
       }
-      return "pending";
   };
 
   // Gerar ID único
@@ -251,3 +245,4 @@ const UtilsModule = (() => {
       debounce
   };
 })();
+

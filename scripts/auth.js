@@ -66,7 +66,8 @@ async function handleLogin(e) {
       });
 
       if (error) {
-          alert("E-mail ou senha inválidos!");
+          const message = error.message || "E-mail ou senha invalidos!";
+          alert("Erro no login: " + message);
           console.error(error.message);
           resetLoginButton(loginBtn, originalText);
           return;
@@ -135,3 +136,4 @@ async function handleRegister(e) {
       alert("Erro ao criar conta.");
   }
 }
+

@@ -4,6 +4,7 @@ const ChatModule = (() => {
     let chatSocket = null;
     let currentUser = null;
     let unreadMessages = new Map();
+    let isInitialized = false;
 
     const elements = {
         chatContainer: null,
@@ -23,6 +24,10 @@ const ChatModule = (() => {
     };
 
     const initChatModule = async () => {
+        if (isInitialized) {
+            return;
+        }
+
         try {
             await createChatInterface();
             await loadCurrentUser();
@@ -30,6 +35,7 @@ const ChatModule = (() => {
             setupRealtimeSubscription();
             loadContacts();
             updateUnreadBadge();
+            isInitialized = true;
             
             console.log('Módulo de chat inicializado com sucesso');
         } catch (error) {
@@ -40,6 +46,25 @@ const ChatModule = (() => {
     const createChatInterface = async () => {
         // Carregar o template do chat
         try {
+            // Evitar duplicidade de elementos do chat no DOM
+            if (document.getElementById('chatContainer')) {
+                elements.chatContainer = document.getElementById('chatContainer');
+                elements.chatToggle = document.getElementById('chatToggle');
+                elements.contactsList = document.getElementById('contactsList');
+                elements.chatMessages = document.getElementById('chatMessages');
+                elements.messageInput = document.getElementById('messageInput');
+                elements.sendButton = document.getElementById('sendMessage');
+                elements.closeChat = document.getElementById('closeChat');
+                elements.backToContacts = document.getElementById('backToContacts');
+                elements.chatSearch = document.getElementById('chatSearch');
+                elements.onlineCount = document.getElementById('onlineCount');
+                elements.unreadBadge = document.getElementById('unreadBadge');
+                elements.currentChatName = document.getElementById('currentChatName');
+                elements.currentChatStatus = document.getElementById('currentChatStatus');
+                elements.currentChatAvatar = document.getElementById('currentChatAvatar');
+                return;
+            }
+
             const response = await fetch('chat.html');
             const chatHTML = await response.text();
             
@@ -300,7 +325,8 @@ const ChatModule = (() => {
             
             contacts.forEach(contact => {
                 const contactElement = document.createElement('div');
-                contactElement.className = `contact-item ${contact.status}`;
+                const statusClass = getSafeStatusClass(contact.status);
+                contactElement.className = `contact-item ${statusClass}`;
                 contactElement.dataset.userId = contact.id;
                 
                 const avatarText = contact.full_name 
@@ -310,10 +336,10 @@ const ChatModule = (() => {
                 const unreadCount = unreadMessages.get(contact.id) || 0;
                 
                 contactElement.innerHTML = `
-                    <div class="contact-avatar">${avatarText}</div>
+                    <div class="contact-avatar">${escapeHtml(avatarText)}</div>
                     <div class="contact-info">
                         <div class="contact-name">${escapeHtml(contact.full_name || contact.email)}</div>
-                        <div class="contact-status">${contact.status === 'active' ? 'Online' : 'Offline'}</div>
+                        <div class="contact-status">${statusClass === 'active' ? 'Online' : 'Offline'}</div>
                     </div>
                     ${unreadCount > 0 ? `<div class="unread-count">${unreadCount}</div>` : ''}
                 `;
@@ -646,6 +672,11 @@ const ChatModule = (() => {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    };
+
+    const getSafeStatusClass = (status) => {
+        const allowed = new Set(['active', 'inactive', 'pending']);
+        return allowed.has(status) ? status : 'inactive';
     };
 
     return {

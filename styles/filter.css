@@ -1,0 +1,393 @@
+/* ================================================== */
+/* === MODAL DE FILTROS === */
+/* ================================================== */
+
+.modal-overlay#filterModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.modal-overlay#filterModal .modal {
+    background: white;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.3rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #6c757d;
+    padding: 5px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+/* Formulário de filtros */
+#filterForm .form-group {
+    margin-bottom: 10px;
+}
+
+#filterForm label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #495057;
+    font-size: 14px;
+}
+
+#filterForm .form-control {
+    width: 100%;
+    padding: 10px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+#filterForm .form-control:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+/* Select múltiplo */
+#filterForm select[multiple] {
+    min-height: 120px;
+    padding: 8px;
+}
+
+#filterForm select[multiple] option {
+    padding: 10px 10px;
+    margin: 2px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#filterForm select[multiple] option:hover {
+    background-color: #f8f9fa;
+}
+
+#filterForm select[multiple] option:checked {
+    background-color: #007bff;
+    color: white;
+}
+
+/* Grupo de datas */
+.date-range-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.date-range-group span {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* Ações do formulário */
+.form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Badge de filtro ativo */
+.filter-badge {
+    background-color: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 5px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Botão de limpar filtros */
+#clearFilters {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#clearFilters:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+}
+
+/* ================================================== */
+/* === LAYOUT LADO A LADO DOS FILTROS === */
+/* ================================================== */
+
+.filters-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);    /* Duas colunas */
+    gap: 10px;
+}
+
+.filter-column {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Para grupos específicos lado a lado dentro de uma seção */
+.filter-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+/* Grupo de datas lado a lado */
+.date-range-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    align-items: end;
+}
+
+.date-range-group .form-group {
+    margin-bottom: 0;
+}
+
+/* ================================================== */
+/* === FILTROS ATIVOS (para versões futuras) === */
+/* ================================================== */
+
+.active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.filter-tag {
+    background: #007bff;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.filter-tag-remove {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 2px;
+}
+
+.filter-tag-remove:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* ================================================== */
+/* === RESPONSIVIDADE DO MODAL === */
+/* ================================================== */
+
+@media (max-width: 768px) {
+    .modal-overlay#filterModal {
+        padding: 10px;
+    }
+
+    .modal-overlay#filterModal .modal {
+        max-width: 100%;
+        margin: 10px;
+    }
+
+    .modal-header {
+        padding: 15px;
+    }
+
+    .modal-body {
+        padding: 15px;
+    }
+
+    .date-range-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .date-range-group span {
+        text-align: center;
+        margin: 5px 0;
+    }
+
+    .form-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    #clearFilters {
+        order: 2;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .form-actions>div {
+        order: 1;
+        display: flex;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .form-actions .btn {
+        flex: 1;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-header h3 {
+        font-size: 1.1rem;
+    }
+
+    #filterForm .form-group {
+        margin-bottom: 15px;
+    }
+
+    #filterForm select[multiple] {
+        min-height: 100px;
+    }
+}
+
+/* ================================================== */
+/* === ESTADOS DE CARREGAMENTO DO FILTRO === */
+/* ================================================== */
+
+.filter-loading {
+    position: relative;
+}
+
+.filter-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    width: 16px;
+    height: 16px;
+    margin-top: -8px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* ================================================== */
+/* === MELHORIAS VISUAIS === */
+/* ================================================== */
+
+/* Placeholders estilizados */
+#filterForm .form-control::placeholder {
+    color: #6c757d;
+    opacity: 0.7;
+}
+
+/* Estados de desabilitado */
+#filterForm .form-control:disabled {
+    background-color: #e9ecef;
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Indicador de campo obrigatório */
+.required::after {
+    content: " *";
+    color: #dc3545;
+}
+
+/* Tooltip para campos */
+.form-control[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    background: #333;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    margin-top: 5px;
+}

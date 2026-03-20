@@ -83,7 +83,7 @@ const StorageModule = (() => {
 
     const createDefaultColumns = async () => {
         const defaultColumns = [
-            { title: 'A Fazer', type: 'pending', position: 0 },
+            { title: 'Pendente', type: 'pending', position: 0 },
             { title: 'Em Andamento', type: 'in_progress', position: 1 },
             { title: 'Em Teste', type: 'review', position: 2 },
             { title: 'Concluído', type: 'completed', position: 3 }

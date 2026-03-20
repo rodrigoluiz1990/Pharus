@@ -1,7 +1,11 @@
 // scripts/sidebar.js
+let sidebarInitialized = false;
 class SidebarManager {
     constructor() {
         this.currentPage = this.getCurrentPage();
+        this.sidebarElement = document.querySelector('#sidebar-container .sidebar, .sidebar');
+        this.bodyElement = document.body;
+        this.collapseStorageKey = 'pharus_sidebar_collapsed';
         this.init();
     }
 
@@ -17,11 +21,53 @@ class SidebarManager {
         console.log('Página atual detectada:', this.currentPage);
 
         this.setupNavigation();
+        this.setupCollapseToggle();
         this.setupViewToggle();
         this.initSidebarUserProfile();
         this.setupChatMenuItem(); // MOVER para depois do setupNavigation
 
         console.log('Sidebar inicializado com sucesso');
+    }
+
+    setupCollapseToggle() {
+        const collapseBtn = document.getElementById('sidebarCollapseBtn');
+        if (!collapseBtn || !this.sidebarElement) return;
+
+        const savedCollapsed = localStorage.getItem(this.collapseStorageKey) === 'true';
+        this.applySidebarCollapsedState(savedCollapsed);
+
+        collapseBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const isCollapsed = this.sidebarElement.classList.contains('sidebar-collapsed');
+            this.applySidebarCollapsedState(!isCollapsed);
+        });
+    }
+
+    applySidebarCollapsedState(collapsed) {
+        if (!this.sidebarElement) return;
+
+        this.sidebarElement.classList.toggle('sidebar-collapsed', collapsed);
+        if (this.bodyElement) {
+            this.bodyElement.classList.toggle('sidebar-collapsed', collapsed);
+        }
+
+        localStorage.setItem(this.collapseStorageKey, String(collapsed));
+        this.updateCollapseButtonIcon(collapsed);
+    }
+
+    updateCollapseButtonIcon(collapsed) {
+        const collapseBtn = document.getElementById('sidebarCollapseBtn');
+        if (!collapseBtn) return;
+
+        const icon = collapseBtn.querySelector('i');
+        if (icon) {
+            icon.className = collapsed ? 'fas fa-angle-double-right' : 'fas fa-angle-double-left';
+        }
+
+        collapseBtn.setAttribute(
+            'aria-label',
+            collapsed ? 'Expandir menu' : 'Recolher menu'
+        );
     }
 
     setupChatMenuItem() {
@@ -130,10 +176,14 @@ class SidebarManager {
     setupToggleButtons() {
         const boardViewBtn = document.getElementById('boardViewBtn');
         const sociousViewBtn = document.getElementById('sociousViewBtn');
+        const titleOnlyViewBtn = document.getElementById('titleOnlyViewBtn');
 
         if (boardViewBtn && sociousViewBtn) {
             boardViewBtn.addEventListener('click', () => this.switchView('board'));
             sociousViewBtn.addEventListener('click', () => this.switchView('socious'));
+            if (titleOnlyViewBtn) {
+                titleOnlyViewBtn.addEventListener('click', () => this.switchView('title_only'));
+            }
         }
     }
 
@@ -143,17 +193,26 @@ class SidebarManager {
         const sociousView = document.getElementById('sociousView');
         const boardViewBtn = document.getElementById('boardViewBtn');
         const sociousViewBtn = document.getElementById('sociousViewBtn');
+        const titleOnlyViewBtn = document.getElementById('titleOnlyViewBtn');
 
         if (viewType === 'board') {
             if (boardView) boardView.style.display = 'flex';
             if (sociousView) sociousView.style.display = 'none';
             if (boardViewBtn) boardViewBtn.classList.add('active');
             if (sociousViewBtn) sociousViewBtn.classList.remove('active');
+            if (titleOnlyViewBtn) titleOnlyViewBtn.classList.remove('active');
         } else if (viewType === 'socious') {
             if (boardView) boardView.style.display = 'none';
             if (sociousView) sociousView.style.display = 'block';
             if (boardViewBtn) boardViewBtn.classList.remove('active');
             if (sociousViewBtn) sociousViewBtn.classList.add('active');
+            if (titleOnlyViewBtn) titleOnlyViewBtn.classList.remove('active');
+        } else if (viewType === 'title_only') {
+            if (boardView) boardView.style.display = 'none';
+            if (sociousView) sociousView.style.display = 'block';
+            if (boardViewBtn) boardViewBtn.classList.remove('active');
+            if (sociousViewBtn) sociousViewBtn.classList.remove('active');
+            if (titleOnlyViewBtn) titleOnlyViewBtn.classList.add('active');
         }
     }
 
@@ -291,28 +350,39 @@ class SidebarManager {
 
 // Inicializar o sidebar quando o DOM estiver pronto
 function initSidebar() {
-    // Aguardar o Supabase estar disponível se necessário
-    if (window.supabaseClient) {
+    const sidebarExists = !!document.querySelector('#sidebar-container .sidebar, .sidebar');
+    if (!sidebarExists || sidebarInitialized) {
+        return;
+    }
+
+    const startSidebar = () => {
+        if (sidebarInitialized) return;
+        sidebarInitialized = true;
         new SidebarManager();
+    };
+
+    // Aguardar o Supabase estar disponivel se necessario
+    if (window.supabaseClient) {
+        startSidebar();
     } else {
-        // Se o Supabase não estiver disponível, tentar novamente após um delay
         const checkSupabase = setInterval(() => {
             if (window.supabaseClient) {
                 clearInterval(checkSupabase);
-                new SidebarManager();
+                startSidebar();
             }
         }, 100);
 
-        // Timeout após 5 segundos
         setTimeout(() => {
             clearInterval(checkSupabase);
             if (!window.supabaseClient) {
-                console.warn('Supabase client não carregado após 5 segundos');
-                new SidebarManager(); // Inicializar mesmo sem Supabase para funcionalidades básicas
+                console.warn('Supabase client nao carregado apos 5 segundos');
+                startSidebar();
             }
         }, 5000);
     }
 }
+
+window.initSidebar = initSidebar;
 
 // Inicializar quando o DOM estiver pronto
 if (document.readyState === 'loading') {
@@ -320,3 +390,4 @@ if (document.readyState === 'loading') {
 } else {
     initSidebar();
 }
+

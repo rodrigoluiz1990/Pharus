@@ -7,12 +7,18 @@ const BoardModule = (() => {
     const sociousTableBody = document.getElementById("sociousTableBody");
     const boardViewBtn = document.getElementById("boardViewBtn");
     const sociousViewBtn = document.getElementById("sociousViewBtn");
+    const titleOnlyViewBtn = document.getElementById("titleOnlyViewBtn");
     const addTaskSocious = document.getElementById("addTaskSocious");
+    const VIEW_MODE_KEY = "pharus_board_view_mode";
 
     // Dados
     let tasks = [];
     let columns = [];
     let users = [];
+    let filteredTasks = [];
+    let isInitialized = false;
+    let isInitializing = false;
+    let autoRefreshInterval = null;
 
     // ========== FUNÇÕES PRINCIPAIS ========== //
 
@@ -29,6 +35,9 @@ const BoardModule = (() => {
             columns = columnsData;
             tasks = tasksData;
             users = usersData;
+
+            // Aplicar filtros após carregar dados
+            applyFiltersToTasks();
 
             UtilsModule.hideLoading();
             return [columns, tasks, users];
@@ -69,7 +78,7 @@ const BoardModule = (() => {
             await loadData();
             sociousTableBody.innerHTML = "";
 
-            if (tasks.length === 0) {
+            if (filteredTasks.length === 0) {
                 sociousTableBody.innerHTML = `
                     <tr>
                         <td colspan="10" style="text-align: center; padding: 30px; color: #6c757d;">
@@ -80,7 +89,7 @@ const BoardModule = (() => {
                 return;
             }
 
-            tasks.forEach((task) => {
+            filteredTasks.forEach((task) => {
                 const row = createTableRow(task);
                 sociousTableBody.appendChild(row);
             });
@@ -105,10 +114,11 @@ const BoardModule = (() => {
         columnElement.className = "column";
         columnElement.dataset.columnId = column.id;
 
+        const safeColumnTitle = escapeHtml(column.title || "Sem coluna");
         const columnHeader = document.createElement("div");
         columnHeader.className = "column-header";
         columnHeader.innerHTML = `
-            <span>${column.title}</span>
+            <span>${safeColumnTitle}</span>
             <span class="task-count">${getTasksByColumn(column.id).length}</span>
         `;
 
@@ -157,17 +167,20 @@ const BoardModule = (() => {
 
         const priorityClass = `tag-priority-${priorityInfo.class}`;
         const typeClass = `tag-type-${typeInfo.class}`;
+        const safeTitle = escapeHtml(task.title || "Sem título");
+        const safeAssigneeName = escapeHtml(assignee ? assignee.name : "Não atribuído");
+        const safeClient = escapeHtml(task.client || "Sem cliente");
 
         taskElement.innerHTML = `
-            <div class="task-title">${task.title}</div>
+            <div class="task-title">${safeTitle}</div>
             <div class="task-tags">
                 <span class="task-tag tag-status">${statusInfo.text}</span>
                 <span class="task-tag ${priorityClass}">${priorityInfo.text}</span>
                 <span class="task-tag ${typeClass}">${typeInfo.text}</span>
             </div>
             <div class="task-meta">
-                <span class="task-assignee">${assignee ? assignee.name : "Não atribuído"}</span>
-                <span class="task-client">${task.client || "Sem cliente"}</span>
+                <span class="task-assignee">${safeAssigneeName}</span>
+                <span class="task-client">${safeClient}</span>
                 <span class="task-due-date">${UtilsModule.formatDate(task.due_date)}</span>
             </div>
         `;
@@ -185,6 +198,9 @@ const BoardModule = (() => {
 
         const row = document.createElement("tr");
         const dataAttribute = getDateAttribute(task.due_date);
+        const safeTitle = escapeHtml(task.title || "Sem titulo");
+        const safeAssigneeName = escapeHtml(assignee ? assignee.name : "Nao atribuido");
+        const safeClient = escapeHtml(task.client || "-");
 
         row.innerHTML = `
             <td>
@@ -192,13 +208,13 @@ const BoardModule = (() => {
                     <div class="custom-checkbox"></div>
                 </label>
             </td>
-            <td>${task.title || 'Sem título'}</td>
-            <td>${assignee ? assignee.name : "Não atribuído"}</td>
+            <td>${safeTitle}</td>
+            <td>${safeAssigneeName}</td>
             <td>${UtilsModule.formatDate(task.request_date)}</td>
             <td ${dataAttribute}>${UtilsModule.formatDate(task.due_date)}</td>
             <td class="status-${statusInfo.class}">${statusInfo.text}</td>
             <td class="prioridade-${priorityInfo.class}">${priorityInfo.text}</td>
-            <td>${task.client || "-"}</td>
+            <td>${safeClient}</td>
             <td class="tipo-${typeInfo.class}">${typeInfo.text}</td>
             <td>
                 <button class="action-btn" data-task-id="${task.id}">
@@ -209,6 +225,15 @@ const BoardModule = (() => {
 
         setupRowEvents(row, task.id);
         return row;
+    };
+
+    // Aplicar filtros
+    const applyFiltersToTasks = () => {
+        if (typeof FilterModule !== 'undefined') {
+            filteredTasks = FilterModule.filterTasks(tasks);
+        } else {
+            filteredTasks = [...tasks];
+        }
     };
 
     // ========== CONFIGURAÇÕES DE EVENTOS ========== //
@@ -230,6 +255,11 @@ const BoardModule = (() => {
                 updateTaskCompletion(taskId, checkbox.classList.contains("checked"));
             });
         }
+
+        row.addEventListener("click", (e) => {
+            if (e.target.closest("button") || e.target.closest(".custom-checkbox")) return;
+            openTaskModalFallback(taskId);
+        });
     };
 
     // Função fallback melhorada para abrir modal
@@ -290,11 +320,25 @@ const BoardModule = (() => {
         }, 100);
     };
 
+    // Função para eventos de filtro
+    const setupFilterListeners = () => {
+        window.addEventListener('filtersApplied', async () => {
+            await loadData();
+            applyFiltersToTasks();
+
+            const boardHidden = taskBoard ? (getComputedStyle(taskBoard).display === "none") : true;
+            if (!boardHidden) {
+                renderBoard();
+            } else {
+                renderSociousView();
+            }
+        });
+    };
+
     // ========== UTILITÁRIAS ========== //
 
     const getTasksByColumn = (columnId) => {
-        return tasks.filter((task) => {
-            // Converter ambos para string para comparação segura
+        return filteredTasks.filter((task) => {
             return String(task.column_id) === String(columnId);
         });
     };
@@ -311,10 +355,10 @@ const BoardModule = (() => {
     const getStatusFromColumnId = async (columnId) => {
         try {
             const currentColumns = await StorageModule.getColumns();
-            const column = currentColumns.find(c => c.id === columnId);
-            if (column && column.status) return column.status;
-            const columnTypeMap = { 1: 'pending', 2: 'in_progress', 3: 'review', 4: 'completed' };
-            return columnTypeMap[columnId] || 'pending';
+            const column = currentColumns.find(c => String(c.id) === String(columnId));
+            if (column?.type) return column.type;
+            if (column?.status) return column.status;
+            return 'pending';
         } catch (error) {
             console.error('Erro ao buscar status da coluna:', error);
             return 'pending';
@@ -380,16 +424,6 @@ const BoardModule = (() => {
                 renderBoard();
             }
         });
-
-        // Permitir drop em toda a área da coluna
-        columnContent.addEventListener("drop", async (e) => {
-            e.preventDefault();
-            const taskId = e.dataTransfer.getData("taskId");
-            if (taskId) {
-                await moveTaskToColumn(taskId, columnId);
-                renderBoard();
-            }
-        });
     };
 
     const setupTaskClick = (taskElement, taskId) => {
@@ -434,14 +468,44 @@ const BoardModule = (() => {
 
     // ========== CONTROLES DE VISUALIZAÇÃO ========== //
 
+    const setActiveViewButton = (mode) => {
+        if (boardViewBtn) boardViewBtn.classList.toggle("active", mode === "board");
+        if (sociousViewBtn) sociousViewBtn.classList.toggle("active", mode === "socious");
+        if (titleOnlyViewBtn) titleOnlyViewBtn.classList.toggle("active", mode === "title_only");
+    };
+
+    const persistViewMode = (mode) => {
+        try {
+            localStorage.setItem(VIEW_MODE_KEY, mode);
+        } catch (error) {
+            console.warn("Nao foi possivel salvar o modo de visualizacao:", error);
+        }
+    };
+
+    const getSavedViewMode = () => {
+        try {
+            const saved = localStorage.getItem(VIEW_MODE_KEY);
+            if (saved === "board" || saved === "socious" || saved === "title_only") {
+                return saved;
+            }
+        } catch (error) {
+            console.warn("Nao foi possivel recuperar o modo de visualizacao:", error);
+        }
+        return "board";
+    };
+
+    const applySociousMode = (isTitleOnly) => {
+        if (!sociousView) return;
+        sociousView.classList.toggle("title-only-mode", isTitleOnly);
+    };
+
     const showBoardView = () => {
         if (!taskBoard || !sociousView) return;
         taskBoard.style.display = "flex";
         sociousView.style.display = "none";
-        if (boardViewBtn && sociousViewBtn) {
-            boardViewBtn.classList.add("active");
-            sociousViewBtn.classList.remove("active");
-        }
+        applySociousMode(false);
+        setActiveViewButton("board");
+        persistViewMode("board");
         renderBoard();
     };
 
@@ -449,10 +513,19 @@ const BoardModule = (() => {
         if (!taskBoard || !sociousView) return;
         taskBoard.style.display = "none";
         sociousView.style.display = "block";
-        if (boardViewBtn && sociousViewBtn) {
-            boardViewBtn.classList.remove("active");
-            sociousViewBtn.classList.add("active");
-        }
+        applySociousMode(false);
+        setActiveViewButton("socious");
+        persistViewMode("socious");
+        renderSociousView();
+    };
+
+    const showTitleOnlyView = () => {
+        if (!taskBoard || !sociousView) return;
+        taskBoard.style.display = "none";
+        sociousView.style.display = "block";
+        applySociousMode(true);
+        setActiveViewButton("title_only");
+        persistViewMode("title_only");
         renderSociousView();
     };
 
@@ -460,19 +533,38 @@ const BoardModule = (() => {
 
     const initBoard = async () => {
         if (!taskBoard && !sociousView) return;
+
+        if (isInitialized || isInitializing) {
+            return;
+        }
+
+        isInitializing = true;
+
         try {
             await loadData();
             setupEventListeners();
-            showBoardView();
+            setupFilterListeners();
+            const initialMode = getSavedViewMode();
+            if (initialMode === "title_only") {
+                showTitleOnlyView();
+            } else if (initialMode === "socious") {
+                showSociousView();
+            } else {
+                showBoardView();
+            }
             setupAutoRefresh();
+            isInitialized = true;
         } catch (error) {
             console.error('Erro na inicialização do board:', error);
+        } finally {
+            isInitializing = false;
         }
     };
 
     const setupEventListeners = () => {
         if (boardViewBtn) boardViewBtn.addEventListener("click", showBoardView);
         if (sociousViewBtn) sociousViewBtn.addEventListener("click", showSociousView);
+        if (titleOnlyViewBtn) titleOnlyViewBtn.addEventListener("click", showTitleOnlyView);
         if (addTaskSocious) {
             addTaskSocious.addEventListener("click", () => {
                 const pendingColumn = columns.find(col => col.type === 'pending');
@@ -494,7 +586,11 @@ const BoardModule = (() => {
     };
 
     const setupAutoRefresh = () => {
-        setInterval(async () => {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+        }
+
+        autoRefreshInterval = setInterval(async () => {
             await loadData();
             if (taskBoard && getComputedStyle(taskBoard).display !== "none") {
                 renderBoard();
@@ -504,6 +600,10 @@ const BoardModule = (() => {
         }, 50000);
     };
 
+    const escapeHtml = (value) => {
+        return UtilsModule.escapeHtml(String(value ?? ''));
+    };
+
     // ========== API PÚBLICA ========== //
     return {
         initBoard,
@@ -511,8 +611,21 @@ const BoardModule = (() => {
         renderSociousView,
         showBoardView,
         showSociousView,
+        showTitleOnlyView,
     };
 })();
 
 // Inicializar o módulo
-document.addEventListener("DOMContentLoaded", BoardModule.initBoard);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', BoardModule.initBoard);
+} else {
+    BoardModule.initBoard();
+}
+
+
+
+
+
+
+
+

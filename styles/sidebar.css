@@ -10,12 +10,18 @@
     display: flex;
     flex-direction: column;
     z-index: 1000;
+    transition: width 0.2s ease;
 }
 
 .logo {
-    padding: 20px;
-    border-bottom: 1px solid #34495e;
-    text-align: center;
+    order: 0;
+    padding: 20px 25px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
 }
 
 .logo h1 {
@@ -24,7 +30,27 @@
     color: #ecf0f1;
 }
 
+.sidebar-collapse-btn {
+    position: static;
+    transform: none;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #ecf0f1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-collapse-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
 .menu-items {
+    order: 1;
     flex: 1;
     padding: 20px 0;
 }
@@ -34,7 +60,7 @@
     display: flex;
     align-items: center;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: background-color 0.2s ease;
 }
 
 .menu-item:hover {
@@ -53,9 +79,11 @@
 
 .menu-item span {
     font-size: 14px;
+    white-space: nowrap;
 }
 
 .view-toggle {
+    order: 2;
     padding: 15px;
     border-top: 1px solid #34495e;
 }
@@ -86,16 +114,12 @@
     color: white;
 }
 
-/* ================================================== */
-/* === MENU DO USUÁRIO NO TOPO DO SIDEBAR === */
-/* ================================================== */
-
 .sidebar-user-section.top-user-menu {
     padding: 15px;
     border-bottom: 1px solid #34495e;
     margin-bottom: 15px;
     background-color: rgba(255, 255, 255, 0.05);
-    order: -1; /* Coloca no topo */
+    order: -1;
 }
 
 .sidebar-user-section.top-user-menu .user-info {
@@ -106,7 +130,7 @@
     padding: 10px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     cursor: pointer;
     width: 100%;
 }
@@ -165,7 +189,7 @@
     cursor: pointer;
     padding: 5px;
     border-radius: 3px;
-    transition: color 0.3s;
+    transition: color 0.2s;
     font-size: 12px;
 }
 
@@ -185,7 +209,6 @@
     z-index: 1000;
     display: none;
     margin-top: 5px;
-    animation: dropdownFadeIn 0.2s ease;
 }
 
 .sidebar-user-section.top-user-menu .dropdown-menu.show {
@@ -222,64 +245,172 @@
     color: #3498db;
 }
 
-/* Ajustes para o layout do sidebar com menu no topo */
-.sidebar {
-    display: flex;
+/* Collapsed mode: icons only */
+.sidebar.sidebar-collapsed {
+    width: 84px;
+}
+
+.sidebar.sidebar-collapsed .logo {
+    justify-content: flex-start;
+    padding: 14px 10px;
+}
+
+.sidebar.sidebar-collapsed .logo h1,
+.sidebar.sidebar-collapsed .menu-item span,
+.sidebar.sidebar-collapsed .user-details,
+.sidebar.sidebar-collapsed .sidebar-user-section.top-user-menu .dropdown {
+    display: none;
+}
+
+.sidebar.sidebar-collapsed .menu-items {
+    padding: 12px 8px;
+}
+
+.sidebar.sidebar-collapsed .menu-item {
+    justify-content: center;
+    padding: 12px 8px;
+}
+
+.sidebar.sidebar-collapsed .menu-item i {
+    margin-right: 0;
+}
+
+.sidebar.sidebar-collapsed .view-toggle {
+    display: block;
+    padding: 8px 6px;
+}
+
+.sidebar.sidebar-collapsed .toggle-buttons {
     flex-direction: column;
+    gap: 6px;
+    background: transparent;
 }
 
-.sidebar-user-section.top-user-menu {
-    order: -1; /* Garante que fica no topo */
+.sidebar.sidebar-collapsed .toggle-btn {
+    width: 100%;
+    padding: 8px 0;
+    font-size: 0;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
-.logo {
-    order: 0;
-    padding: 20px 25px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 15px;
+.sidebar.sidebar-collapsed .toggle-btn i {
+    margin: 0;
+    font-size: 14px;
 }
 
-.menu-items {
-    order: 1;
-    flex-grow: 1;
+.sidebar.sidebar-collapsed .sidebar-user-section.top-user-menu {
+    padding: 10px 8px;
 }
 
-.view-toggle {
-    order: 2;
+.sidebar.sidebar-collapsed .sidebar-user-section.top-user-menu .user-info {
+    justify-content: center;
+    padding: 8px;
 }
 
-/* Animações */
-@keyframes dropdownFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+body.sidebar-collapsed .content {
+    margin-left: 84px;
 }
 
-/* Responsividade */
 @media (max-width: 768px) {
-    .sidebar-user-section.top-user-menu .user-details {
+    .sidebar {
+        position: fixed;
+        width: 72px;
+        height: 100vh;
+        z-index: 1000;
+        padding: 0;
+    }
+
+    .content {
+        margin-left: 72px !important;
+        padding: 12px;
+    }
+
+    .sidebar .logo {
+        padding: 12px 8px;
+        justify-content: center;
+    }
+
+    .sidebar .logo h1,
+    .sidebar .menu-item span,
+    .sidebar .user-details,
+    .sidebar .sidebar-user-section.top-user-menu .dropdown {
         display: none;
     }
-    
-    .sidebar-user-section.top-user-menu .user-info {
+
+    .sidebar-collapse-btn {
+        display: inline-flex;
+    }
+
+    .sidebar .sidebar-user-section.top-user-menu {
+        padding: 8px 6px;
+        margin-bottom: 10px;
+    }
+
+    .sidebar .sidebar-user-section.top-user-menu .user-info {
         justify-content: center;
         padding: 8px;
     }
-    
-    .sidebar-user-section.top-user-menu .avatar {
-        width: 35px;
-        height: 35px;
-        font-size: 14px;
+
+    .sidebar .sidebar-user-section.top-user-menu .avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 13px;
         margin: 0;
     }
-    
-    .sidebar-user-section.top-user-menu .dropdown-menu {
-        right: -10px;
-        min-width: 160px;
+
+    .sidebar .menu-items {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 10px 6px;
+        gap: 6px;
+    }
+
+    .sidebar .menu-item {
+        justify-content: center;
+        padding: 9px 4px;
+        border-radius: 8px;
+        margin: 0;
+        min-height: 40px;
+        flex: 0 0 auto;
+        transform: none !important;
+    }
+
+    .sidebar .menu-item i {
+        margin-right: 0;
+    }
+
+    .sidebar .menu-item.active {
+        box-shadow: none;
+    }
+
+    .sidebar .view-toggle {
+        display: block;
+        padding: 8px 6px 10px;
+        margin-top: auto;
+        border-top: 1px solid #34495e;
+    }
+
+    .sidebar .toggle-buttons {
+        flex-direction: column;
+        gap: 6px;
+        background: transparent;
+        overflow: visible;
+    }
+
+    .sidebar .toggle-btn {
+        width: 100%;
+        padding: 7px 0;
+        font-size: 0;
+        border-radius: 6px;
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .sidebar .toggle-btn i {
+        margin: 0;
+        font-size: 14px;
     }
 }

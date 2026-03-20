@@ -11,6 +11,8 @@ const UsersModule = (() => {
     const cancelUserBtn = document.getElementById("cancelUser");
 
     let users = [];
+    let currentUser = null;
+    let isInitialized = false;
 
     const loadUsers = async () => {
         try {
@@ -22,14 +24,42 @@ const UsersModule = (() => {
                 throw new Error('Usuário não autenticado. Faça login primeiro.');
             }
 
+            // Obter usuário atual
+            const { data: { user } } = await window.supabaseClient.auth.getUser();
+            currentUser = user;
+
+            // Buscar usuários - tentar view primeiro
+            try {
+                await loadUsersFromView();
+            } catch (viewError) {
+                console.warn('Falha na view, tentando abordagem alternativa:', viewError);
+                // Fallback: usar apenas o usuário atual
+                users = [{
+                    id: currentUser.id,
+                    email: currentUser.email,
+                    name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0],
+                    role: currentUser.user_metadata?.role || 'user',
+                    status: 'active',
+                    last_sign_in_at: currentUser.last_sign_in_at,
+                    created_at: currentUser.created_at
+                }];
+                renderUsersTable();
+            }
+
+        } catch (error) {
+            console.error('Erro ao carregar usuários:', error);
+            showError(error.message);
+        }
+    };
+
+    const loadUsersFromView = async () => {
+        try {
             const { data: usersData, error } = await window.supabaseClient
                 .from('user_profiles')
                 .select('*')
                 .order('created_at', { ascending: false });
 
-            if (error) {
-                throw new Error('Não foi possível carregar os usuários.');
-            }
+            if (error) throw error;
 
             users = (usersData || []).map(user => ({
                 id: user.id,
@@ -43,8 +73,7 @@ const UsersModule = (() => {
 
             renderUsersTable();
         } catch (error) {
-            console.error('Erro ao carregar usuários:', error);
-            showError(error.message);
+            throw new Error('Não foi possível carregar os usuários: ' + error.message);
         }
     };
 
@@ -69,21 +98,22 @@ const UsersModule = (() => {
             const row = document.createElement('tr');
 
             const lastAccess = user.last_sign_in_at
-                ? new Date(user.last_sign_in_at).toLocaleDateString('pt-BR')
+                ? new Date(user.last_sign_in_at).toLocaleDateString('pt-BR') + ' ' + 
+                  new Date(user.last_sign_in_at).toLocaleTimeString('pt-BR')
                 : 'Nunca acessou';
 
             const createdAt = user.created_at
                 ? new Date(user.created_at).toLocaleDateString('pt-BR')
                 : '-';
 
-            const statusClass = `status-${user.status}`;
-            const roleClass = `role-${user.role}`;
+            const safeStatusClass = `status-${getSafeStatusKey(user.status)}`;
+            const safeRoleClass = `role-${getSafeRoleKey(user.role)}`;
 
             row.innerHTML = `
                 <td>${escapeHtml(user.name)}</td>
                 <td>${escapeHtml(user.email)}</td>
-                <td><span class="role-badge ${roleClass}">${getRoleText(user.role)}</span></td>
-                <td><span class="user-status ${statusClass}">${getStatusText(user.status)}</span></td>
+                <td><span class="role-badge ${safeRoleClass}">${getRoleText(user.role)}</span></td>
+                <td><span class="user-status ${safeStatusClass}">${getStatusText(user.status)}</span></td>
                 <td>${lastAccess}</td>
                 <td>${createdAt}</td>
                 <td>
@@ -94,9 +124,6 @@ const UsersModule = (() => {
                         <button class="btn-edit" data-user-id="${user.id}">
                             <i class="fas fa-edit"></i> Editar
                         </button>
-                        <button class="btn-delete" data-user-id="${user.id}">
-                            <i class="fas fa-trash"></i> Excluir
-                        </button>
                     </div>
                 </td>
             `;
@@ -104,134 +131,10 @@ const UsersModule = (() => {
             usersTableBody.appendChild(row);
         });
 
-        addEditListeners();
-        addDeleteListeners();
-        addChatListeners();
-    };
-
-    // Adicione o event listener para o botão de chat
-    const addChatListeners = () => {
-        const chatButtons = document.querySelectorAll('.btn-chat');
-        if (chatButtons.length === 0) return;
-        
-        chatButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const userId = e.currentTarget.dataset.userId;
-                const userName = e.currentTarget.dataset.userName;
-                const userEmail = e.currentTarget.dataset.userEmail;
-                openChatWithUser(userId, userName, userEmail);
-            });
-        });
-    };
-
-    // Adicione esta função para abrir o chat com um usuário específico
-    const openChatWithUser = (userId, userName, userEmail) => {
-        // Verificar se o módulo de chat está disponível
-        if (typeof ChatModule !== 'undefined' && ChatModule.toggleChat) {
-            ChatModule.toggleChat();
-
-            // Simular clique no contato após um breve delay para garantir que o chat está carregado
-            setTimeout(() => {
-                // Tentar encontrar o elemento do contato na lista
-                const contactElement = document.querySelector(`.contact-item[data-user-id="${userId}"]`);
-                if (contactElement) {
-                    contactElement.click();
-                } else {
-                    // Se o contato não estiver na lista, tentar abrir o chat diretamente
-                    console.log('Contato não encontrado na lista, tentando abrir chat diretamente');
-                    
-                    // Esta função precisa ser exposta no ChatModule
-                    if (typeof ChatModule.openChatWithUser === 'function') {
-                        ChatModule.openChatWithUser(userId, userName, userEmail);
-                    } else {
-                        console.error('Função openChatWithUser não disponível no ChatModule');
-                        UtilsModule.showNotification('Não foi possível iniciar o chat. Recarregue a página e tente novamente.', 'error');
-                    }
-                }
-            }, 500);
-        } else {
-            console.error('Módulo de chat não disponível');
-            UtilsModule.showNotification('O sistema de chat não está disponível no momento.', 'error');
-            
-            // Tentar carregar o módulo de chat dinamicamente
-            loadChatModule().then(() => {
-                if (typeof ChatModule !== 'undefined' && ChatModule.toggleChat) {
-                    openChatWithUser(userId, userName, userEmail);
-                }
-            });
-        }
-    };
-
-    // Função para carregar o módulo de chat dinamicamente
-    const loadChatModule = () => {
-        return new Promise((resolve) => {
-            if (typeof ChatModule !== 'undefined') {
-                resolve();
-                return;
-            }
-            
-            // Verificar se o script já está carregado
-            if (document.querySelector('script[src*="chat.js"]')) {
-                // Aguardar o carregamento
-                const checkInterval = setInterval(() => {
-                    if (typeof ChatModule !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve();
-                    }
-                }, 100);
-                
-                // Timeout após 5 segundos
-                setTimeout(() => {
-                    clearInterval(checkInterval);
-                    resolve();
-                }, 5000);
-            } else {
-                // Carregar o script do chat
-                const script = document.createElement('script');
-                script.src = 'scripts/chat.js';
-                script.onload = () => {
-                    console.log('Módulo de chat carregado com sucesso');
-                    resolve();
-                };
-                script.onerror = () => {
-                    console.error('Falha ao carregar o módulo de chat');
-                    resolve();
-                };
-                document.head.appendChild(script);
-                
-                // Carregar os estilos do chat
-                if (!document.querySelector('link[href="styles/chat.css"]')) {
-                    const link = document.createElement('link');
-                    link.rel = 'stylesheet';
-                    link.href = 'styles/chat.css';
-                    document.head.appendChild(link);
-                }
-            }
-        });
-    };
-
-    const addEditListeners = () => {
-        const editButtons = document.querySelectorAll('.btn-edit');
-        if (editButtons.length === 0) return;
-        
-        editButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const userId = e.currentTarget.dataset.userId;
-                openEditUserModal(userId);
-            });
-        });
-    };
-
-    const addDeleteListeners = () => {
-        const deleteButtons = document.querySelectorAll('.btn-delete');
-        if (deleteButtons.length === 0) return;
-        
-        deleteButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const userId = e.currentTarget.dataset.userId;
-                deleteUser(userId);
-            });
-        });
+        setTimeout(() => {
+            addEditListeners();
+            addChatListeners();
+        }, 100);
     };
 
     const createUser = async (userData) => {
@@ -260,25 +163,46 @@ const UsersModule = (() => {
         } catch (error) {
             UtilsModule.hideLoading();
             console.error('Erro ao criar usuário:', error);
-            UtilsModule.showNotification(`Erro ao criar usuário: ${error.message}`, 'error');
+            
+            let errorMessage = error.message;
+            if (error.message.includes('User already registered')) {
+                errorMessage = 'Este e-mail já está cadastrado.';
+            } else if (error.message.includes('Invalid email')) {
+                errorMessage = 'E-mail inválido.';
+            } else if (error.message.includes('Password should be at least 6 characters')) {
+                errorMessage = 'A senha deve ter pelo menos 6 caracteres.';
+            }
+            
+            UtilsModule.showNotification(`Erro ao criar usuário: ${errorMessage}`, 'error');
         }
     };
 
     const updateUser = async (userId, userData) => {
         try {
             UtilsModule.showLoading('Atualizando usuário...');
-
-            const { error } = await window.supabaseClient.auth.updateUser({
-                data: {
-                    full_name: userData.name,
-                    role: userData.role
-                }
-            });
-
-            if (error) throw error;
-
-            UtilsModule.hideLoading();
-            UtilsModule.showNotification('Usuário atualizado com sucesso!', 'success');
+            
+            if (currentUser && currentUser.id === userId) {
+                // Atualizar usuário atual via auth API
+                const { error: authError } = await window.supabaseClient.auth.updateUser({
+                    data: {
+                        full_name: userData.name,
+                        role: userData.role
+                    }
+                });
+                
+                if (authError) throw authError;
+                
+                UtilsModule.hideLoading();
+                UtilsModule.showNotification('Seu perfil foi atualizado com sucesso!', 'success');
+            } else {
+                // Para outros usuários, mostrar mensagem informativa
+                UtilsModule.hideLoading();
+                UtilsModule.showNotification(
+                    'Para editar outros usuários, use o painel de Authentication do Supabase.', 
+                    'info'
+                );
+                return;
+            }
 
             loadUsers();
             closeModal();
@@ -286,57 +210,133 @@ const UsersModule = (() => {
         } catch (error) {
             UtilsModule.hideLoading();
             console.error('Erro ao atualizar usuário:', error);
-            UtilsModule.showNotification(`Erro ao atualizar usuário: ${error.message}`, 'error');
+            
+            let errorMessage = 'Erro ao atualizar usuário';
+            if (error.message.includes('Email rate limit exceeded')) {
+                errorMessage = 'Muitas tentativas de alteração. Tente novamente mais tarde.';
+            } else if (error.message.includes('Invalid login credentials')) {
+                errorMessage = 'Credenciais inválidas.';
+            }
+            
+            UtilsModule.showNotification(errorMessage, 'error');
         }
     };
 
-    const deleteUser = async (userId) => {
-        if (!confirm('Tem certeza que deseja marcar este usuário como inativo?')) {
-            return;
+    const openEditUserModal = async (userId) => {
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
+
+        userModalTitle.textContent = 'Editar Usuário';
+        userIdField.value = user.id;
+        
+        // Resetar todos os campos primeiro
+        const fields = ['userName', 'userEmail', 'userRole', 'userStatus'];
+        fields.forEach(field => {
+            const element = document.getElementById(field);
+            if (element) {
+                element.disabled = false;
+                element.style.opacity = '1';
+            }
+        });
+
+        document.getElementById('userName').value = user.name;
+        document.getElementById('userEmail').value = user.email;
+        document.getElementById('userRole').value = user.role;
+        document.getElementById('userStatus').value = user.status;
+
+        // Verificar se é o usuário atual
+        const isCurrentUser = currentUser && currentUser.id === userId;
+
+        if (!isCurrentUser) {
+            // Desabilitar campos para usuários que não são o atual
+            fields.forEach(field => {
+                const element = document.getElementById(field);
+                if (element) {
+                    element.disabled = true;
+                    element.style.opacity = '0.6';
+                }
+            });
+            UtilsModule.showNotification('Apenas edição do próprio usuário é permitida', 'warning');
         }
 
-        try {
-            UtilsModule.showLoading('Atualizando usuário...');
+        // Limpar e tornar opcionais os campos de senha na edição
+        document.getElementById('userPassword').value = '';
+        document.getElementById('userConfirmPassword').value = '';
+        document.getElementById('userPassword').required = false;
+        document.getElementById('userConfirmPassword').required = false;
 
-            const { error } = await window.supabaseClient
-                .from('user_profiles')
-                .update({ status: 'inactive' })
-                .eq('id', userId);
+        userModal.style.display = 'flex';
+    };
 
-            if (error) throw error;
+    const addChatListeners = () => {
+        const chatButtons = document.querySelectorAll('.btn-chat');
+        if (chatButtons.length === 0) return;
+        
+        chatButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const userId = e.currentTarget.dataset.userId;
+                const userName = e.currentTarget.dataset.userName;
+                const userEmail = e.currentTarget.dataset.userEmail;
+                openChatWithUser(userId, userName, userEmail);
+            });
+        });
+    };
 
-            UtilsModule.hideLoading();
-            UtilsModule.showNotification('Usuário marcado como inativo!', 'success');
+    const openChatWithUser = (userId, userName, userEmail) => {
+        if (typeof ChatModule !== 'undefined' && ChatModule.toggleChat) {
+            ChatModule.toggleChat();
 
-            loadUsers();
-
-        } catch (error) {
-            UtilsModule.hideLoading();
-            console.error('Erro ao atualizar usuário:', error);
-            UtilsModule.showNotification(`Erro ao atualizar usuário: ${error.message}`, 'error');
+            setTimeout(() => {
+                const safeUserIdForSelector = escapeSelectorValue(userId);
+                const contactElement = document.querySelector(`.contact-item[data-user-id="${safeUserIdForSelector}"]`);
+                if (contactElement) {
+                    contactElement.click();
+                } else if (typeof ChatModule.openChatWithUser === 'function') {
+                    ChatModule.openChatWithUser(userId, userName, userEmail);
+                } else {
+                    UtilsModule.showNotification('Não foi possível iniciar o chat. Recarregue a página e tente novamente.', 'error');
+                }
+            }, 500);
+        } else {
+            UtilsModule.showNotification('O sistema de chat não está disponível no momento.', 'error');
         }
+    };
+
+    const addEditListeners = () => {
+        const editButtons = document.querySelectorAll('.btn-edit');
+        if (editButtons.length === 0) return;
+        
+        editButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const userId = e.currentTarget.dataset.userId;
+                openEditUserModal(userId);
+            });
+        });
     };
 
     const openAddUserModal = () => {
         userModalTitle.textContent = 'Novo Usuário';
         userIdField.value = '';
         userForm.reset();
-        deleteUserBtn.style.display = 'none';
-        userModal.style.display = 'flex';
-    };
+        
+        // Habilitar todos os campos
+        const fields = ['userName', 'userEmail', 'userRole', 'userStatus'];
+        fields.forEach(field => {
+            const element = document.getElementById(field);
+            if (element) {
+                element.disabled = false;
+                element.style.opacity = '1';
+            }
+        });
 
-    const openEditUserModal = (userId) => {
-        const user = users.find(u => u.id === userId);
-        if (!user) return;
-
-        userModalTitle.textContent = 'Editar Usuário';
-        userIdField.value = user.id;
-        document.getElementById('userName').value = user.name;
-        document.getElementById('userEmail').value = user.email;
-        document.getElementById('userRole').value = user.role;
-        document.getElementById('userStatus').value = user.status;
-
-        deleteUserBtn.style.display = 'block';
+        // Limpar campos de senha
+        document.getElementById('userPassword').value = '';
+        document.getElementById('userConfirmPassword').value = '';
+        
+        // Mostrar campos de senha como obrigatórios para novo usuário
+        document.getElementById('userPassword').required = true;
+        document.getElementById('userConfirmPassword').required = true;
+        
         userModal.style.display = 'flex';
     };
 
@@ -355,12 +355,23 @@ const UsersModule = (() => {
             password: document.getElementById('userPassword').value
         };
 
+        const confirmPassword = document.getElementById('userConfirmPassword').value;
+
+        // Validações
         if (!formData.name || !formData.email) {
             UtilsModule.showNotification('Nome e e-mail são obrigatórios', 'error');
             return;
         }
 
-        if (!userIdField.value && !formData.password) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) {
+            UtilsModule.showNotification('Por favor, insira um e-mail válido', 'error');
+            return;
+        }
+
+        const isNewUser = !userIdField.value;
+
+        if (isNewUser && !formData.password) {
             UtilsModule.showNotification('Senha é obrigatória para novo usuário', 'error');
             return;
         }
@@ -370,15 +381,19 @@ const UsersModule = (() => {
             return;
         }
 
-        if (formData.password !== document.getElementById('userConfirmPassword').value) {
-            UtilsModule.showNotification('As senhas não coincidem', 'error');
+        if (formData.password && formData.password !== confirmPassword) {
+            UtilsModule.showNotification('As senhas não coincidem. Por favor, digite a mesma senha nos dois campos.', 'error');
             return;
         }
 
-        if (userIdField.value) {
-            await updateUser(userIdField.value, formData);
-        } else {
-            await createUser(formData);
+        try {
+            if (userIdField.value) {
+                await updateUser(userIdField.value, formData);
+            } else {
+                await createUser(formData);
+            }
+        } catch (error) {
+            console.error('Erro ao processar formulário:', error);
         }
     };
 
@@ -396,10 +411,11 @@ const UsersModule = (() => {
 
     const showError = (message) => {
         if (usersTableBody) {
+            const safeMessage = escapeHtml(message || 'Erro ao carregar usuários');
             usersTableBody.innerHTML = `
                 <tr>
                     <td colspan="7" style="text-align: center; color: #dc3545; padding: 30px;">
-                        <i class="fas fa-exclamation-triangle"></i> ${message}
+                        <i class="fas fa-exclamation-triangle"></i> ${safeMessage}
                         <p style="font-size: 14px; margin-top: 10px;">
                             <button onclick="UsersModule.loadUsers()" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
                                 Tentar Novamente
@@ -429,17 +445,43 @@ const UsersModule = (() => {
         return roleMap[role] || role;
     };
 
+    const getSafeStatusKey = (status) => {
+        const allowed = new Set(['active', 'inactive', 'pending']);
+        return allowed.has(status) ? status : 'inactive';
+    };
+
+    const getSafeRoleKey = (role) => {
+        const allowed = new Set(['user', 'manager', 'admin']);
+        return allowed.has(role) ? role : 'user';
+    };
+
     const escapeHtml = (text) => {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     };
 
+    const escapeSelectorValue = (value) => {
+        const stringValue = String(value ?? '');
+        if (window.CSS && typeof window.CSS.escape === 'function') {
+            return window.CSS.escape(stringValue);
+        }
+        return stringValue.replace(/["\\]/g, '\\$&');
+    };
+
     const initUsersModule = () => {
+        if (isInitialized) return;
+
+        const usersView = document.querySelector('.users-view');
+        if (usersView) {
+            usersView.style.display = 'block';
+        }
+
         if (addUserBtn) addUserBtn.addEventListener('click', openAddUserModal);
         if (userForm) userForm.addEventListener('submit', handleUserSubmit);
         if (closeUserModal) closeUserModal.addEventListener('click', closeModal);
         if (cancelUserBtn) cancelUserBtn.addEventListener('click', closeModal);
+        isInitialized = true;
 
         console.log('Módulo de usuários inicializado');
         loadUsers();
@@ -448,8 +490,13 @@ const UsersModule = (() => {
     return {
         initUsersModule,
         loadUsers,
-        openChatWithUser // Expor esta função para uso externo, se necessário
+        openChatWithUser
     };
 })();
 
-document.addEventListener('DOMContentLoaded', UsersModule.initUsersModule);
+// Inicializar quando o DOM estiver carregado
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', UsersModule.initUsersModule);
+} else {
+    UsersModule.initUsersModule();
+}
