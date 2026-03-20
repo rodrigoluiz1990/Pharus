@@ -6,7 +6,11 @@ const ModalModule = (() => {
     const cancelTaskBtn = document.getElementById('cancelTask');
     const deleteTaskBtn = document.getElementById('deleteTask');
     const taskAssignee = document.getElementById('taskAssignee');
+    const taskClient = document.getElementById('taskClient');
+    const taskIsPinned = document.getElementById('taskIsPinned');
+    const taskFocusOrder = document.getElementById('taskFocusOrder');
     let isInitialized = false;
+    let startedOutsideModal = false;
 
     // Mostrar modal
     const showModal = async (columnId, taskId = null) => {
@@ -22,6 +26,7 @@ const ModalModule = (() => {
 
         // Popular dropdown de responsáveis
         await populateAssignees();
+        await populateClients();
 
         if (taskId) {
             // Modo edição - Buscar tarefa do Supabase
@@ -40,7 +45,19 @@ const ModalModule = (() => {
                     document.getElementById('taskDueDate').value = task.due_date ? UtilsModule.formatDateForInput(task.due_date) : '';
                     document.getElementById('taskObservation').value = task.observation || '';
                     document.getElementById('taskJira').value = task.jira || '';
-                    document.getElementById('taskClient').value = task.client || '';
+                    if (taskIsPinned) taskIsPinned.checked = Boolean(task.is_pinned);
+                    if (taskFocusOrder) taskFocusOrder.value = task.focus_order || '';
+                    if (taskClient) {
+                        const savedClient = task.client || '';
+                        const exists = Array.from(taskClient.options).some((opt) => opt.value === savedClient);
+                        if (savedClient && !exists) {
+                            const legacyOption = document.createElement('option');
+                            legacyOption.value = savedClient;
+                            legacyOption.textContent = `${savedClient} (legado)`;
+                            taskClient.appendChild(legacyOption);
+                        }
+                        taskClient.value = savedClient;
+                    }
                     document.getElementById('taskType').value = task.type || 'task';
 
                     document.getElementById('modalTitle').textContent = 'Editar Tarefa';
@@ -70,6 +87,8 @@ const ModalModule = (() => {
 
             // Definir data de solicitação como hoje
             document.getElementById('taskRequestDate').value = new Date().toISOString().split('T')[0];
+            if (taskIsPinned) taskIsPinned.checked = false;
+            if (taskFocusOrder) taskFocusOrder.value = '';
         }
 
         modalOverlay.classList.add('visible');
@@ -124,6 +143,14 @@ const ModalModule = (() => {
             return;
         }
 
+        if (taskFocusOrder && taskFocusOrder.value) {
+            const parsedFocusOrder = Number(taskFocusOrder.value);
+            if (!Number.isFinite(parsedFocusOrder) || parsedFocusOrder < 1) {
+                UtilsModule.showNotification('A ordem do post-it deve ser um número maior que zero.', 'error');
+                return;
+            }
+        }
+
         // Preparar dados da tarefa
         const taskData = {
             title: title,
@@ -136,6 +163,8 @@ const ModalModule = (() => {
             observation: document.getElementById('taskObservation').value || null,
             jira: document.getElementById('taskJira').value || null,
             client: document.getElementById('taskClient').value || null,
+            is_pinned: taskIsPinned ? taskIsPinned.checked : false,
+            focus_order: taskFocusOrder && taskFocusOrder.value ? Number(taskFocusOrder.value) : null,
             type: document.getElementById('taskType').value
         };
 
@@ -253,21 +282,70 @@ const ModalModule = (() => {
             deleteTaskBtn.addEventListener('click', deleteTask);
         }
 
-        // Fechar modal ao clicar fora dele
+        const modal = modalOverlay.querySelector('.modal');
+
+        // Só fecha quando o clique começa E termina fora do modal.
+        // Isso evita fechar durante seleção de texto/campo dentro do formulário.
+        modalOverlay.addEventListener('pointerdown', (e) => {
+            startedOutsideModal = (e.target === modalOverlay);
+        });
+
         modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay) {
+            const endedOutsideModal = (e.target === modalOverlay);
+            if (startedOutsideModal && endedOutsideModal) {
                 hideModal();
             }
+            startedOutsideModal = false;
         });
 
         // Prevenir fechamento ao clicar dentro do modal
-        const modal = modalOverlay.querySelector('.modal');
         if (modal) {
             modal.addEventListener('click', (e) => {
                 e.stopPropagation();
             });
         }
         isInitialized = true;
+    };
+
+    const populateClients = async (selectedValue = null) => {
+        if (!taskClient) return;
+
+        taskClient.innerHTML = '<option value="">Selecionar cliente</option>';
+
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('clients')
+                .select('name, status')
+                .order('name', { ascending: true });
+
+            if (error) throw error;
+
+            (data || []).forEach((client) => {
+                if (!client || !client.name) return;
+
+                const option = document.createElement('option');
+                option.value = client.name;
+                option.textContent = client.status === 'inactive'
+                    ? `${client.name} (inativo)`
+                    : client.name;
+
+                if (selectedValue && selectedValue === client.name) {
+                    option.selected = true;
+                }
+
+                taskClient.appendChild(option);
+            });
+
+            if (selectedValue && taskClient.value !== selectedValue) {
+                const legacyOption = document.createElement('option');
+                legacyOption.value = selectedValue;
+                legacyOption.textContent = `${selectedValue} (legado)`;
+                taskClient.appendChild(legacyOption);
+                taskClient.value = selectedValue;
+            }
+        } catch (error) {
+            console.error('Erro ao carregar clientes:', error);
+        }
     };
 
     return {

@@ -37,9 +37,29 @@ CREATE TABLE IF NOT EXISTS tasks (
   observation TEXT NULL,
   jira TEXT NULL,
   client TEXT NULL,
+  is_pinned BOOLEAN NOT NULL DEFAULT FALSE,
+  focus_order INTEGER NULL,
   type TEXT NOT NULL DEFAULT 'task',
   column_id UUID NULL REFERENCES columns(id) ON DELETE SET NULL,
   completed BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE IF EXISTS tasks
+  ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE IF EXISTS tasks
+  ADD COLUMN IF NOT EXISTS focus_order INTEGER NULL;
+
+CREATE TABLE IF NOT EXISTS clients (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  contact_name TEXT NULL,
+  email TEXT NULL,
+  phone TEXT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  notes TEXT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -93,6 +113,13 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_tasks_updated_at') THEN
     CREATE TRIGGER trg_tasks_updated_at
     BEFORE UPDATE ON tasks
+    FOR EACH ROW
+    EXECUTE PROCEDURE set_updated_at();
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_clients_updated_at') THEN
+    CREATE TRIGGER trg_clients_updated_at
+    BEFORE UPDATE ON clients
     FOR EACH ROW
     EXECUTE PROCEDURE set_updated_at();
   END IF;

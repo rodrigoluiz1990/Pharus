@@ -81,8 +81,10 @@
 }
 
 #filterForm label {
-    display: block;
-    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    min-height: 22px;
+    margin-bottom: 8px;
     font-weight: 600;
     color: #495057;
     font-size: 14px;
@@ -141,8 +143,9 @@
 /* Ações do formulário */
 .form-actions {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
+    gap: 10px;
     margin-top: 10px;
     padding-top: 10px;
     border-top: 1px solid var(--border-color);
@@ -204,6 +207,7 @@
 .filter-column {
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     gap: 10px;
 }
 
@@ -297,25 +301,230 @@
     }
 
     .form-actions {
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    #clearFilters {
-        order: 2;
-        width: 100%;
-        justify-content: center;
-    }
-
-    .form-actions>div {
-        order: 1;
-        display: flex;
-        gap: 10px;
-        width: 100%;
+        flex-direction: row;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
     .form-actions .btn {
-        flex: 1;
+        width: auto;
+    }
+}
+
+/* Modal de ordenação */
+.modal-overlay#sortModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.modal-overlay#sortModal .modal {
+    background: white;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 760px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+    animation: modalSlideIn 0.2s ease-out;
+}
+
+#sortForm .form-group {
+    margin-bottom: 0;
+}
+
+#sortForm .form-control {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 10px;
+    border: 1px solid #d4d9df;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+    color: #2c3e50;
+    transition: all 0.2s ease;
+}
+
+#sortForm .form-control:focus {
+    outline: none;
+    border-color: #2f8ee5;
+    box-shadow: 0 0 0 3px rgba(47, 142, 229, 0.16);
+}
+
+.sort-actions {
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+
+.sort-priority-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 6px;
+}
+
+.sort-priority-item {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding: 12px;
+    border: 1px solid #e1e6ec;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #fcfdff 0%, #f8fafc 100%);
+    min-width: 0;
+}
+
+.sort-priority-item .form-group {
+    width: 100%;
+    min-width: 0;
+}
+
+.sort-priority-item .form-group .form-control {
+    width: 100%;
+}
+
+.sort-priority-item .form-group:last-child {
+    grid-column: 2 / 4;
+}
+
+.sort-manual-group {
+    grid-column: 2 / 4;
+}
+
+.sort-manual-list {
+    list-style: none;
+    margin: 0;
+    padding: 8px;
+    border: 1px dashed #cad3de;
+    border-radius: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    background: #f8fbff;
+    min-height: 44px;
+}
+
+.sort-manual-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid #d3deea;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #2d3f52;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: grab;
+    user-select: none;
+}
+
+.sort-manual-item:active {
+    cursor: grabbing;
+}
+
+.sort-manual-item.dragging {
+    opacity: 0.65;
+}
+
+.sort-manual-grip {
+    color: #7a8a9b;
+    font-size: 12px;
+}
+
+.sort-manual-empty {
+    color: #708096;
+    font-size: 13px;
+    padding: 4px 2px;
+}
+
+.sort-priority-item .sort-level {
+    font-weight: 700;
+    color: #1f3c57;
+    padding: 6px 10px;
+    background: #e8f2fb;
+    border: 1px solid #d4e7f8;
+    border-radius: 999px;
+    text-align: center;
+    font-size: 13px;
+    align-self: start;
+    margin-top: 21px;
+}
+
+#sortForm label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #516070;
+}
+
+.sort-subtitle {
+    margin: 0 0 12px;
+    color: #5a6775;
+    font-size: 13px;
+    line-height: 1.4;
+    background: #f4f8fc;
+    border: 1px solid #e0ebf5;
+    border-radius: 8px;
+    padding: 8px 10px;
+}
+
+.sort-actions .btn {
+    min-width: 120px;
+    height: 38px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.sort-actions #clearSorting {
+    background: #eef2f6;
+    border-color: #d7dee6;
+    color: #3e4b59;
+}
+
+.sort-actions #clearSorting:hover {
+    background: #e6ebf1;
+}
+
+.sort-actions #cancelSort {
+    background: #e7edf3;
+    border-color: #d4dce4;
+    color: #3b4a59;
+}
+
+@media (max-width: 768px) {
+    .modal-overlay#sortModal .modal {
+        max-width: 100%;
+    }
+
+    .sort-priority-item {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .sort-priority-item .sort-level {
+        margin-top: 0;
+        justify-self: start;
+    }
+
+    .sort-manual-group {
+        grid-column: auto;
+    }
+
+    .sort-actions .btn {
+        min-width: 0;
     }
 }
 

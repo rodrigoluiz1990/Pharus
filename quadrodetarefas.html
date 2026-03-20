@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
@@ -30,7 +30,7 @@
                         <span class="btn-label">Filtro</span>
                         <span id="filterBadge" class="filter-badge" style="display: none;">!</span>
                     </button>
-                    <button class="action-btn">
+                    <button class="action-btn" id="sortBtn">
                         <i class="fas fa-sort"></i>
                         <span class="btn-label">Ordenar</span>
                     </button>
@@ -112,7 +112,9 @@
                         </div>
                         <div class="form-group">
                             <label for="taskClient">Cliente</label>
-                            <input type="text" id="taskClient" class="form-control">
+                            <select id="taskClient" class="form-control">
+                                <option value="">Selecionar cliente</option>
+                            </select>
                             <label for="taskAssignee">Responsável</label>
                             <select id="taskAssignee" class="form-control">
                                 <option value="">Selecionar responsável</option>
@@ -143,6 +145,14 @@
                             <textarea id="taskDescription" class="form-control" rows="3"></textarea>
                             <label for="taskObservation">Observação</label>
                             <textarea id="taskObservation" class="form-control" rows="3"></textarea>
+                            <div class="focus-settings">
+                                <label class="focus-checkbox-label" for="taskIsPinned">
+                                    <input type="checkbox" id="taskIsPinned">
+                                    Destacar no modo post-it
+                                </label>
+                                <label for="taskFocusOrder">Ordem no post-it (menor aparece primeiro)</label>
+                                <input type="number" id="taskFocusOrder" class="form-control" min="1" step="1" placeholder="Opcional">
+                            </div>
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary">Salvar</button>
@@ -263,6 +273,120 @@
                 </div>
             </div>
         </div>
+        <!-- Modal de Ordenação -->
+        <div class="modal-overlay" id="sortModal" style="display: none;">
+            <div class="modal" style="max-width: 520px;">
+                <div class="modal-header">
+                    <h3>Ordenar Tarefas</h3>
+                    <button class="modal-close" id="closeSortModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="sortForm">
+                        <p class="sort-subtitle">Defina a prioridade da ordenação: o Nível 1 é aplicado primeiro, depois Nível 2 e Nível 3.</p>
+
+                        <div class="sort-priority-list">
+                            <div class="sort-priority-item">
+                                <div class="sort-level">Nível 1</div>
+                                <div class="form-group">
+                                    <label for="sortField1">Campo</label>
+                                    <select id="sortField1" class="form-control">
+                                        <option value="created_at">Data de Criação</option>
+                                        <option value="updated_at">Data de Atualização</option>
+                                        <option value="request_date">Data de Solicitação</option>
+                                        <option value="due_date">Data de Entrega</option>
+                                        <option value="title">Título</option>
+                                        <option value="status">Status</option>
+                                        <option value="priority">Prioridade</option>
+                                        <option value="type">Tipo</option>
+                                        <option value="assignee">Responsável</option>
+                                        <option value="client">Cliente</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="sortDirectionGroup1">
+                                    <label for="sortDirection1">Direção</label>
+                                    <select id="sortDirection1" class="form-control">
+                                        <option value="desc">Decrescente</option>
+                                        <option value="asc">Crescente</option>
+                                    </select>
+                                </div>
+                                <div class="form-group sort-manual-group" id="sortManualGroup1" style="display:none;">
+                                    <label>Ordem Manual (arraste para reordenar)</label>
+                                    <ul class="sort-manual-list" id="sortManualList1"></ul>
+                                </div>
+                            </div>
+
+                            <div class="sort-priority-item">
+                                <div class="sort-level">Nível 2</div>
+                                <div class="form-group">
+                                    <label for="sortField2">Campo</label>
+                                    <select id="sortField2" class="form-control">
+                                        <option value="">(Nenhum)</option>
+                                        <option value="created_at">Data de Criação</option>
+                                        <option value="updated_at">Data de Atualização</option>
+                                        <option value="request_date">Data de Solicitação</option>
+                                        <option value="due_date">Data de Entrega</option>
+                                        <option value="title">Título</option>
+                                        <option value="status">Status</option>
+                                        <option value="priority">Prioridade</option>
+                                        <option value="type">Tipo</option>
+                                        <option value="assignee">Responsável</option>
+                                        <option value="client">Cliente</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="sortDirectionGroup2">
+                                    <label for="sortDirection2">Direção</label>
+                                    <select id="sortDirection2" class="form-control">
+                                        <option value="desc">Decrescente</option>
+                                        <option value="asc">Crescente</option>
+                                    </select>
+                                </div>
+                                <div class="form-group sort-manual-group" id="sortManualGroup2" style="display:none;">
+                                    <label>Ordem Manual (arraste para reordenar)</label>
+                                    <ul class="sort-manual-list" id="sortManualList2"></ul>
+                                </div>
+                            </div>
+
+                            <div class="sort-priority-item">
+                                <div class="sort-level">Nível 3</div>
+                                <div class="form-group">
+                                    <label for="sortField3">Campo</label>
+                                    <select id="sortField3" class="form-control">
+                                        <option value="">(Nenhum)</option>
+                                        <option value="created_at">Data de Criação</option>
+                                        <option value="updated_at">Data de Atualização</option>
+                                        <option value="request_date">Data de Solicitação</option>
+                                        <option value="due_date">Data de Entrega</option>
+                                        <option value="title">Título</option>
+                                        <option value="status">Status</option>
+                                        <option value="priority">Prioridade</option>
+                                        <option value="type">Tipo</option>
+                                        <option value="assignee">Responsável</option>
+                                        <option value="client">Cliente</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="sortDirectionGroup3">
+                                    <label for="sortDirection3">Direção</label>
+                                    <select id="sortDirection3" class="form-control">
+                                        <option value="desc">Decrescente</option>
+                                        <option value="asc">Crescente</option>
+                                    </select>
+                                </div>
+                                <div class="form-group sort-manual-group" id="sortManualGroup3" style="display:none;">
+                                    <label>Ordem Manual (arraste para reordenar)</label>
+                                    <ul class="sort-manual-list" id="sortManualList3"></ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions sort-actions">
+                            <button type="submit" class="btn btn-primary">Aplicar Ordenação</button>
+                            <button type="button" class="btn btn-secondary" id="clearSorting">Limpar</button>
+                            <button type="button" class="btn btn-secondary" id="cancelSort">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
     </div>
 
@@ -277,5 +401,8 @@
 </body>
 
 </html>
+
+
+
 
 

@@ -31,13 +31,23 @@
   }
 
   async function api(path, payload) {
-    const response = await fetch(path, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload || {}),
-    });
+    let response;
+    try {
+      response = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload || {}),
+      });
+    } catch (_networkError) {
+      return {
+        data: null,
+        error: {
+          message: 'Falha de conexao com o servidor. Verifique se o backend esta rodando e acessivel na rede.',
+        },
+      };
+    }
 
-    const json = await response.json().catch(() => ({ data: null, error: { message: 'Resposta inválida do servidor' } }));
+    const json = await response.json().catch(() => ({ data: null, error: { message: 'Resposta invalida do servidor' } }));
     if (!response.ok) {
       return { data: null, error: json.error || { message: `HTTP ${response.status}` } };
     }
@@ -234,3 +244,4 @@
     createClient,
   };
 })();
+

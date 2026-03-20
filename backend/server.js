@@ -15,6 +15,15 @@ const pool = new Pool({
 });
 
 app.use(express.json({ limit: '2mb' }));
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
 app.use(express.static(path.join(__dirname, '..')));
 
 const TABLE_COLUMNS = {
@@ -52,9 +61,22 @@ const TABLE_COLUMNS = {
     'observation',
     'jira',
     'client',
+    'is_pinned',
+    'focus_order',
     'type',
     'column_id',
     'completed',
+    'created_at',
+    'updated_at',
+  ],
+  clients: [
+    'id',
+    'name',
+    'contact_name',
+    'email',
+    'phone',
+    'status',
+    'notes',
     'created_at',
     'updated_at',
   ],
@@ -68,7 +90,7 @@ const TABLE_COLUMNS = {
   ],
 };
 
-const MUTABLE_TABLES = new Set(['app_users', 'columns', 'tasks', 'chat_messages']);
+const MUTABLE_TABLES = new Set(['app_users', 'columns', 'tasks', 'clients', 'chat_messages']);
 
 function normalizeTable(table) {
   if (!table || typeof table !== 'string') return null;
@@ -357,6 +379,108 @@ app.post('/api/db/query', async (req, res) => {
     }
 
     return res.status(400).json({ data: null, error: { message: 'Ação não suportada' } });
+  } catch (error) {
+    return res.status(500).json({ data: null, error: formatError(error) });
+  }
+});
+
+app.get('/api/tasks/focus', async (req, res) => {
+  const { email, user_id: userIdRaw, limit: limitRaw } = req.query || {};
+  const limit = Math.max(1, Math.min(Number(limitRaw) || 12, 50));
+
+  try {
+    let userId = userIdRaw ? String(userIdRaw) : null;
+
+    if (!userId && email) {
+      const userResult = await pool.query(
+        `SELECT id FROM app_users WHERE email = $1 LIMIT 1`,
+        [String(email).toLowerCase()]
+      );
+      userId = userResult.rows[0]?.id || null;
+    }
+
+    const values = [limit];
+    let assigneeFilterSql = '';
+
+    if (userId) {
+      values.push(userId);
+      assigneeFilterSql = `AND t.assignee = $2`;
+    }
+
+    const sql = `
+      SELECT
+        t.id,
+        t.title,
+        t.status,
+        t.priority,
+        t.due_date,
+        t.client,
+        t.is_pinned,
+        t.focus_order,
+        t.assignee,
+        COALESCE(u.raw_user_meta_data->>'full_name', u.email, '') AS assignee_name
+      FROM tasks t
+      LEFT JOIN app_users u ON u.id = t.assignee
+      WHERE COALESCE(t.completed, FALSE) = FALSE
+        AND COALESCE(t.status, 'pending') <> 'completed'
+        ${assigneeFilterSql}
+      ORDER BY
+        COALESCE(t.is_pinned, FALSE) DESC,
+        COALESCE(t.focus_order, 999999) ASC,
+        CASE COALESCE(t.priority, 'medium')
+          WHEN 'high' THEN 1
+          WHEN 'medium' THEN 2
+          WHEN 'low' THEN 3
+          ELSE 4
+        END ASC,
+        COALESCE(t.due_date, DATE '2999-12-31') ASC,
+        t.created_at DESC
+      LIMIT $1
+    `;
+
+    const result = await pool.query(sql, values);
+    return res.json({ data: result.rows || [], error: null });
+  } catch (error) {
+    return res.status(500).json({ data: null, error: formatError(error) });
+  }
+});
+
+app.post('/api/tasks/focus/update', async (req, res) => {
+  const { taskId, isPinned, focusOrder } = req.body || {};
+  if (!taskId) {
+    return res.status(400).json({ data: null, error: { message: 'taskId e obrigatorio' } });
+  }
+
+  const normalizedFocusOrder =
+    focusOrder === null || focusOrder === undefined || focusOrder === ''
+      ? null
+      : Number(focusOrder);
+
+  if (normalizedFocusOrder !== null && !Number.isFinite(normalizedFocusOrder)) {
+    return res.status(400).json({ data: null, error: { message: 'focusOrder invalido' } });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE tasks
+       SET is_pinned = COALESCE($1, is_pinned),
+           focus_order = $2,
+           updated_at = NOW()
+       WHERE id = $3
+       RETURNING id, is_pinned, focus_order`,
+      [
+        typeof isPinned === 'boolean' ? isPinned : null,
+        normalizedFocusOrder,
+        String(taskId),
+      ]
+    );
+
+    const updated = result.rows[0];
+    if (!updated) {
+      return res.status(404).json({ data: null, error: { message: 'Tarefa nao encontrada' } });
+    }
+
+    return res.json({ data: updated, error: null });
   } catch (error) {
     return res.status(500).json({ data: null, error: formatError(error) });
   }

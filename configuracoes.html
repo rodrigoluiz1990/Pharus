@@ -1,12 +1,81 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pharus - Configurações</title>
+    <title>Pharus - Configuracoes</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/sidebar.css">
+    <style>
+        .settings-page {
+            padding: 24px;
+            display: grid;
+            gap: 16px;
+        }
+
+        .settings-card {
+            background: #fff;
+            border: 1px solid #dce3ec;
+            border-radius: 10px;
+            padding: 16px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .settings-card h3 {
+            margin: 0;
+            color: #253a50;
+        }
+
+        .settings-card p {
+            margin: 0;
+            color: #4d6278;
+        }
+
+        .settings-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .settings-actions .btn {
+            min-height: 36px;
+        }
+
+        .settings-actions .btn.btn-copied {
+            background-color: #1f9d57 !important;
+            border-color: #1f9d57 !important;
+            color: #fff !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(31, 157, 87, 0.3);
+        }
+
+        .extension-steps {
+            margin: 0;
+            padding-left: 18px;
+            color: #334b63;
+            line-height: 1.5;
+            display: grid;
+            gap: 6px;
+        }
+
+        .path-box {
+            background: #f6f9fc;
+            border: 1px dashed #c8d5e4;
+            border-radius: 8px;
+            padding: 10px;
+            color: #243a51;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 13px;
+            word-break: break-word;
+        }
+
+        .status-hint {
+            font-size: 13px;
+            color: #4b6278;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -14,20 +83,53 @@
         <div class="content">
             <div class="header">
                 <div class="project-title">
-                    <h2>Configurações</h2>
+                    <h2>Configuracoes</h2>
                 </div>
             </div>
-            <div class="users-view" style="padding: 24px;">
-                <h3>Em desenvolvimento</h3>
-                <p>Esta página será implementada na próxima etapa.</p>
+
+            <div class="settings-page">
+                <section class="settings-card">
+                    <h3>Extensao Chrome (modo post-it)</h3>
+                    <p>Instalacao manual assistida para usar o Pharus na barra lateral do navegador.</p>
+
+                    <ol class="extension-steps">
+                        <li>Abra <strong>chrome://extensions</strong> no Google Chrome.</li>
+                        <li>Ative o botao <strong>Modo do desenvolvedor</strong> no canto superior direito.</li>
+                        <li>Clique em <strong>Carregar sem compactacao</strong>.</li>
+                        <li>Selecione a pasta <strong>chrome-extension</strong> do projeto Pharus.</li>
+                        <li>Clique no icone da extensao para abrir o painel lateral.</li>
+                    </ol>
+
+                    <div class="path-box" id="extensionFolderPath">Pharus\chrome-extension</div>
+
+                    <div class="settings-actions">
+                        <button class="btn btn-primary" id="openExtensionsBtn">
+                            <i class="fas fa-puzzle-piece"></i> Abrir chrome://extensions
+                        </button>
+                        <button class="btn btn-secondary" id="copyExtensionsUrlBtn">
+                            <i class="fas fa-copy"></i> Copiar link chrome://extensions
+                        </button>
+                        <button class="btn btn-secondary" id="copyFolderHintBtn">
+                            <i class="fas fa-copy"></i> Copiar nome da pasta
+                        </button>
+                    </div>
+
+                    <p class="status-hint" id="extensionInstallHint">
+                        Dica: se o Chrome bloquear o botao de abertura, copie o link e cole na barra de endereco.
+                    </p>
+                </section>
             </div>
         </div>
     </div>
 
     <script src="scripts/local-supabase-client.js"></script>
     <script src="scripts/supabase-config.js"></script>
+    <script src="scripts/auth.js"></script>
     <script src="scripts/component-loader.js"></script>
+    <script src="scripts/page-bootstrap.js"></script>
+    <script src="scripts/utils.js"></script>
     <script src="scripts/profile-modal.js"></script>
     <script src="scripts/chat.js"></script>
+    <script src="scripts/settings.js"></script>
 </body>
 </html>

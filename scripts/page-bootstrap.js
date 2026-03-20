@@ -61,6 +61,7 @@ const PageBootstrap = (() => {
             'scripts/storage.js',
             'scripts/modal.js',
             'scripts/filter.js',
+            'scripts/sort.js',
             'scripts/table-sort.js',
             'scripts/board.js'
         ]);
@@ -71,6 +72,10 @@ const PageBootstrap = (() => {
 
         if (typeof FilterModule !== 'undefined' && typeof FilterModule.init === 'function') {
             FilterModule.init();
+        }
+
+        if (typeof SortModule !== 'undefined' && typeof SortModule.init === 'function') {
+            SortModule.init();
         }
 
         if (typeof BoardModule !== 'undefined' && typeof BoardModule.initBoard === 'function') {
@@ -90,6 +95,18 @@ const PageBootstrap = (() => {
         }
     };
 
+    const initClientsPage = async () => {
+        await loadScripts([
+            'scripts/utils.js',
+            'scripts/storage.js',
+            'scripts/clients.js'
+        ]);
+
+        if (typeof ClientsModule !== 'undefined' && typeof ClientsModule.initClientsModule === 'function') {
+            ClientsModule.initClientsModule();
+        }
+    };
+
     const initByPage = async () => {
         const page = getCurrentPage();
 
@@ -100,6 +117,11 @@ const PageBootstrap = (() => {
 
         if (page === 'users.html') {
             await initUsersPage();
+            return;
+        }
+
+        if (page === 'clientes.html') {
+            await initClientsPage();
         }
     };
 

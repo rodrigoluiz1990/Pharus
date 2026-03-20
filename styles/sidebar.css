@@ -15,9 +15,9 @@
 
 .logo {
     order: 0;
-    padding: 20px 25px;
+    padding: 14px 25px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 15px;
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -117,7 +117,7 @@
 .sidebar-user-section.top-user-menu {
     padding: 15px;
     border-bottom: 1px solid #34495e;
-    margin-bottom: 15px;
+    margin-bottom: 8px;
     background-color: rgba(255, 255, 255, 0.05);
     order: -1;
 }
@@ -257,9 +257,18 @@
 
 .sidebar.sidebar-collapsed .logo h1,
 .sidebar.sidebar-collapsed .menu-item span,
-.sidebar.sidebar-collapsed .user-details,
-.sidebar.sidebar-collapsed .sidebar-user-section.top-user-menu .dropdown {
+.sidebar.sidebar-collapsed .user-details {
     display: none;
+}
+
+.sidebar.sidebar-collapsed .sidebar-user-section.top-user-menu .dropdown > .btn {
+    display: none;
+}
+
+.sidebar.sidebar-collapsed .sidebar-user-section.top-user-menu .dropdown-menu {
+    left: calc(100% + 8px);
+    right: auto;
+    top: 0;
 }
 
 .sidebar.sidebar-collapsed .menu-items {
@@ -333,9 +342,20 @@ body.sidebar-collapsed .content {
 
     .sidebar .logo h1,
     .sidebar .menu-item span,
-    .sidebar .user-details,
-    .sidebar .sidebar-user-section.top-user-menu .dropdown {
+    .sidebar .user-details {
         display: none;
+    }
+
+    .sidebar .sidebar-user-section.top-user-menu .dropdown > .btn {
+        display: none;
+    }
+
+    .sidebar .sidebar-user-section.top-user-menu .dropdown-menu {
+        left: calc(100% + 8px);
+        right: auto;
+        top: 0;
+        min-width: 170px;
+        z-index: 2001;
     }
 
     .sidebar-collapse-btn {
@@ -344,7 +364,7 @@ body.sidebar-collapsed .content {
 
     .sidebar .sidebar-user-section.top-user-menu {
         padding: 8px 6px;
-        margin-bottom: 10px;
+        margin-bottom: 6px;
     }
 
     .sidebar .sidebar-user-section.top-user-menu .user-info {

@@ -1,0 +1,43 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pharus Post-it</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1>Post-it Pharus</h1>
+      <div class="header-actions">
+        <button id="refreshBtn" class="icon-btn" title="Atualizar">↻</button>
+        <button id="settingsToggleBtn" class="icon-btn" title="Configuracoes">⚙</button>
+      </div>
+    </header>
+
+    <section id="settingsPanel" class="settings hidden">
+      <label>Servidor
+        <input id="apiBaseInput" type="text" placeholder="http://localhost:3000">
+      </label>
+      <label>E-mail do responsavel
+        <input id="emailInput" type="email" placeholder="admin@pharus.local">
+      </label>
+      <label>Limite
+        <input id="limitInput" type="number" min="1" max="50" value="12">
+      </label>
+      <div class="settings-actions">
+        <button id="saveSettingsBtn">Salvar</button>
+        <button id="openBoardBtn" class="secondary">Abrir painel completo</button>
+      </div>
+    </section>
+
+    <section>
+      <div id="statusText" class="status">Carregando tarefas...</div>
+      <ul id="tasksList" class="tasks-list"></ul>
+    </section>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

@@ -5,6 +5,9 @@ const ChatModule = (() => {
     let currentUser = null;
     let unreadMessages = new Map();
     let isInitialized = false;
+    let conversationRefreshInterval = null;
+    let contactsRefreshInterval = null;
+    let lastMessagesSnapshot = new Map();
 
     const elements = {
         chatContainer: null,
@@ -242,6 +245,10 @@ const ChatModule = (() => {
                     elements.chatContainer.classList.toggle('chat-open');
                     if (elements.chatContainer.classList.contains('chat-open')) {
                         loadContacts();
+                        startContactsPolling();
+                    } else {
+                        stopContactsPolling();
+                        stopConversationPolling();
                     }
                 } else {
                     console.error('Não foi possível carregar o usuário para o chat');
@@ -254,6 +261,10 @@ const ChatModule = (() => {
         elements.chatContainer.classList.toggle('chat-open');
         if (elements.chatContainer.classList.contains('chat-open')) {
             loadContacts();
+            startContactsPolling();
+        } else {
+            stopContactsPolling();
+            stopConversationPolling();
         }
     };
 
@@ -261,6 +272,8 @@ const ChatModule = (() => {
         if (elements.chatContainer) {
             elements.chatContainer.classList.remove('chat-open');
         }
+        stopContactsPolling();
+        stopConversationPolling();
     };
 
     const showContacts = () => {
@@ -271,6 +284,7 @@ const ChatModule = (() => {
             document.querySelector('.chat-messages-container').style.display = 'none';
         }
         currentReceiver = null;
+        stopConversationPolling();
     };
 
     const filterContacts = () => {
@@ -381,7 +395,7 @@ const ChatModule = (() => {
         }
         
         // Carregar mensagens
-        await loadMessages(contact.id);
+        await loadMessages(contact.id, { silent: false, forceRender: true });
         
         // Limpar contador de não lidas
         unreadMessages.set(contact.id, 0);
@@ -391,13 +405,18 @@ const ChatModule = (() => {
         if (elements.messageInput) {
             elements.messageInput.focus();
         }
+
+        startConversationPolling();
     };
 
-    const loadMessages = async (contactId) => {
+    const loadMessages = async (contactId, options = {}) => {
+        const { silent = false, forceRender = false } = options;
         try {
             if (!elements.chatMessages || !currentUser) return;
-            
-            elements.chatMessages.innerHTML = '<div class="loading-messages">Carregando mensagens...</div>';
+
+            if (!silent) {
+                elements.chatMessages.innerHTML = '<div class="loading-messages">Carregando mensagens...</div>';
+            }
             
             const { data: messages, error } = await window.supabaseClient
                 .from('chat_messages')
@@ -407,7 +426,15 @@ const ChatModule = (() => {
             
             if (error) throw error;
             
-            renderMessages(messages);
+            const safeMessages = messages || [];
+            const last = safeMessages.length > 0 ? safeMessages[safeMessages.length - 1] : null;
+            const snapshot = `${safeMessages.length}:${last ? last.id : 'none'}:${last ? last.created_at : 'none'}`;
+            const previousSnapshot = lastMessagesSnapshot.get(contactId);
+
+            if (forceRender || snapshot !== previousSnapshot) {
+                renderMessages(safeMessages);
+                lastMessagesSnapshot.set(contactId, snapshot);
+            }
             
             // Marcar mensagens como lidas
             await markMessagesAsRead(contactId);
@@ -416,7 +443,7 @@ const ChatModule = (() => {
             scrollToBottom();
         } catch (error) {
             console.error('Erro ao carregar mensagens:', error);
-            if (elements.chatMessages) {
+            if (!silent && elements.chatMessages) {
                 elements.chatMessages.innerHTML = '<div class="error-messages">Erro ao carregar mensagens</div>';
             }
         }
@@ -481,8 +508,8 @@ const ChatModule = (() => {
                 elements.sendButton.disabled = true;
             }
             
-            // Recarregar mensagens para mostrar a nova
-            await loadMessages(currentReceiver.id);
+            // Recarregar silenciosamente para mostrar a nova sem piscar
+            await loadMessages(currentReceiver.id, { silent: true, forceRender: true });
             
         } catch (error) {
             console.error('Erro ao enviar mensagem:', error);
@@ -660,6 +687,42 @@ const ChatModule = (() => {
     const scrollToBottom = () => {
         if (elements.chatMessages) {
             elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+        }
+    };
+
+    const isChatOpen = () => {
+        return !!(elements.chatContainer && elements.chatContainer.classList.contains('chat-open'));
+    };
+
+    const startConversationPolling = () => {
+        stopConversationPolling();
+
+        conversationRefreshInterval = setInterval(async () => {
+            if (!isChatOpen() || !currentReceiver || !currentUser) return;
+            await loadMessages(currentReceiver.id, { silent: true });
+        }, 2500);
+    };
+
+    const stopConversationPolling = () => {
+        if (conversationRefreshInterval) {
+            clearInterval(conversationRefreshInterval);
+            conversationRefreshInterval = null;
+        }
+    };
+
+    const startContactsPolling = () => {
+        stopContactsPolling();
+
+        contactsRefreshInterval = setInterval(async () => {
+            if (!isChatOpen()) return;
+            await loadContacts();
+        }, 12000);
+    };
+
+    const stopContactsPolling = () => {
+        if (contactsRefreshInterval) {
+            clearInterval(contactsRefreshInterval);
+            contactsRefreshInterval = null;
         }
     };
 

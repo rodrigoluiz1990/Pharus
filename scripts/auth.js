@@ -60,6 +60,12 @@ async function handleLogin(e) {
   }
 
   try {
+      if (!window.supabaseClient || !window.supabaseClient.auth) {
+          alert("Cliente de autenticacao nao inicializado. Recarregue a pagina.");
+          resetLoginButton(loginBtn, originalText);
+          return;
+      }
+
       const { data, error } = await window.supabaseClient.auth.signInWithPassword({
           email,
           password,
@@ -77,8 +83,9 @@ async function handleLogin(e) {
       // O redirecionamento será tratado pelo onAuthStateChange no supabase-config
       
   } catch (err) {
-      console.error("Erro no login:", err.message);
-      alert("Erro inesperado ao tentar logar.");
+      console.error("Erro no login:", err);
+      const message = err?.message || "Erro inesperado ao tentar logar.";
+      alert("Erro no login: " + message);
       resetLoginButton(loginBtn, originalText);
   }
 }

@@ -19,12 +19,67 @@ const BoardModule = (() => {
     let isInitialized = false;
     let isInitializing = false;
     let autoRefreshInterval = null;
+    let lastDataSignature = null;
+    let lastLoadHadChanges = true;
+    let queryTaskHandled = false;
+
+    const buildDataSignature = (columnsData, tasksData, usersData) => {
+        const safeColumns = Array.isArray(columnsData) ? columnsData : [];
+        const safeTasks = Array.isArray(tasksData) ? tasksData : [];
+        const safeUsers = Array.isArray(usersData) ? usersData : [];
+
+        const normalizedColumns = safeColumns
+            .map((c) => ({
+                id: String(c.id ?? ''),
+                title: String(c.title ?? ''),
+                type: String(c.type ?? ''),
+                position: Number(c.position ?? 0),
+                updated_at: String(c.updated_at ?? ''),
+            }))
+            .sort((a, b) => a.id.localeCompare(b.id));
+
+        const normalizedTasks = safeTasks
+            .map((t) => ({
+                id: String(t.id ?? ''),
+                title: String(t.title ?? ''),
+                status: String(t.status ?? ''),
+                priority: String(t.priority ?? ''),
+                assignee: String(t.assignee ?? ''),
+                due_date: String(t.due_date ?? ''),
+                request_date: String(t.request_date ?? ''),
+                column_id: String(t.column_id ?? ''),
+                type: String(t.type ?? ''),
+                completed: Boolean(t.completed),
+                client: String(t.client ?? ''),
+                updated_at: String(t.updated_at ?? ''),
+            }))
+            .sort((a, b) => a.id.localeCompare(b.id));
+
+        const normalizedUsers = safeUsers
+            .map((u) => ({
+                id: String(u.id ?? ''),
+                name: String(u.name ?? ''),
+                email: String(u.email ?? ''),
+                status: String(u.status ?? ''),
+                updated_at: String(u.updated_at ?? ''),
+            }))
+            .sort((a, b) => a.id.localeCompare(b.id));
+
+        return JSON.stringify({
+            columns: normalizedColumns,
+            tasks: normalizedTasks,
+            users: normalizedUsers,
+        });
+    };
 
     // ========== FUNÇÕES PRINCIPAIS ========== //
 
-    const loadData = async () => {
+    const loadData = async (options = {}) => {
+        const { silent = false } = options;
         try {
-            UtilsModule.showLoading('Carregando dados...');
+            if (!silent) {
+                UtilsModule.showLoading('Carregando dados...');
+            }
 
             const [columnsData, tasksData, usersData] = await Promise.all([
                 StorageModule.getColumns(),
@@ -35,24 +90,38 @@ const BoardModule = (() => {
             columns = columnsData;
             tasks = tasksData;
             users = usersData;
+            const currentSignature = buildDataSignature(columnsData, tasksData, usersData);
+            lastLoadHadChanges = currentSignature !== lastDataSignature;
+            lastDataSignature = currentSignature;
 
             // Aplicar filtros após carregar dados
             applyFiltersToTasks();
 
-            UtilsModule.hideLoading();
+            if (!silent) {
+                UtilsModule.hideLoading();
+            }
             return [columns, tasks, users];
         } catch (error) {
-            UtilsModule.hideLoading();
+            if (!silent) {
+                UtilsModule.hideLoading();
+            }
+            lastLoadHadChanges = false;
             UtilsModule.handleApiError(error, 'carregar dados do board');
             return [[], [], []];
         }
     };
 
-    const renderBoard = async () => {
+    const renderBoard = async (options = {}) => {
+        const {
+            reloadData = true,
+            silentLoad = false,
+        } = options;
         if (!taskBoard) return;
 
         try {
-            await loadData();
+            if (reloadData) {
+                await loadData({ silent: silentLoad });
+            }
             taskBoard.innerHTML = "";
 
             columns.forEach((column) => {
@@ -64,18 +133,27 @@ const BoardModule = (() => {
         }
     };
 
-    const renderSociousView = async () => {
+    const renderSociousView = async (options = {}) => {
+        const {
+            reloadData = true,
+            showTableLoading = true,
+            silentLoad = false,
+        } = options;
         if (!sociousTableBody) return;
 
         try {
             // Mostrar estado de carregamento na tabela
-            sociousTableBody.innerHTML = `
-                <tr class="loading-row">
-                    <td colspan="10">Carregando tarefas...</td>
-                </tr>
-            `;
+            if (showTableLoading) {
+                sociousTableBody.innerHTML = `
+                    <tr class="loading-row">
+                        <td colspan="10">Carregando tarefas...</td>
+                    </tr>
+                `;
+            }
 
-            await loadData();
+            if (reloadData) {
+                await loadData({ silent: silentLoad });
+            }
             sociousTableBody.innerHTML = "";
 
             if (filteredTasks.length === 0) {
@@ -168,11 +246,12 @@ const BoardModule = (() => {
         const priorityClass = `tag-priority-${priorityInfo.class}`;
         const typeClass = `tag-type-${typeInfo.class}`;
         const safeTitle = escapeHtml(task.title || "Sem título");
+        const pinnedIcon = task.is_pinned ? '<i class="fas fa-thumbtack task-pin-icon" title="Post-it"></i> ' : '';
         const safeAssigneeName = escapeHtml(assignee ? assignee.name : "Não atribuído");
         const safeClient = escapeHtml(task.client || "Sem cliente");
 
         taskElement.innerHTML = `
-            <div class="task-title">${safeTitle}</div>
+            <div class="task-title">${pinnedIcon}${safeTitle}</div>
             <div class="task-tags">
                 <span class="task-tag tag-status">${statusInfo.text}</span>
                 <span class="task-tag ${priorityClass}">${priorityInfo.text}</span>
@@ -199,6 +278,7 @@ const BoardModule = (() => {
         const row = document.createElement("tr");
         const dataAttribute = getDateAttribute(task.due_date);
         const safeTitle = escapeHtml(task.title || "Sem titulo");
+        const pinnedIcon = task.is_pinned ? '<i class="fas fa-thumbtack task-pin-icon" title="Post-it"></i> ' : '';
         const safeAssigneeName = escapeHtml(assignee ? assignee.name : "Nao atribuido");
         const safeClient = escapeHtml(task.client || "-");
 
@@ -208,7 +288,7 @@ const BoardModule = (() => {
                     <div class="custom-checkbox"></div>
                 </label>
             </td>
-            <td>${safeTitle}</td>
+            <td>${pinnedIcon}${safeTitle}</td>
             <td>${safeAssigneeName}</td>
             <td>${UtilsModule.formatDate(task.request_date)}</td>
             <td ${dataAttribute}>${UtilsModule.formatDate(task.due_date)}</td>
@@ -233,6 +313,10 @@ const BoardModule = (() => {
             filteredTasks = FilterModule.filterTasks(tasks);
         } else {
             filteredTasks = [...tasks];
+        }
+
+        if (typeof SortModule !== 'undefined' && typeof SortModule.sortTasks === 'function') {
+            filteredTasks = SortModule.sortTasks(filteredTasks);
         }
     };
 
@@ -323,14 +407,26 @@ const BoardModule = (() => {
     // Função para eventos de filtro
     const setupFilterListeners = () => {
         window.addEventListener('filtersApplied', async () => {
-            await loadData();
+            await loadData({ silent: true });
             applyFiltersToTasks();
 
             const boardHidden = taskBoard ? (getComputedStyle(taskBoard).display === "none") : true;
             if (!boardHidden) {
-                renderBoard();
+                renderBoard({ reloadData: false });
             } else {
-                renderSociousView();
+                renderSociousView({ reloadData: false, showTableLoading: false });
+            }
+        });
+
+        window.addEventListener('sortsApplied', async () => {
+            await loadData({ silent: true });
+            applyFiltersToTasks();
+
+            const boardHidden = taskBoard ? (getComputedStyle(taskBoard).display === "none") : true;
+            if (!boardHidden) {
+                renderBoard({ reloadData: false });
+            } else {
+                renderSociousView({ reloadData: false, showTableLoading: false });
             }
         });
     };
@@ -506,7 +602,7 @@ const BoardModule = (() => {
         applySociousMode(false);
         setActiveViewButton("board");
         persistViewMode("board");
-        renderBoard();
+        renderBoard({ reloadData: true, silentLoad: true });
     };
 
     const showSociousView = () => {
@@ -516,7 +612,7 @@ const BoardModule = (() => {
         applySociousMode(false);
         setActiveViewButton("socious");
         persistViewMode("socious");
-        renderSociousView();
+        renderSociousView({ reloadData: true, showTableLoading: false, silentLoad: true });
     };
 
     const showTitleOnlyView = () => {
@@ -526,7 +622,7 @@ const BoardModule = (() => {
         applySociousMode(true);
         setActiveViewButton("title_only");
         persistViewMode("title_only");
-        renderSociousView();
+        renderSociousView({ reloadData: true, showTableLoading: false, silentLoad: true });
     };
 
     // ========== INICIALIZAÇÃO ========== //
@@ -541,7 +637,7 @@ const BoardModule = (() => {
         isInitializing = true;
 
         try {
-            await loadData();
+            await loadData({ silent: true });
             setupEventListeners();
             setupFilterListeners();
             const initialMode = getSavedViewMode();
@@ -552,6 +648,7 @@ const BoardModule = (() => {
             } else {
                 showBoardView();
             }
+            openTaskFromQueryString();
             setupAutoRefresh();
             isInitialized = true;
         } catch (error) {
@@ -575,13 +672,13 @@ const BoardModule = (() => {
     };
 
     const handleTasksUpdated = async () => {
-        await loadData();
+        await loadData({ silent: true });
         // se o board estiver visível, renderiza; senão renderiza tabela
         const boardHidden = taskBoard ? (getComputedStyle(taskBoard).display === "none") : true;
         if (!boardHidden) {
-            renderBoard();
+            renderBoard({ reloadData: false });
         } else {
-            renderSociousView();
+            renderSociousView({ reloadData: false, showTableLoading: false });
         }
     };
 
@@ -591,13 +688,30 @@ const BoardModule = (() => {
         }
 
         autoRefreshInterval = setInterval(async () => {
-            await loadData();
+            await loadData({ silent: true });
+            if (!lastLoadHadChanges) {
+                return;
+            }
+
             if (taskBoard && getComputedStyle(taskBoard).display !== "none") {
-                renderBoard();
+                renderBoard({ reloadData: false });
             } else if (sociousView && getComputedStyle(sociousView).display !== "none") {
-                renderSociousView();
+                renderSociousView({ reloadData: false, showTableLoading: false });
             }
         }, 50000);
+    };
+
+    const openTaskFromQueryString = () => {
+        if (queryTaskHandled) return;
+
+        const params = new URLSearchParams(window.location.search);
+        const taskId = params.get('taskId');
+        if (!taskId) return;
+
+        queryTaskHandled = true;
+        setTimeout(() => {
+            openTaskModalFallback(taskId);
+        }, 200);
     };
 
     const escapeHtml = (value) => {

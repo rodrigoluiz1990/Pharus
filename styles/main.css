@@ -368,6 +368,19 @@ textarea.form-control {
     grid-column: span 3;
 }
 
+.focus-settings {
+    margin-top: 10px;
+    display: grid;
+    gap: 8px;
+}
+
+.focus-checkbox-label {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 8px;
+    margin: 0 !important;
+}
+
 .btn {
     padding: 12px 20px;
     border-radius: 8px;

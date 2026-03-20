@@ -189,6 +189,11 @@
     font-size: 14px;
 }
 
+.task-pin-icon {
+    color: #1f78d1;
+    margin-right: 4px;
+}
+
 /* Container para as tags */
 .task-tags {
     display: flex;
