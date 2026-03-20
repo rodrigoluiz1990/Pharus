@@ -1,10 +1,14 @@
 const path = require('path');
+const fs = require('fs');
+const fsp = require('fs/promises');
 const express = require('express');
 const { Pool } = require('pg');
 require('dotenv').config();
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
+const CHAT_UPLOAD_DIR = path.join(__dirname, 'uploads', 'chat');
+const MAX_CHAT_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 const pool = new Pool({
   host: process.env.PGHOST || '127.0.0.1',
@@ -14,7 +18,7 @@ const pool = new Pool({
   database: process.env.PGDATABASE || 'pharus',
 });
 
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '20mb' }));
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
@@ -85,6 +89,11 @@ const TABLE_COLUMNS = {
     'sender_id',
     'receiver_id',
     'message',
+    'attachment_name',
+    'attachment_path',
+    'attachment_type',
+    'attachment_size',
+    'edited_at',
     'is_read',
     'created_at',
   ],
@@ -149,6 +158,92 @@ function buildWhere(filters, orExpr, values, table) {
 
 function formatError(error) {
   return { message: error?.message || 'Erro interno no servidor' };
+}
+
+function ensureChatUploadDir() {
+  if (!fs.existsSync(CHAT_UPLOAD_DIR)) {
+    fs.mkdirSync(CHAT_UPLOAD_DIR, { recursive: true });
+  }
+}
+
+function sanitizeFileName(fileName) {
+  const base = String(fileName || 'arquivo')
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return base || 'arquivo';
+}
+
+function detectExtension(mimeType, originalName) {
+  const explicitExt = path.extname(String(originalName || '')).trim();
+  if (explicitExt) return explicitExt.slice(0, 12);
+
+  const map = {
+    'image/jpeg': '.jpg',
+    'image/png': '.png',
+    'image/webp': '.webp',
+    'application/pdf': '.pdf',
+    'text/plain': '.txt',
+    'application/zip': '.zip',
+    'application/json': '.json',
+    'text/csv': '.csv',
+    'application/csv': '.csv',
+    'application/xml': '.xml',
+    'text/xml': '.xml',
+    'application/sql': '.sql',
+    'text/x-sql': '.sql',
+    'application/x-powershell': '.ps1',
+    'text/x-shellscript': '.sh',
+    'application/x-sh': '.sh',
+    'text/markdown': '.md',
+    'text/x-patch': '.patch',
+    'application/x-patch': '.patch',
+    'text/x-diff': '.diff',
+    'application/x-diff': '.diff',
+  };
+  return map[String(mimeType || '').toLowerCase()] || '.bin';
+}
+
+function validateAttachmentMime(mimeType) {
+  const allowed = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'application/pdf',
+    'text/plain',
+    'application/zip',
+    'text/x-patch',
+    'application/x-patch',
+    'text/x-diff',
+    'application/x-diff',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-excel',
+    'application/json',
+    'text/csv',
+    'application/csv',
+    'application/xml',
+    'text/xml',
+    'application/sql',
+    'text/x-sql',
+    'text/x-shellscript',
+    'application/x-sh',
+    'application/x-powershell',
+    'text/markdown',
+    'application/octet-stream',
+  ]);
+  return allowed.has(String(mimeType || '').toLowerCase());
+}
+
+function validateAttachmentExtension(fileName) {
+  const ext = path.extname(String(fileName || '')).toLowerCase();
+  const allowed = new Set([
+    '.jpg', '.jpeg', '.png', '.webp', '.pdf', '.txt', '.zip',
+    '.patch', '.diff', '.doc', '.docx', '.xls', '.xlsx',
+    '.log', '.json', '.csv', '.xml', '.sql', '.ps1', '.sh', '.md',
+  ]);
+  return allowed.has(ext);
 }
 
 function toClientUser(user) {
@@ -271,6 +366,94 @@ app.post('/api/auth/update', async (req, res) => {
     res.json({ data: { user: toClientUser(updated) }, error: null });
   } catch (error) {
     res.status(500).json({ data: null, error: formatError(error) });
+  }
+});
+
+app.post('/api/chat/upload', async (req, res) => {
+  const { fileName, mimeType, base64Data } = req.body || {};
+
+  if (!fileName || !mimeType || !base64Data) {
+    return res.status(400).json({ data: null, error: { message: 'Dados de anexo incompletos' } });
+  }
+
+  if (!validateAttachmentMime(mimeType)) {
+    return res.status(400).json({ data: null, error: { message: 'Tipo MIME de arquivo nao permitido' } });
+  }
+
+  if (!validateAttachmentExtension(fileName)) {
+    return res.status(400).json({
+      data: null,
+      error: {
+        message: 'Extensao nao permitida. Permitidos: .pdf .jpg .jpeg .png .webp .txt .zip .patch .diff .doc .docx .xls .xlsx .log .json .csv .xml .sql .ps1 .sh .md',
+      },
+    });
+  }
+
+  try {
+    const buffer = Buffer.from(String(base64Data), 'base64');
+    if (!buffer || !buffer.length) {
+      return res.status(400).json({ data: null, error: { message: 'Arquivo inválido' } });
+    }
+
+    if (buffer.length > MAX_CHAT_ATTACHMENT_BYTES) {
+      return res.status(400).json({ data: null, error: { message: 'Arquivo excede o limite de 10 MB' } });
+    }
+
+    ensureChatUploadDir();
+    const ext = detectExtension(mimeType, fileName);
+    const safeName = sanitizeFileName(fileName);
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext}`;
+    const absolutePath = path.join(CHAT_UPLOAD_DIR, uniqueName);
+
+    await fsp.writeFile(absolutePath, buffer);
+
+    return res.json({
+      data: {
+        attachment_name: safeName,
+        attachment_path: uniqueName,
+        attachment_type: mimeType,
+        attachment_size: buffer.length,
+      },
+      error: null,
+    });
+  } catch (error) {
+    return res.status(500).json({ data: null, error: formatError(error) });
+  }
+});
+
+app.get('/api/chat/attachment/:messageId', async (req, res) => {
+  const { messageId } = req.params || {};
+  if (!messageId) {
+    return res.status(400).json({ data: null, error: { message: 'messageId inválido' } });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT attachment_name, attachment_path, attachment_type
+       FROM chat_messages
+       WHERE id = $1
+       LIMIT 1`,
+      [String(messageId)]
+    );
+
+    const row = result.rows[0];
+    if (!row || !row.attachment_path) {
+      return res.status(404).json({ data: null, error: { message: 'Anexo não encontrado' } });
+    }
+
+    const filePath = path.join(CHAT_UPLOAD_DIR, row.attachment_path);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ data: null, error: { message: 'Arquivo do anexo não encontrado' } });
+    }
+
+    res.setHeader('Content-Type', row.attachment_type || 'application/octet-stream');
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="${sanitizeFileName(row.attachment_name || 'anexo')}"`
+    );
+    return res.sendFile(filePath);
+  } catch (error) {
+    return res.status(500).json({ data: null, error: formatError(error) });
   }
 });
 

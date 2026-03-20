@@ -8,6 +8,9 @@ const ChatModule = (() => {
     let conversationRefreshInterval = null;
     let contactsRefreshInterval = null;
     let lastMessagesSnapshot = new Map();
+    let selectedAttachment = null;
+    let isSendingAttachment = false;
+    let editingMessageId = null;
 
     const elements = {
         chatContainer: null,
@@ -23,7 +26,10 @@ const ChatModule = (() => {
         unreadBadge: null,
         currentChatName: null,
         currentChatStatus: null,
-        currentChatAvatar: null
+        currentChatAvatar: null,
+        attachFileBtn: null,
+        chatAttachmentInput: null,
+        selectedAttachmentInfo: null
     };
 
     const initChatModule = async () => {
@@ -65,6 +71,9 @@ const ChatModule = (() => {
                 elements.currentChatName = document.getElementById('currentChatName');
                 elements.currentChatStatus = document.getElementById('currentChatStatus');
                 elements.currentChatAvatar = document.getElementById('currentChatAvatar');
+                elements.attachFileBtn = document.getElementById('attachFileBtn');
+                elements.chatAttachmentInput = document.getElementById('chatAttachmentInput');
+                elements.selectedAttachmentInfo = document.getElementById('selectedAttachmentInfo');
                 return;
             }
 
@@ -91,6 +100,9 @@ const ChatModule = (() => {
             elements.currentChatName = document.getElementById('currentChatName');
             elements.currentChatStatus = document.getElementById('currentChatStatus');
             elements.currentChatAvatar = document.getElementById('currentChatAvatar');
+            elements.attachFileBtn = document.getElementById('attachFileBtn');
+            elements.chatAttachmentInput = document.getElementById('chatAttachmentInput');
+            elements.selectedAttachmentInfo = document.getElementById('selectedAttachmentInfo');
             
             // Aplicar estilos se não estiverem carregados
             if (!document.querySelector('link[href="styles/chat.css"]')) {
@@ -123,8 +135,11 @@ const ChatModule = (() => {
                         <div id="currentChatInfo"></div>
                     </div>
                     <div id="chatMessages" class="chat-messages"></div>
+                    <div id="selectedAttachmentInfo" class="selected-attachment-info" style="display: none;"></div>
                     <div class="chat-input-container">
                         <input type="text" id="messageInput" placeholder="Digite uma mensagem...">
+                        <input type="file" id="chatAttachmentInput" style="display: none;">
+                        <button id="attachFileBtn" class="chat-input-btn"><i class="fas fa-paperclip"></i></button>
                         <button id="sendMessage" class="send-button"><i class="fas fa-paper-plane"></i></button>
                     </div>
                 </div>
@@ -149,6 +164,9 @@ const ChatModule = (() => {
         elements.closeChat = document.getElementById('closeChat');
         elements.backToContacts = document.getElementById('backToContacts');
         elements.unreadBadge = document.getElementById('unreadBadge');
+        elements.attachFileBtn = document.getElementById('attachFileBtn');
+        elements.chatAttachmentInput = document.getElementById('chatAttachmentInput');
+        elements.selectedAttachmentInfo = document.getElementById('selectedAttachmentInfo');
     };
 
     const loadCurrentUser = async () => {
@@ -220,19 +238,34 @@ const ChatModule = (() => {
             });
             
             elements.messageInput.addEventListener('input', () => {
-                if (elements.sendButton) {
-                    elements.sendButton.disabled = !elements.messageInput.value.trim();
-                }
+                updateSendButtonState();
             });
         }
         
         if (elements.backToContacts) {
             elements.backToContacts.addEventListener('click', showContacts);
         }
+
+        if (elements.attachFileBtn) {
+            elements.attachFileBtn.addEventListener('click', handleAttachmentButtonClick);
+        }
+
+        if (elements.chatAttachmentInput) {
+            elements.chatAttachmentInput.addEventListener('change', handleAttachmentSelected);
+        }
         
         if (elements.chatSearch) {
             elements.chatSearch.addEventListener('input', filterContacts);
         }
+
+        updateSendButtonState();
+    };
+
+    const updateSendButtonState = () => {
+        if (!elements.sendButton || !elements.messageInput) return;
+        const hasText = Boolean(elements.messageInput.value.trim());
+        const hasAttachment = Boolean(selectedAttachment);
+        elements.sendButton.disabled = isSendingAttachment || (!hasText && !hasAttachment);
     };
 
     const toggleChat = () => {
@@ -285,6 +318,7 @@ const ChatModule = (() => {
         }
         currentReceiver = null;
         stopConversationPolling();
+        clearSelectedAttachment();
     };
 
     const filterContacts = () => {
@@ -376,6 +410,7 @@ const ChatModule = (() => {
         }
         
         currentReceiver = contact;
+        clearSelectedAttachment();
         
         // Atualizar header do chat
         if (elements.currentChatName && elements.currentChatStatus && elements.currentChatAvatar) {
@@ -395,7 +430,7 @@ const ChatModule = (() => {
         }
         
         // Carregar mensagens
-        await loadMessages(contact.id, { silent: false, forceRender: true });
+        await loadMessages(contact.id, { silent: false, forceRender: true, autoScroll: true });
         
         // Limpar contador de não lidas
         unreadMessages.set(contact.id, 0);
@@ -410,7 +445,7 @@ const ChatModule = (() => {
     };
 
     const loadMessages = async (contactId, options = {}) => {
-        const { silent = false, forceRender = false } = options;
+        const { silent = false, forceRender = false, autoScroll = false } = options;
         try {
             if (!elements.chatMessages || !currentUser) return;
 
@@ -439,8 +474,9 @@ const ChatModule = (() => {
             // Marcar mensagens como lidas
             await markMessagesAsRead(contactId);
             
-            // Scroll para o final
-            scrollToBottom();
+            if (autoScroll) {
+                scrollToBottom();
+            }
         } catch (error) {
             console.error('Erro ao carregar mensagens:', error);
             if (!silent && elements.chatMessages) {
@@ -467,22 +503,161 @@ const ChatModule = (() => {
         messages.forEach(message => {
             const messageElement = document.createElement('div');
             const isCurrentUser = message.sender_id === currentUser.id;
+            const hasAttachment = Boolean(message.attachment_path);
+            const isEdited = Boolean(message.edited_at);
+            const canEditTextMessage = isCurrentUser && !hasAttachment;
+            const isEditingThisMessage = editingMessageId === message.id;
+            const safeAttachmentName = escapeHtml(message.attachment_name || 'Anexo');
+            const safeAttachmentType = escapeHtml(message.attachment_type || '');
+            const attachmentMeta = message.attachment_size
+                ? `<div class="attachment-size">${formatFileSize(Number(message.attachment_size))}</div>`
+                : '';
+            const attachmentUrl = hasAttachment
+                ? `${window.location.origin}/api/chat/attachment/${encodeURIComponent(message.id)}`
+                : '';
             
-            messageElement.className = `message ${isCurrentUser ? 'sent' : 'received'}`;
+            messageElement.className = `message ${isCurrentUser ? 'sent' : 'received'}${isEditingThisMessage ? ' message-editing' : ''}`;
+            messageElement.dataset.messageId = String(message.id);
             messageElement.innerHTML = `
                 <div class="message-content">${escapeHtml(message.message)}</div>
-                <div class="message-time">${formatTime(message.created_at)}</div>
+                ${hasAttachment ? `
+                <a class="message-attachment" href="${attachmentUrl}" target="_blank" rel="noopener noreferrer">
+                    <i class="fas fa-paperclip"></i>
+                    <div class="attachment-text">
+                        <div class="attachment-name">${safeAttachmentName}</div>
+                        <div class="attachment-type">${safeAttachmentType}</div>
+                        ${attachmentMeta}
+                    </div>
+                </a>` : ''}
+                <div class="message-footer">
+                    <div class="message-time">${formatTime(message.created_at)}${isEdited ? ' (editada)' : ''}</div>
+                    ${canEditTextMessage ? `<button class="message-edit-btn" data-message-id="${message.id}" title="Editar mensagem"><i class="fas fa-pen"></i></button>` : ''}
+                </div>
             `;
+
+            if (canEditTextMessage) {
+                const editBtn = messageElement.querySelector('.message-edit-btn');
+                if (editBtn) {
+                    editBtn.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        editMessage(message, messageElement);
+                    });
+                }
+            }
             
             elements.chatMessages.appendChild(messageElement);
         });
     };
 
+    const editMessage = async (message, messageElement) => {
+        if (!message || !message.id || !currentUser || !messageElement) return;
+        if (message.attachment_path) return;
+
+        if (editingMessageId && editingMessageId !== message.id) {
+            if (window.UtilsModule && window.UtilsModule.showNotification) {
+                window.UtilsModule.showNotification('Finalize ou cancele a edicao atual antes de editar outra mensagem.', 'warning');
+            }
+            return;
+        }
+
+        const contentElement = messageElement.querySelector('.message-content');
+        const footerElement = messageElement.querySelector('.message-footer');
+        if (!contentElement || !footerElement) return;
+
+        const originalText = String(message.message || '');
+        editingMessageId = message.id;
+        messageElement.classList.add('message-editing');
+
+        contentElement.innerHTML = `
+            <input class="message-edit-input" type="text" maxlength="5000" value="${escapeHtml(originalText)}">
+        `;
+
+        footerElement.innerHTML = `
+            <button type="button" class="message-inline-btn message-inline-cancel">Cancelar</button>
+            <button type="button" class="message-inline-btn message-inline-save">Salvar</button>
+        `;
+
+        const editInput = contentElement.querySelector('.message-edit-input');
+        const cancelBtn = footerElement.querySelector('.message-inline-cancel');
+        const saveBtn = footerElement.querySelector('.message-inline-save');
+        if (!editInput || !cancelBtn || !saveBtn) return;
+
+        editInput.focus();
+        editInput.setSelectionRange(editInput.value.length, editInput.value.length);
+
+        const cancelEdit = async () => {
+            editingMessageId = null;
+            await loadMessages(currentReceiver.id, { silent: true, forceRender: true });
+        };
+
+        const saveEdit = async () => {
+            const nextText = editInput.value.trim();
+            if (!nextText) {
+                if (window.UtilsModule && window.UtilsModule.showNotification) {
+                    window.UtilsModule.showNotification('A mensagem nao pode ficar vazia.', 'warning');
+                }
+                return;
+            }
+
+            if (nextText === originalText.trim()) {
+                await cancelEdit();
+                return;
+            }
+
+            try {
+                saveBtn.disabled = true;
+                cancelBtn.disabled = true;
+
+                const { error } = await window.supabaseClient
+                    .from('chat_messages')
+                    .update({
+                        message: nextText,
+                        edited_at: new Date().toISOString(),
+                    })
+                    .eq('id', message.id)
+                    .eq('sender_id', currentUser.id);
+
+                if (error) throw error;
+
+                editingMessageId = null;
+                await loadMessages(currentReceiver.id, { silent: true, forceRender: true });
+            } catch (error) {
+                console.error('Erro ao editar mensagem:', error);
+                saveBtn.disabled = false;
+                cancelBtn.disabled = false;
+                if (window.UtilsModule && window.UtilsModule.showNotification) {
+                    window.UtilsModule.showNotification(`Erro ao editar mensagem: ${error.message}`, 'error');
+                }
+            }
+        };
+
+        cancelBtn.addEventListener('click', cancelEdit);
+        saveBtn.addEventListener('click', saveEdit);
+        editInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                cancelEdit();
+                return;
+            }
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                saveEdit();
+            }
+        });
+    };
+
     const sendMessage = async () => {
         if (!elements.messageInput || !currentReceiver || !currentUser) return;
+        if (isSendingAttachment) return;
         
         const messageText = elements.messageInput.value.trim();
-        if (!messageText) return;
+        if (!messageText && !selectedAttachment) return;
+
+        if (selectedAttachment) {
+            await sendAttachment(selectedAttachment, messageText);
+            return;
+        }
         
         try {
             // Desabilitar botão durante o envio
@@ -509,7 +684,7 @@ const ChatModule = (() => {
             }
             
             // Recarregar silenciosamente para mostrar a nova sem piscar
-            await loadMessages(currentReceiver.id, { silent: true, forceRender: true });
+            await loadMessages(currentReceiver.id, { silent: true, forceRender: true, autoScroll: true });
             
         } catch (error) {
             console.error('Erro ao enviar mensagem:', error);
@@ -519,9 +694,7 @@ const ChatModule = (() => {
                 alert('Erro ao enviar mensagem: ' + error.message);
             }
         } finally {
-            if (elements.sendButton) {
-                elements.sendButton.disabled = !elements.messageInput.value.trim();
-            }
+            updateSendButtonState();
         }
     };
 
@@ -690,6 +863,245 @@ const ChatModule = (() => {
         }
     };
 
+    const handleAttachmentButtonClick = () => {
+        if (!elements.chatAttachmentInput) return;
+        elements.chatAttachmentInput.click();
+    };
+
+    const handleAttachmentSelected = (event) => {
+        const file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
+        if (!file) return;
+
+        const extension = getFileExtension(file.name);
+        if (!isAllowedAttachmentExtension(extension)) {
+            const allowedList = '.pdf, .jpg, .jpeg, .png, .webp, .txt, .zip, .patch, .diff, .doc, .docx, .xls, .xlsx, .log, .json, .csv, .xml, .sql, .ps1, .sh, .md';
+            if (window.UtilsModule && window.UtilsModule.showNotification) {
+                window.UtilsModule.showNotification(`Tipo de arquivo nao permitido (${extension || 'sem extensao'}). Permitidos: ${allowedList}`, 'error');
+            }
+            event.target.value = '';
+            return;
+        }
+
+        const maxBytes = 10 * 1024 * 1024;
+        if (file.size > maxBytes) {
+            if (window.UtilsModule && window.UtilsModule.showNotification) {
+                window.UtilsModule.showNotification('Arquivo excede o limite de 10 MB.', 'error');
+            }
+            event.target.value = '';
+            return;
+        }
+
+        selectedAttachment = file;
+        renderSelectedAttachmentInfo();
+        updateSendButtonState();
+        if (window.UtilsModule && window.UtilsModule.showNotification) {
+            window.UtilsModule.showNotification(`Anexo selecionado: ${file.name}`, 'info');
+        }
+    };
+
+    const getFileExtension = (fileName) => {
+        const name = String(fileName || '').toLowerCase();
+        const index = name.lastIndexOf('.');
+        if (index < 0) return '';
+        return name.slice(index);
+    };
+
+    const isAllowedAttachmentExtension = (extension) => {
+        const allowed = new Set([
+            '.jpg', '.jpeg', '.png', '.webp', '.pdf', '.txt', '.zip',
+            '.patch', '.diff', '.doc', '.docx', '.xls', '.xlsx',
+            '.log', '.json', '.csv', '.xml', '.sql', '.ps1', '.sh', '.md',
+        ]);
+        return allowed.has(String(extension || '').toLowerCase());
+    };
+
+    const renderSelectedAttachmentInfo = (uploadPercent = null, uploadStatus = '') => {
+        if (!elements.selectedAttachmentInfo) return;
+
+        if (!selectedAttachment) {
+            elements.selectedAttachmentInfo.style.display = 'none';
+            elements.selectedAttachmentInfo.innerHTML = '';
+            return;
+        }
+
+        elements.selectedAttachmentInfo.style.display = 'flex';
+        elements.selectedAttachmentInfo.innerHTML = `
+            <div style="display:grid;gap:4px;min-width:0;flex:1;">
+                <span><i class="fas fa-paperclip"></i> ${escapeHtml(selectedAttachment.name)} (${formatFileSize(selectedAttachment.size)})</span>
+                ${uploadStatus ? `<div class="attachment-upload-status">${escapeHtml(uploadStatus)}</div>` : ''}
+                ${(uploadPercent !== null && isSendingAttachment) ? `
+                    <div class="attachment-upload-track">
+                        <div class="attachment-upload-fill" style="width:${Math.max(0, Math.min(uploadPercent, 100))}%;"></div>
+                    </div>
+                ` : ''}
+            </div>
+            <button class="selected-attachment-remove" id="removeSelectedAttachmentBtn" title="Remover anexo" ${isSendingAttachment ? 'disabled' : ''}>
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+
+        const removeBtn = document.getElementById('removeSelectedAttachmentBtn');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', clearSelectedAttachment);
+        }
+    };
+
+    const clearSelectedAttachment = () => {
+        if (isSendingAttachment) return;
+        selectedAttachment = null;
+        if (elements.chatAttachmentInput) {
+            elements.chatAttachmentInput.value = '';
+        }
+        renderSelectedAttachmentInfo();
+        updateSendButtonState();
+    };
+
+    const inferMimeTypeFromName = (fileName) => {
+        const name = String(fileName || '').toLowerCase();
+        if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'image/jpeg';
+        if (name.endsWith('.png')) return 'image/png';
+        if (name.endsWith('.webp')) return 'image/webp';
+        if (name.endsWith('.pdf')) return 'application/pdf';
+        if (name.endsWith('.txt')) return 'text/plain';
+        if (name.endsWith('.patch')) return 'text/x-patch';
+        if (name.endsWith('.diff')) return 'text/x-diff';
+        if (name.endsWith('.zip')) return 'application/zip';
+        if (name.endsWith('.log')) return 'text/plain';
+        if (name.endsWith('.json')) return 'application/json';
+        if (name.endsWith('.csv')) return 'text/csv';
+        if (name.endsWith('.xml')) return 'application/xml';
+        if (name.endsWith('.sql')) return 'application/sql';
+        if (name.endsWith('.ps1')) return 'application/x-powershell';
+        if (name.endsWith('.sh')) return 'text/x-shellscript';
+        if (name.endsWith('.md')) return 'text/markdown';
+        if (name.endsWith('.doc')) return 'application/msword';
+        if (name.endsWith('.docx')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        if (name.endsWith('.xls')) return 'application/vnd.ms-excel';
+        if (name.endsWith('.xlsx')) return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        return 'application/octet-stream';
+    };
+
+    const fileToBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const result = String(reader.result || '');
+                const base64Data = result.includes(',') ? result.split(',')[1] : result;
+                resolve(base64Data);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const uploadAttachmentWithProgress = (file, mimeType) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+
+            reader.onload = () => {
+                const result = String(reader.result || '');
+                const base64Data = result.includes(',') ? result.split(',')[1] : result;
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/api/chat/upload', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+
+                xhr.upload.onprogress = (event) => {
+                    if (!event.lengthComputable) return;
+                    const percent = Math.round((event.loaded / event.total) * 100);
+                    renderSelectedAttachmentInfo(percent, `Enviando anexo... ${percent}%`);
+                };
+
+                xhr.onload = () => {
+                    try {
+                        const payload = JSON.parse(xhr.responseText || '{}');
+                        if (xhr.status >= 200 && xhr.status < 300 && !payload.error) {
+                            resolve(payload.data || {});
+                            return;
+                        }
+                        reject(new Error(payload?.error?.message || `Falha no upload (${xhr.status})`));
+                    } catch (_parseError) {
+                        reject(new Error('Resposta invalida do upload'));
+                    }
+                };
+
+                xhr.onerror = () => reject(new Error('Falha de rede no upload do anexo'));
+
+                xhr.send(JSON.stringify({
+                    fileName: file.name,
+                    mimeType,
+                    base64Data,
+                }));
+            };
+
+            reader.onerror = () => reject(new Error('Falha ao ler arquivo'));
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const sendAttachment = async (file, messageText) => {
+        let sendButtonOriginalHtml = '';
+        try {
+            isSendingAttachment = true;
+            updateSendButtonState();
+            renderSelectedAttachmentInfo(0, 'Preparando upload...');
+            if (elements.sendButton) {
+                sendButtonOriginalHtml = elements.sendButton.innerHTML;
+                elements.sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            }
+
+            const resolvedMimeType = (file.type && file.type.trim())
+                ? file.type
+                : inferMimeTypeFromName(file.name);
+            const attachment = await uploadAttachmentWithProgress(file, resolvedMimeType);
+            renderSelectedAttachmentInfo(100, 'Upload concluido. Enviando mensagem...');
+            const fallbackMessage = messageText || `[Anexo] ${file.name}`;
+
+            const { error } = await window.supabaseClient
+                .from('chat_messages')
+                .insert([
+                    {
+                        sender_id: currentUser.id,
+                        receiver_id: currentReceiver.id,
+                        message: fallbackMessage,
+                        attachment_name: attachment.attachment_name || file.name,
+                        attachment_path: attachment.attachment_path || null,
+                        attachment_type: attachment.attachment_type || resolvedMimeType || null,
+                        attachment_size: attachment.attachment_size || file.size || null,
+                    }
+                ]);
+
+            if (error) throw error;
+
+            clearSelectedAttachment();
+
+            if (elements.messageInput) {
+                elements.messageInput.value = '';
+            }
+
+            await loadMessages(currentReceiver.id, { silent: true, forceRender: true, autoScroll: true });
+        } catch (error) {
+            console.error('Erro ao enviar anexo:', error);
+            const isSchemaIssue = /attachment_(name|path|type|size)/i.test(String(error.message || ''));
+            if (window.UtilsModule && window.UtilsModule.showNotification) {
+                window.UtilsModule.showNotification(
+                    isSchemaIssue
+                        ? 'Erro ao enviar anexo: atualize o banco com as colunas de anexo em chat_messages.'
+                        : `Erro ao enviar anexo: ${error.message}`,
+                    'error'
+                );
+            }
+            renderSelectedAttachmentInfo(null, 'Falha no envio do anexo.');
+        } finally {
+            isSendingAttachment = false;
+            if (elements.sendButton) {
+                elements.sendButton.innerHTML = sendButtonOriginalHtml || '<i class="fas fa-paper-plane"></i>';
+            }
+            updateSendButtonState();
+            if (selectedAttachment) renderSelectedAttachmentInfo();
+        }
+    };
+
     const isChatOpen = () => {
         return !!(elements.chatContainer && elements.chatContainer.classList.contains('chat-open'));
     };
@@ -729,6 +1141,18 @@ const ChatModule = (() => {
     const formatTime = (timestamp) => {
         const date = new Date(timestamp);
         return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const formatFileSize = (bytes) => {
+        if (!Number.isFinite(bytes) || bytes <= 0) return '-';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        let value = bytes;
+        let unitIndex = 0;
+        while (value >= 1024 && unitIndex < units.length - 1) {
+            value /= 1024;
+            unitIndex += 1;
+        }
+        return `${value.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
     };
 
     const escapeHtml = (text) => {

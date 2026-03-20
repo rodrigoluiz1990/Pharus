@@ -36,13 +36,15 @@
         </div>
         
         <div id="chatMessages" class="chat-messages"></div>
+        <div id="selectedAttachmentInfo" class="selected-attachment-info" style="display: none;"></div>
         
         <div class="chat-input-container">
             <div class="chat-input-actions">
-                <button class="chat-input-btn"><i class="fas fa-paperclip"></i></button>
+                <button class="chat-input-btn" id="attachFileBtn" title="Anexar arquivo"><i class="fas fa-paperclip"></i></button>
                 <button class="chat-input-btn"><i class="fas fa-smile"></i></button>
             </div>
             <input type="text" id="messageInput" placeholder="Digite uma mensagem..." maxlength="500">
+            <input type="file" id="chatAttachmentInput" style="display: none;">
             <button id="sendMessage" class="send-button" disabled>
                 <i class="fas fa-paper-plane"></i>
             </button>

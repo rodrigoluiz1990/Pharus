@@ -69,9 +69,29 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   sender_id UUID NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
   receiver_id UUID NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
   message TEXT NOT NULL,
+  attachment_name TEXT NULL,
+  attachment_path TEXT NULL,
+  attachment_type TEXT NULL,
+  attachment_size BIGINT NULL,
+  edited_at TIMESTAMPTZ NULL,
   is_read BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE IF EXISTS chat_messages
+  ADD COLUMN IF NOT EXISTS attachment_name TEXT NULL;
+
+ALTER TABLE IF EXISTS chat_messages
+  ADD COLUMN IF NOT EXISTS attachment_path TEXT NULL;
+
+ALTER TABLE IF EXISTS chat_messages
+  ADD COLUMN IF NOT EXISTS attachment_type TEXT NULL;
+
+ALTER TABLE IF EXISTS chat_messages
+  ADD COLUMN IF NOT EXISTS attachment_size BIGINT NULL;
+
+ALTER TABLE IF EXISTS chat_messages
+  ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ NULL;
 
 CREATE OR REPLACE VIEW user_profiles AS
 SELECT
