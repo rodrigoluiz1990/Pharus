@@ -9,7 +9,14 @@
 <body>
   <div class="app">
     <header class="header">
-      <h1>Post-it Pharus</h1>
+      <div class="header-main">
+        <h1>Post-it Pharus</h1>
+        <div class="mode-switch" role="tablist" aria-label="Modo de visualizacao">
+          <button id="modeTasksBtn" class="mode-btn active" role="tab" aria-selected="true" title="Modo Tarefas">Tarefas</button>
+          <button id="modeDetachedBtn" class="mode-btn" role="tab" aria-selected="false" title="Post-it Avulso">Avulso</button>
+          <button id="modeChatBtn" class="mode-btn" role="tab" aria-selected="false" title="Modo Chat">Chat</button>
+        </div>
+      </div>
       <div class="header-actions">
         <button id="refreshBtn" class="icon-btn" title="Atualizar">↻</button>
         <button id="settingsToggleBtn" class="icon-btn" title="Configuracoes">⚙</button>
@@ -32,10 +39,30 @@
       </div>
     </section>
 
-    <section>
+    <section id="focusTasksSection">
       <div id="statusText" class="status">Carregando tarefas...</div>
       <ul id="tasksList" class="tasks-list"></ul>
     </section>
+
+    <section id="detachedSection" class="hidden">
+      <div id="detachedStatusText" class="status">Post-its avulsos</div>
+      <div class="detached-composer">
+        <input id="detachedInput" type="text" placeholder="Nova tarefa avulsa...">
+        <button id="addDetachedBtn" type="button">Adicionar</button>
+      </div>
+      <ul id="detachedList" class="tasks-list"></ul>
+    </section>
+  </div>
+
+  <div id="chatOverlay" class="chat-overlay hidden" aria-hidden="true">
+    <div class="chat-overlay-header">
+      <strong>Chat Pharus</strong>
+      <div class="chat-overlay-actions">
+        <button id="chatOverlayOpenTabBtn" class="icon-btn" title="Abrir em aba">↗</button>
+        <button id="chatOverlayCloseBtn" class="icon-btn" title="Fechar chat">✕</button>
+      </div>
+    </div>
+    <iframe id="chatOverlayFrame" class="chat-overlay-frame" title="Chat Pharus"></iframe>
   </div>
 
   <script src="sidepanel.js"></script>

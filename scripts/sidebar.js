@@ -6,6 +6,8 @@ class SidebarManager {
         this.sidebarElement = document.querySelector('#sidebar-container .sidebar, .sidebar');
         this.bodyElement = document.body;
         this.collapseStorageKey = 'pharus_sidebar_collapsed';
+        this.projectTitleStorageKey = 'pharus_project_display_name';
+        this.defaultProjectTitle = 'Pharus';
         this.init();
     }
 
@@ -24,6 +26,10 @@ class SidebarManager {
         this.setupCollapseToggle();
         this.setupViewToggle();
         this.initSidebarUserProfile();
+        this.applyProjectDisplayName();
+        this.applyPageHeaderProjectName();
+        this.applyBrowserTabTitle();
+        this.setupProjectNameListeners();
         this.setupChatMenuItem(); // MOVER para depois do setupNavigation
 
         console.log('Sidebar inicializado com sucesso');
@@ -128,6 +134,70 @@ class SidebarManager {
             // Se já estiver carregado, apenas abrir o chat
             ChatModule.toggleChat();
         }
+    }
+
+    normalizeProjectDisplayName(value) {
+        const cleaned = String(value || '').trim().replace(/\s+/g, ' ');
+        if (!cleaned) return this.defaultProjectTitle;
+        return cleaned.slice(0, 40);
+    }
+
+    applyProjectDisplayName(projectName) {
+        const titleElement = document.getElementById('sidebarProjectTitle');
+        if (!titleElement) return;
+
+        const resolvedName = typeof projectName === 'string'
+            ? projectName
+            : localStorage.getItem(this.projectTitleStorageKey);
+        titleElement.textContent = this.normalizeProjectDisplayName(resolvedName);
+    }
+
+    applyPageHeaderProjectName(projectName) {
+        const headerTitleElement = document.querySelector('.project-title h2');
+        if (!headerTitleElement) return;
+
+        const resolvedName = this.normalizeProjectDisplayName(
+            typeof projectName === 'string'
+                ? projectName
+                : localStorage.getItem(this.projectTitleStorageKey)
+        );
+
+        if (!headerTitleElement.dataset.baseTitle) {
+            headerTitleElement.dataset.baseTitle = String(headerTitleElement.textContent || '').trim();
+        }
+
+        const baseTitle = String(headerTitleElement.dataset.baseTitle || '').trim();
+        if (!baseTitle || baseTitle.toLowerCase() === 'pharus') {
+            headerTitleElement.textContent = resolvedName;
+            return;
+        }
+
+        headerTitleElement.textContent = `${resolvedName} - ${baseTitle}`;
+    }
+
+    applyBrowserTabTitle(projectName) {
+        const resolvedName = this.normalizeProjectDisplayName(
+            typeof projectName === 'string'
+                ? projectName
+                : localStorage.getItem(this.projectTitleStorageKey)
+        );
+        document.title = `Pharus - ${resolvedName}`;
+    }
+
+    setupProjectNameListeners() {
+        window.addEventListener('pharus:project-name-updated', (event) => {
+            const projectName = event?.detail?.projectName;
+            this.applyProjectDisplayName(projectName);
+            this.applyPageHeaderProjectName(projectName);
+            this.applyBrowserTabTitle(projectName);
+        });
+
+        window.addEventListener('storage', (event) => {
+            if (event.key !== this.projectTitleStorageKey) return;
+            this.applyProjectDisplayName(event.newValue);
+            this.applyPageHeaderProjectName(event.newValue);
+            this.applyBrowserTabTitle(event.newValue);
+        });
     }
 
     // Configurar navegação do menu
@@ -293,8 +363,22 @@ class SidebarManager {
 
                 if (userAvatarElement) {
                     // Usar iniciais para o avatar
-                    const name = session.user.user_metadata?.full_name || session.user.email;
-                    userAvatarElement.textContent = this.getInitials(name);
+                    const metadata = session.user.user_metadata || {};
+                    const name = metadata.full_name || session.user.email;
+                    const avatarColor = /^#[0-9a-fA-F]{6}$/.test(String(metadata.avatar_color || '').trim())
+                        ? String(metadata.avatar_color).trim()
+                        : '#3498db';
+                    const allowedIcons = new Set(['user', 'user-tie', 'headset', 'code', 'wrench', 'briefcase', 'star', 'bolt']);
+                    const avatarIcon = allowedIcons.has(String(metadata.avatar_icon || '').trim())
+                        ? String(metadata.avatar_icon).trim()
+                        : '';
+
+                    userAvatarElement.style.background = avatarColor;
+                    if (avatarIcon) {
+                        userAvatarElement.innerHTML = `<i class="fas fa-${avatarIcon}"></i>`;
+                    } else {
+                        userAvatarElement.textContent = this.getInitials(name);
+                    }
                 }
             }
         } catch (error) {

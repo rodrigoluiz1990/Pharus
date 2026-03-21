@@ -189,6 +189,54 @@
     font-size: 14px;
 }
 
+.task-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.task-title-row .task-title {
+    margin-bottom: 0;
+    flex: 1;
+    min-width: 0;
+}
+
+.board-pin-toggle-btn {
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 5px;
+    background: transparent;
+    color: #a8b5c6;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex: 0 0 auto;
+    padding: 0;
+}
+
+.board-pin-toggle-btn i {
+    font-size: 11px;
+}
+
+.board-pin-toggle-btn:hover {
+    color: #8f9fb4;
+    background: transparent;
+}
+
+.board-pin-toggle-btn.active {
+    color: #4f46e5;
+    background: transparent;
+}
+
+.board-pin-toggle-btn.active:hover {
+    color: #4338ca;
+    background: transparent;
+}
+
 .task-pin-icon {
     color: #1f78d1;
     margin-right: 4px;
@@ -298,7 +346,9 @@
     border-radius: 6px;
     padding: 10px;
     margin-top: 8px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
@@ -316,7 +366,8 @@
 }
 
 .socious-table {
-    width: 100%;
+    width: max-content;
+    min-width: 100%;
     border-collapse: collapse;
     font-size: 14px;
 }
@@ -348,6 +399,16 @@
     background-color: #f8f9fa;
 }
 
+.socious-table tbody tr:not(.loading-row) {
+    cursor: pointer;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.socious-table tbody tr:not(.loading-row):hover {
+    background-color: #eef5ff;
+    box-shadow: inset 0 0 0 1px #d5e7ff;
+}
+
 /* Striped rows para melhor legibilidade */
 .socious-table tr:nth-child(even) {
     background-color: #fafafa;
@@ -368,12 +429,12 @@
     overflow-x: hidden;
 }
 
-.socious-view.title-only-mode .socious-table th:not(:nth-child(2)),
-.socious-view.title-only-mode .socious-table td:not(:nth-child(2)) {
+.socious-view.title-only-mode .socious-table th:not([data-col="title"]),
+.socious-view.title-only-mode .socious-table td:not([data-col="title"]) {
     display: none;
 }
 
-.socious-view.title-only-mode .socious-table th:nth-child(2) {
+.socious-view.title-only-mode .socious-table th[data-col="title"] {
     text-align: left;
     width: 100% !important;
     min-width: 0 !important;
@@ -381,7 +442,7 @@
     white-space: normal !important;
 }
 
-.socious-view.title-only-mode .socious-table td:nth-child(2) {
+.socious-view.title-only-mode .socious-table td[data-col="title"] {
     text-align: left;
     white-space: normal;
     word-break: break-word;
@@ -398,10 +459,10 @@
 }
 
 /* Ajustar largura das colunas de data */
-.socious-table th:nth-child(4),
-.socious-table th:nth-child(5),
-.socious-table td:nth-child(4),
-.socious-table td:nth-child(5) {
+.socious-table th[data-col="request_date"],
+.socious-table th[data-col="due_date"],
+.socious-table td[data-col="request_date"],
+.socious-table td[data-col="due_date"] {
     width: 120px;
     min-width: 120px;
     max-width: 120px;
@@ -409,38 +470,81 @@
 }
 
 /* Coluna de tarefa com mais espaço */
-.socious-table td:nth-child(2) {
+.socious-table td[data-col="title"] {
     text-align: left;
     min-width: 250px;
 }
 
+.table-title-with-pin {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+}
+
+.table-title-text {
+    min-width: 0;
+}
+
+.title-pin-toggle-btn {
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: transparent;
+    color: #a8b5c6;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    padding: 0;
+    transition: color 0.2s ease;
+}
+
+.title-pin-toggle-btn i {
+    font-size: 11px;
+}
+
+.title-pin-toggle-btn:hover {
+    color: #8f9fb4;
+}
+
+.title-pin-toggle-btn.active {
+    color: #4f46e5;
+}
+
+.title-pin-toggle-btn.active:hover {
+    color: #4338ca;
+}
+
 /* Coluna de responsável */
-.socious-table td:nth-child(3) {
+.socious-table td[data-col="assignee"] {
     text-align: center;
     min-width: 200px;
 }
 
 /* Coluna de cliente */
-.socious-table td:nth-child(8) {
+.socious-table td[data-col="client"] {
     text-align: center;
     min-width: 200px;
 }
 
 /* Colunas de status, prioridade e tipo */
-.socious-table td:nth-child(6),
-.socious-table td:nth-child(7),
-.socious-table td:nth-child(9) {
+.socious-table td[data-col="status"],
+.socious-table td[data-col="priority"],
+.socious-table td[data-col="type"] {
     min-width: 150px;
 }
 
 /* Checkbox mais centralizado */
-.socious-table td:first-child {
+.socious-table td[data-col="pin"] {
     padding: 10px 5px;
-    width: 40px;
+    width: 56px;
 }
 
 /* Ação centralizada */
-.socious-table td:last-child {
+.socious-table td[data-col="actions"] {
     padding: 10px 5px;
     width: 80px;
 }
@@ -576,6 +680,9 @@
     .socious-view {
         margin-top: 4px;
         padding: 8px;
+        overflow-x: auto !important;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
     }
 
     #addTaskSocious.action-btn {
@@ -618,12 +725,10 @@
         max-width: 100%;
     }
 
-    .socious-view {
-        overflow-x: auto;
-    }
-
     .socious-table {
-        min-width: 520px;
+        display: table !important;
+        width: max-content;
+        min-width: 760px;
     }
 
     .socious-view.title-only-mode .socious-table {
@@ -635,6 +740,7 @@
     .socious-table td {
         padding: 6px 5px;
         font-size: 12px;
+        white-space: nowrap;
     }
 
     .task-tags {
@@ -686,9 +792,41 @@
     color: #007bff;
 }
 
+.pin-toggle-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #d0dae6;
+    border-radius: 6px;
+    background: #f6f9fc;
+    color: #8ca0b7;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.pin-toggle-btn:hover {
+    border-color: #2f8ee5;
+    color: #2f8ee5;
+    background: #eaf4ff;
+}
+
+.pin-toggle-btn.active {
+    border-color: #2f8ee5;
+    color: #2f8ee5;
+    background: #e1f0ff;
+}
+
 .task {
     position: relative;
     transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.task:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40, 78, 127, 0.12);
 }
 
 .task.dragging {
@@ -827,7 +965,7 @@
     }
 
     .socious-table {
-        min-width: 460px;
+        min-width: 720px;
     }
 }
 
@@ -858,7 +996,7 @@
 }
 
 .socious-view.title-only-mode .socious-table thead {
-    display: table-header-group !important;
+    display: none !important;
 }
 
 .socious-view.title-only-mode .socious-table tbody {
@@ -870,10 +1008,14 @@
     width: 100% !important;
 }
 
-.socious-view.title-only-mode .socious-table th:nth-child(2),
-.socious-view.title-only-mode .socious-table td:nth-child(2) {
+.socious-view.title-only-mode .socious-table th[data-col="title"],
+.socious-view.title-only-mode .socious-table td[data-col="title"] {
     display: table-cell !important;
     width: 100% !important;
     min-width: 0 !important;
     max-width: none !important;
+}
+
+.socious-view.title-only-mode .title-pin-toggle-btn {
+    display: inline-flex;
 }

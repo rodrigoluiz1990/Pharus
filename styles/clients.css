@@ -49,7 +49,7 @@
 .clients-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 860px;
+    min-width: 980px;
 }
 
 .clients-table th,
@@ -121,7 +121,7 @@
 
 .client-form .form-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 12px;
 }
 

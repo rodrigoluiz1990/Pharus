@@ -52,9 +52,13 @@ ALTER TABLE IF EXISTS tasks
 ALTER TABLE IF EXISTS tasks
   ADD COLUMN IF NOT EXISTS focus_order INTEGER NULL;
 
+ALTER TABLE IF EXISTS clients
+  ADD COLUMN IF NOT EXISTS acronym TEXT NULL;
+
 CREATE TABLE IF NOT EXISTS clients (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
+  acronym TEXT NULL,
   contact_name TEXT NULL,
   email TEXT NULL,
   phone TEXT NULL,

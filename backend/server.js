@@ -76,6 +76,7 @@ const TABLE_COLUMNS = {
   clients: [
     'id',
     'name',
+    'acronym',
     'contact_name',
     'email',
     'phone',

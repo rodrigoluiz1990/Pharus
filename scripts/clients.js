@@ -57,7 +57,7 @@ const ClientsModule = (() => {
         if (!clientsTableBody) return;
         clientsTableBody.innerHTML = `
             <tr>
-                <td colspan="7" class="loading-clients">
+                <td colspan="8" class="loading-clients">
                     <i class="fas fa-spinner fa-spin"></i> Carregando clientes...
                 </td>
             </tr>
@@ -70,7 +70,7 @@ const ClientsModule = (() => {
         if (!filteredClients.length) {
             clientsTableBody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="empty-clients">
+                    <td colspan="8" class="empty-clients">
                         <i class="fas fa-building"></i>
                         <div>Nenhum cliente encontrado</div>
                     </td>
@@ -86,6 +86,7 @@ const ClientsModule = (() => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${escapeHtml(client.name || '-')}</td>
+                <td>${escapeHtml(client.acronym || '-')}</td>
                 <td>${escapeHtml(client.contact_name || '-')}</td>
                 <td>${escapeHtml(client.email || '-')}</td>
                 <td>${escapeHtml(client.phone || '-')}</td>
@@ -116,6 +117,7 @@ const ClientsModule = (() => {
 
             const values = [
                 client.name,
+                client.acronym,
                 client.contact_name,
                 client.email,
                 client.phone,
@@ -152,7 +154,7 @@ const ClientsModule = (() => {
             if (clientsTableBody) {
                 clientsTableBody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="empty-clients" style="color:#c0392b;">
+                        <td colspan="8" class="empty-clients" style="color:#c0392b;">
                             <i class="fas fa-exclamation-triangle"></i>
                             <div>${escapeHtml(error.message || 'Falha ao carregar clientes')}</div>
                         </td>
@@ -180,6 +182,7 @@ const ClientsModule = (() => {
         clientModalTitle.textContent = 'Editar Cliente';
         clientIdField.value = client.id;
         document.getElementById('clientName').value = client.name || '';
+        document.getElementById('clientAcronym').value = client.acronym || '';
         document.getElementById('clientContactName').value = client.contact_name || '';
         document.getElementById('clientEmail').value = client.email || '';
         document.getElementById('clientPhone').value = client.phone || '';
@@ -196,6 +199,7 @@ const ClientsModule = (() => {
 
     const validateForm = () => {
         const name = document.getElementById('clientName').value.trim();
+        const acronym = document.getElementById('clientAcronym').value.trim();
         const email = document.getElementById('clientEmail').value.trim();
 
         if (!name) {
@@ -211,11 +215,17 @@ const ClientsModule = (() => {
             }
         }
 
+        if (acronym.length > 20) {
+            notify('A sigla deve ter no maximo 20 caracteres.', 'error');
+            return false;
+        }
+
         return true;
     };
 
     const getFormPayload = () => ({
         name: document.getElementById('clientName').value.trim(),
+        acronym: (document.getElementById('clientAcronym').value || '').trim().toUpperCase() || null,
         contact_name: document.getElementById('clientContactName').value.trim() || null,
         email: document.getElementById('clientEmail').value.trim() || null,
         phone: document.getElementById('clientPhone').value.trim() || null,

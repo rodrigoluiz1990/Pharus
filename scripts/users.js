@@ -9,10 +9,15 @@ const UsersModule = (() => {
     const deleteUserBtn = document.getElementById("deleteUser");
     const closeUserModal = document.getElementById("closeUserModal");
     const cancelUserBtn = document.getElementById("cancelUser");
+    const userAvatarPreview = document.getElementById("userAvatarPreview");
+    const userAvatarColor = document.getElementById("userAvatarColor");
+    const userAvatarIcon = document.getElementById("userAvatarIcon");
 
     let users = [];
     let currentUser = null;
     let isInitialized = false;
+    const DEFAULT_AVATAR_COLOR = '#3498db';
+    const ALLOWED_AVATAR_ICONS = new Set(['', 'user', 'user-tie', 'headset', 'code', 'wrench', 'briefcase', 'star', 'bolt']);
 
     const loadUsers = async () => {
         try {
@@ -41,7 +46,9 @@ const UsersModule = (() => {
                     role: currentUser.user_metadata?.role || 'user',
                     status: 'active',
                     last_sign_in_at: currentUser.last_sign_in_at,
-                    created_at: currentUser.created_at
+                    created_at: currentUser.created_at,
+                    avatar_color: sanitizeAvatarColor(currentUser.user_metadata?.avatar_color),
+                    avatar_icon: sanitizeAvatarIcon(currentUser.user_metadata?.avatar_icon),
                 }];
                 renderUsersTable();
             }
@@ -52,11 +59,59 @@ const UsersModule = (() => {
         }
     };
 
+    const sanitizeAvatarColor = (color) => {
+        const value = String(color || '').trim();
+        return /^#[0-9a-fA-F]{6}$/.test(value) ? value : DEFAULT_AVATAR_COLOR;
+    };
+
+    const sanitizeAvatarIcon = (icon) => {
+        const value = String(icon || '').trim();
+        return ALLOWED_AVATAR_ICONS.has(value) ? value : '';
+    };
+
+    const getUserInitials = (name, email) => {
+        const base = String(name || email || 'U').trim();
+        if (!base) return 'U';
+        return base
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part.charAt(0).toUpperCase())
+            .join('') || 'U';
+    };
+
+    const renderAvatarBadgeHtml = (user) => {
+        const color = sanitizeAvatarColor(user.avatar_color);
+        const icon = sanitizeAvatarIcon(user.avatar_icon);
+        const initials = escapeHtml(getUserInitials(user.name, user.email));
+        const safeColor = escapeHtml(color);
+
+        if (icon) {
+            return `<span class="user-avatar-badge" style="background:${safeColor}"><i class="fas fa-${icon}"></i></span>`;
+        }
+        return `<span class="user-avatar-badge" style="background:${safeColor}">${initials}</span>`;
+    };
+
+    const updateAvatarPreview = () => {
+        if (!userAvatarPreview) return;
+        const color = sanitizeAvatarColor(userAvatarColor?.value);
+        const icon = sanitizeAvatarIcon(userAvatarIcon?.value);
+        const name = document.getElementById('userName')?.value || '';
+        const email = document.getElementById('userEmail')?.value || '';
+
+        userAvatarPreview.style.background = color;
+        if (icon) {
+            userAvatarPreview.innerHTML = `<i class="fas fa-${icon}"></i>`;
+        } else {
+            userAvatarPreview.textContent = getUserInitials(name, email);
+        }
+    };
+
     const loadUsersFromView = async () => {
         try {
             const { data: usersData, error } = await window.supabaseClient
-                .from('user_profiles')
-                .select('*')
+                .from('app_users')
+                .select('id,email,raw_user_meta_data,role,status,last_sign_in_at,created_at')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -64,11 +119,13 @@ const UsersModule = (() => {
             users = (usersData || []).map(user => ({
                 id: user.id,
                 email: user.email || 'Não informado',
-                name: user.full_name || user.email?.split('@')[0] || 'Usuário',
+                name: user.raw_user_meta_data?.full_name || user.email?.split('@')[0] || 'Usuário',
                 role: user.role || 'user',
                 status: user.status || 'active',
                 last_sign_in_at: user.last_sign_in_at,
-                created_at: user.created_at
+                created_at: user.created_at,
+                avatar_color: sanitizeAvatarColor(user.raw_user_meta_data?.avatar_color),
+                avatar_icon: sanitizeAvatarIcon(user.raw_user_meta_data?.avatar_icon),
             }));
 
             renderUsersTable();
@@ -108,9 +165,15 @@ const UsersModule = (() => {
 
             const safeStatusClass = `status-${getSafeStatusKey(user.status)}`;
             const safeRoleClass = `role-${getSafeRoleKey(user.role)}`;
+            const avatarHtml = renderAvatarBadgeHtml(user);
 
             row.innerHTML = `
-                <td>${escapeHtml(user.name)}</td>
+                <td>
+                    <div class="user-name-cell">
+                        ${avatarHtml}
+                        <span>${escapeHtml(user.name)}</span>
+                    </div>
+                </td>
                 <td>${escapeHtml(user.email)}</td>
                 <td><span class="role-badge ${safeRoleClass}">${getRoleText(user.role)}</span></td>
                 <td><span class="user-status ${safeStatusClass}">${getStatusText(user.status)}</span></td>
@@ -147,7 +210,9 @@ const UsersModule = (() => {
                 options: {
                     data: {
                         full_name: userData.name,
-                        role: userData.role
+                        role: userData.role,
+                        avatar_color: userData.avatar_color,
+                        avatar_icon: userData.avatar_icon,
                     }
                 }
             });
@@ -183,12 +248,21 @@ const UsersModule = (() => {
             
             if (currentUser && currentUser.id === userId) {
                 // Atualizar usuário atual via auth API
-                const { error: authError } = await window.supabaseClient.auth.updateUser({
+                const updatePayload = {
+                    email: userData.email,
                     data: {
                         full_name: userData.name,
-                        role: userData.role
+                        role: userData.role,
+                        avatar_color: userData.avatar_color,
+                        avatar_icon: userData.avatar_icon,
                     }
-                });
+                };
+
+                if (userData.password && String(userData.password).trim()) {
+                    updatePayload.password = userData.password;
+                }
+
+                const { error: authError } = await window.supabaseClient.auth.updateUser(updatePayload);
                 
                 if (authError) throw authError;
                 
@@ -230,7 +304,7 @@ const UsersModule = (() => {
         userIdField.value = user.id;
         
         // Resetar todos os campos primeiro
-        const fields = ['userName', 'userEmail', 'userRole', 'userStatus'];
+        const fields = ['userName', 'userEmail', 'userRole', 'userStatus', 'userAvatarColor', 'userAvatarIcon'];
         fields.forEach(field => {
             const element = document.getElementById(field);
             if (element) {
@@ -243,6 +317,9 @@ const UsersModule = (() => {
         document.getElementById('userEmail').value = user.email;
         document.getElementById('userRole').value = user.role;
         document.getElementById('userStatus').value = user.status;
+        if (userAvatarColor) userAvatarColor.value = sanitizeAvatarColor(user.avatar_color);
+        if (userAvatarIcon) userAvatarIcon.value = sanitizeAvatarIcon(user.avatar_icon);
+        updateAvatarPreview();
 
         // Verificar se é o usuário atual
         const isCurrentUser = currentUser && currentUser.id === userId;
@@ -283,23 +360,12 @@ const UsersModule = (() => {
     };
 
     const openChatWithUser = (userId, userName, userEmail) => {
-        if (typeof ChatModule !== 'undefined' && ChatModule.toggleChat) {
-            ChatModule.toggleChat();
-
-            setTimeout(() => {
-                const safeUserIdForSelector = escapeSelectorValue(userId);
-                const contactElement = document.querySelector(`.contact-item[data-user-id="${safeUserIdForSelector}"]`);
-                if (contactElement) {
-                    contactElement.click();
-                } else if (typeof ChatModule.openChatWithUser === 'function') {
-                    ChatModule.openChatWithUser(userId, userName, userEmail);
-                } else {
-                    UtilsModule.showNotification('Não foi possível iniciar o chat. Recarregue a página e tente novamente.', 'error');
-                }
-            }, 500);
-        } else {
-            UtilsModule.showNotification('O sistema de chat não está disponível no momento.', 'error');
+        const targetId = encodeURIComponent(String(userId || '').trim());
+        if (!targetId) {
+            UtilsModule.showNotification('Contato invalido para abrir chat.', 'error');
+            return;
         }
+        window.location.href = `chatconversas.html?userId=${targetId}`;
     };
 
     const addEditListeners = () => {
@@ -320,7 +386,7 @@ const UsersModule = (() => {
         userForm.reset();
         
         // Habilitar todos os campos
-        const fields = ['userName', 'userEmail', 'userRole', 'userStatus'];
+        const fields = ['userName', 'userEmail', 'userRole', 'userStatus', 'userAvatarColor', 'userAvatarIcon'];
         fields.forEach(field => {
             const element = document.getElementById(field);
             if (element) {
@@ -336,6 +402,9 @@ const UsersModule = (() => {
         // Mostrar campos de senha como obrigatórios para novo usuário
         document.getElementById('userPassword').required = true;
         document.getElementById('userConfirmPassword').required = true;
+        if (userAvatarColor) userAvatarColor.value = DEFAULT_AVATAR_COLOR;
+        if (userAvatarIcon) userAvatarIcon.value = '';
+        updateAvatarPreview();
         
         userModal.style.display = 'flex';
     };
@@ -352,7 +421,9 @@ const UsersModule = (() => {
             email: document.getElementById('userEmail').value.trim(),
             role: document.getElementById('userRole').value,
             status: document.getElementById('userStatus').value,
-            password: document.getElementById('userPassword').value
+            password: document.getElementById('userPassword').value,
+            avatar_color: sanitizeAvatarColor(userAvatarColor?.value),
+            avatar_icon: sanitizeAvatarIcon(userAvatarIcon?.value),
         };
 
         const confirmPassword = document.getElementById('userConfirmPassword').value;
@@ -460,15 +531,6 @@ const UsersModule = (() => {
         div.textContent = text;
         return div.innerHTML;
     };
-
-    const escapeSelectorValue = (value) => {
-        const stringValue = String(value ?? '');
-        if (window.CSS && typeof window.CSS.escape === 'function') {
-            return window.CSS.escape(stringValue);
-        }
-        return stringValue.replace(/["\\]/g, '\\$&');
-    };
-
     const initUsersModule = () => {
         if (isInitialized) return;
 
@@ -481,6 +543,12 @@ const UsersModule = (() => {
         if (userForm) userForm.addEventListener('submit', handleUserSubmit);
         if (closeUserModal) closeUserModal.addEventListener('click', closeModal);
         if (cancelUserBtn) cancelUserBtn.addEventListener('click', closeModal);
+        if (userAvatarColor) userAvatarColor.addEventListener('change', updateAvatarPreview);
+        if (userAvatarIcon) userAvatarIcon.addEventListener('change', updateAvatarPreview);
+        const userNameInput = document.getElementById('userName');
+        const userEmailInput = document.getElementById('userEmail');
+        if (userNameInput) userNameInput.addEventListener('input', updateAvatarPreview);
+        if (userEmailInput) userEmailInput.addEventListener('input', updateAvatarPreview);
         isInitialized = true;
 
         console.log('Módulo de usuários inicializado');
@@ -500,3 +568,5 @@ if (document.readyState === 'loading') {
 } else {
     UsersModule.initUsersModule();
 }
+
+

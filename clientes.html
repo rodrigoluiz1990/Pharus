@@ -1,9 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pharus - Cadastro de Clientes</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/sidebar.css">
@@ -29,7 +30,7 @@
                 </div>
 
                 <div class="clients-filters">
-                    <input type="text" id="clientSearch" class="form-control" placeholder="Buscar por nome, contato, email ou telefone...">
+                    <input type="text" id="clientSearch" class="form-control" placeholder="Buscar por nome, sigla, contato, email ou telefone...">
                     <select id="clientStatusFilter" class="form-control">
                         <option value="">Todos os status</option>
                         <option value="active">Ativo</option>
@@ -42,6 +43,7 @@
                         <thead>
                             <tr>
                                 <th>Nome</th>
+                                <th>Sigla</th>
                                 <th>Contato</th>
                                 <th>Email</th>
                                 <th>Telefone</th>
@@ -52,7 +54,7 @@
                         </thead>
                         <tbody id="clientsTableBody">
                             <tr>
-                                <td colspan="7" class="loading-clients">
+                                <td colspan="8" class="loading-clients">
                                     <i class="fas fa-spinner fa-spin"></i> Carregando clientes...
                                 </td>
                             </tr>
@@ -76,6 +78,10 @@
                             <div class="form-group">
                                 <label for="clientName">Nome *</label>
                                 <input type="text" id="clientName" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="clientAcronym">Sigla</label>
+                                <input type="text" id="clientAcronym" class="form-control" maxlength="20" placeholder="Ex: JL">
                             </div>
                             <div class="form-group">
                                 <label for="clientContactName">Contato</label>
@@ -109,9 +115,9 @@
                         </div>
 
                         <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" id="cancelClient">Cancelar</button>
-                            <button type="button" class="btn btn-danger" id="deleteClient" style="display:none;">Excluir</button>
                             <button type="submit" class="btn btn-primary">Salvar</button>
+                            <button type="button" class="btn btn-danger" id="deleteClient" style="display:none;">Excluir</button>
+                            <button type="button" class="btn btn-secondary" id="cancelClient">Cancelar</button>
                         </div>
                     </form>
                 </div>
@@ -135,3 +141,5 @@
     </div>
 </body>
 </html>
+
+

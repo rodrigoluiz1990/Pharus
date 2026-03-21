@@ -11,6 +11,14 @@ const ChatModule = (() => {
     let selectedAttachment = null;
     let isSendingAttachment = false;
     let editingMessageId = null;
+    let autoOpenHandled = false;
+    let newMessageToastTimer = null;
+    const EMOJI_OPTIONS = [
+        '\u{1F600}', '\u{1F601}', '\u{1F602}', '\u{1F60A}', '\u{1F609}',
+        '\u{1F60D}', '\u{1F60E}', '\u{1F914}', '\u{1F44D}', '\u{1F44F}',
+        '\u{1F64F}', '\u{1F3AF}', '\u{1F525}', '\u{2705}', '\u{26A0}\u{FE0F}',
+        '\u{2757}', '\u{1F4A1}', '\u{1F4CC}', '\u{1F680}', '\u{1F4AC}',
+    ];
 
     const elements = {
         chatContainer: null,
@@ -29,7 +37,9 @@ const ChatModule = (() => {
         currentChatAvatar: null,
         attachFileBtn: null,
         chatAttachmentInput: null,
-        selectedAttachmentInfo: null
+        selectedAttachmentInfo: null,
+        emojiBtn: null,
+        emojiPicker: null
     };
 
     const initChatModule = async () => {
@@ -45,6 +55,7 @@ const ChatModule = (() => {
             loadContacts();
             updateUnreadBadge();
             isInitialized = true;
+            maybeAutoOpenChatFromUrl();
             
             console.log('Módulo de chat inicializado com sucesso');
         } catch (error) {
@@ -74,6 +85,8 @@ const ChatModule = (() => {
                 elements.attachFileBtn = document.getElementById('attachFileBtn');
                 elements.chatAttachmentInput = document.getElementById('chatAttachmentInput');
                 elements.selectedAttachmentInfo = document.getElementById('selectedAttachmentInfo');
+                elements.emojiBtn = document.getElementById('emojiBtn');
+                elements.emojiPicker = document.getElementById('emojiPicker');
                 return;
             }
 
@@ -103,6 +116,8 @@ const ChatModule = (() => {
             elements.attachFileBtn = document.getElementById('attachFileBtn');
             elements.chatAttachmentInput = document.getElementById('chatAttachmentInput');
             elements.selectedAttachmentInfo = document.getElementById('selectedAttachmentInfo');
+            elements.emojiBtn = document.getElementById('emojiBtn');
+            elements.emojiPicker = document.getElementById('emojiPicker');
             
             // Aplicar estilos se não estiverem carregados
             if (!document.querySelector('link[href="styles/chat.css"]')) {
@@ -131,7 +146,14 @@ const ChatModule = (() => {
                 </div>
                 <div class="chat-messages-container">
                     <div id="chatHeader" class="chat-conversation-header">
-                        <button id="backToContacts" class="back-button"><i class="fas fa-arrow-left"></i></button>
+                        <button id="backToContacts" class="back-button" type="button" title="Voltar para contatos" aria-label="Voltar para contatos">
+                            <span class="back-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                                    <path d="M15.5 5.5L9 12l6.5 6.5" />
+                                </svg>
+                            </span>
+                            <span class="back-label">Voltar</span>
+                        </button>
                         <div id="currentChatInfo"></div>
                     </div>
                     <div id="chatMessages" class="chat-messages"></div>
@@ -140,7 +162,9 @@ const ChatModule = (() => {
                         <input type="text" id="messageInput" placeholder="Digite uma mensagem...">
                         <input type="file" id="chatAttachmentInput" style="display: none;">
                         <button id="attachFileBtn" class="chat-input-btn"><i class="fas fa-paperclip"></i></button>
+                        <button id="emojiBtn" class="chat-input-btn"><i class="fas fa-face-smile"></i></button>
                         <button id="sendMessage" class="send-button"><i class="fas fa-paper-plane"></i></button>
+                        <div id="emojiPicker" class="emoji-picker hidden" aria-hidden="true"></div>
                     </div>
                 </div>
             </div>
@@ -167,6 +191,8 @@ const ChatModule = (() => {
         elements.attachFileBtn = document.getElementById('attachFileBtn');
         elements.chatAttachmentInput = document.getElementById('chatAttachmentInput');
         elements.selectedAttachmentInfo = document.getElementById('selectedAttachmentInfo');
+        elements.emojiBtn = document.getElementById('emojiBtn');
+        elements.emojiPicker = document.getElementById('emojiPicker');
     };
 
     const loadCurrentUser = async () => {
@@ -253,10 +279,18 @@ const ChatModule = (() => {
         if (elements.chatAttachmentInput) {
             elements.chatAttachmentInput.addEventListener('change', handleAttachmentSelected);
         }
+
+        if (elements.emojiBtn) {
+            elements.emojiBtn.addEventListener('click', toggleEmojiPicker);
+        }
         
         if (elements.chatSearch) {
             elements.chatSearch.addEventListener('input', filterContacts);
         }
+
+        document.addEventListener('click', handleDocumentClickForEmojiPicker);
+
+        buildEmojiPicker();
 
         updateSendButtonState();
     };
@@ -301,10 +335,27 @@ const ChatModule = (() => {
         }
     };
 
+    const maybeAutoOpenChatFromUrl = () => {
+        if (autoOpenHandled) return;
+
+        const search = new URLSearchParams(window.location.search || '');
+        const openChatParam = String(search.get('openChat') || '').toLowerCase();
+        const hash = String(window.location.hash || '').toLowerCase();
+        const shouldAutoOpen = openChatParam === '1' || openChatParam === 'true' || hash === '#chat';
+        if (!shouldAutoOpen) return;
+
+        autoOpenHandled = true;
+        setTimeout(() => {
+            if (!elements.chatContainer || elements.chatContainer.classList.contains('chat-open')) return;
+            toggleChat();
+        }, 250);
+    };
+
     const closeChat = () => {
         if (elements.chatContainer) {
             elements.chatContainer.classList.remove('chat-open');
         }
+        hideEmojiPicker();
         stopContactsPolling();
         stopConversationPolling();
     };
@@ -317,6 +368,7 @@ const ChatModule = (() => {
             document.querySelector('.chat-messages-container').style.display = 'none';
         }
         currentReceiver = null;
+        hideEmojiPicker();
         stopConversationPolling();
         clearSelectedAttachment();
     };
@@ -410,6 +462,7 @@ const ChatModule = (() => {
         }
         
         currentReceiver = contact;
+        hideEmojiPicker();
         clearSelectedAttachment();
         
         // Atualizar header do chat
@@ -650,6 +703,7 @@ const ChatModule = (() => {
     const sendMessage = async () => {
         if (!elements.messageInput || !currentReceiver || !currentUser) return;
         if (isSendingAttachment) return;
+        hideEmojiPicker();
         
         const messageText = elements.messageInput.value.trim();
         if (!messageText && !selectedAttachment) return;
@@ -743,6 +797,7 @@ const ChatModule = (() => {
             
             // Marcar como lida
             await markMessageAsRead(message.id);
+            flashChatContainer();
         } else {
             // Mostrar notificação
             const senderName = await getSenderName(message.sender_id);
@@ -751,6 +806,7 @@ const ChatModule = (() => {
             }
             
             // Atualizar contador de não lidas
+            showInChatNewMessageToast(senderName, message.message);
             updateUnreadCount(message.sender_id);
         }
     };
@@ -789,8 +845,18 @@ const ChatModule = (() => {
                 }
                 unreadElement.textContent = currentCount + 1;
                 unreadElement.style.display = 'flex';
+                unreadElement.classList.remove('new-unread');
+                void unreadElement.offsetWidth;
+                unreadElement.classList.add('new-unread');
+                contactElement.classList.remove('contact-new-message');
+                void contactElement.offsetWidth;
+                contactElement.classList.add('contact-new-message');
+                setTimeout(() => {
+                    contactElement.classList.remove('contact-new-message');
+                }, 1600);
             }
         }
+        flashChatContainer();
     };
 
     const updateUnreadBadge = () => {
@@ -801,6 +867,9 @@ const ChatModule = (() => {
         if (totalUnread > 0) {
             elements.unreadBadge.textContent = totalUnread > 99 ? '99+' : totalUnread;
             elements.unreadBadge.style.display = 'flex';
+            elements.unreadBadge.classList.remove('new-unread');
+            void elements.unreadBadge.offsetWidth;
+            elements.unreadBadge.classList.add('new-unread');
             
             // Adicionar animação de pulsação
             if (elements.chatToggle) {
@@ -812,6 +881,45 @@ const ChatModule = (() => {
         } else {
             elements.unreadBadge.style.display = 'none';
         }
+    };
+
+    const flashChatContainer = () => {
+        if (!elements.chatContainer) return;
+        elements.chatContainer.classList.remove('chat-has-new-message');
+        void elements.chatContainer.offsetWidth;
+        elements.chatContainer.classList.add('chat-has-new-message');
+        setTimeout(() => {
+            if (elements.chatContainer) {
+                elements.chatContainer.classList.remove('chat-has-new-message');
+            }
+        }, 900);
+    };
+
+    const showInChatNewMessageToast = (senderName, messageText) => {
+        if (!elements.chatContainer) return;
+
+        let toast = document.getElementById('chatNewMessageToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'chatNewMessageToast';
+            toast.className = 'chat-new-message-toast';
+            elements.chatContainer.appendChild(toast);
+        }
+
+        const safeName = escapeHtml(senderName || 'Contato');
+        const safePreview = escapeHtml(String(messageText || '').trim() || 'Nova mensagem');
+        const previewText = safePreview.length > 72 ? `${safePreview.slice(0, 72)}...` : safePreview;
+        toast.innerHTML = `<strong>${safeName}</strong>: ${previewText}`;
+        toast.classList.remove('visible');
+        void toast.offsetWidth;
+        toast.classList.add('visible');
+
+        if (newMessageToastTimer) {
+            clearTimeout(newMessageToastTimer);
+        }
+        newMessageToastTimer = setTimeout(() => {
+            toast.classList.remove('visible');
+        }, 2600);
     };
 
     const markMessagesAsRead = async (contactId) => {
@@ -866,6 +974,64 @@ const ChatModule = (() => {
     const handleAttachmentButtonClick = () => {
         if (!elements.chatAttachmentInput) return;
         elements.chatAttachmentInput.click();
+    };
+
+    const buildEmojiPicker = () => {
+        if (!elements.emojiPicker) return;
+        elements.emojiPicker.innerHTML = '';
+
+        EMOJI_OPTIONS.forEach((emoji) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'emoji-option';
+            button.textContent = emoji;
+            button.title = `Inserir ${emoji}`;
+            button.addEventListener('click', () => {
+                appendEmojiToMessage(emoji);
+                hideEmojiPicker();
+            });
+            elements.emojiPicker.appendChild(button);
+        });
+    };
+
+    const toggleEmojiPicker = (event) => {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        if (!elements.emojiPicker) return;
+        const shouldShow = elements.emojiPicker.classList.contains('hidden');
+        elements.emojiPicker.classList.toggle('hidden', !shouldShow);
+        elements.emojiPicker.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+    };
+
+    const hideEmojiPicker = () => {
+        if (!elements.emojiPicker) return;
+        elements.emojiPicker.classList.add('hidden');
+        elements.emojiPicker.setAttribute('aria-hidden', 'true');
+    };
+
+    const handleDocumentClickForEmojiPicker = (event) => {
+        if (!elements.emojiPicker || !elements.emojiBtn) return;
+        const target = event.target;
+        if (!target) return;
+        if (elements.emojiPicker.contains(target) || elements.emojiBtn.contains(target)) return;
+        hideEmojiPicker();
+    };
+
+    const appendEmojiToMessage = (emoji) => {
+        if (!elements.messageInput) return;
+
+        const input = elements.messageInput;
+        const start = Number.isInteger(input.selectionStart) ? input.selectionStart : input.value.length;
+        const end = Number.isInteger(input.selectionEnd) ? input.selectionEnd : input.value.length;
+        const prefix = input.value.slice(0, start);
+        const suffix = input.value.slice(end);
+        input.value = `${prefix}${emoji}${suffix}`;
+        const nextCursor = start + emoji.length;
+        input.focus();
+        input.setSelectionRange(nextCursor, nextCursor);
+        updateSendButtonState();
     };
 
     const handleAttachmentSelected = (event) => {
@@ -1200,3 +1366,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 100);
 });
+
+

@@ -8,6 +8,7 @@ const ModalModule = (() => {
     const taskAssignee = document.getElementById('taskAssignee');
     const taskClient = document.getElementById('taskClient');
     const taskIsPinned = document.getElementById('taskIsPinned');
+    const taskPinToggleBtn = document.getElementById('taskPinToggleBtn');
     const taskFocusOrder = document.getElementById('taskFocusOrder');
     let isInitialized = false;
     let startedOutsideModal = false;
@@ -18,6 +19,7 @@ const ModalModule = (() => {
 
         // Limpar formulário
         taskForm.reset();
+        syncPinToggleUI();
 
         // Esconder botão de excluir inicialmente
         if (deleteTaskBtn) {
@@ -46,17 +48,25 @@ const ModalModule = (() => {
                     document.getElementById('taskObservation').value = task.observation || '';
                     document.getElementById('taskJira').value = task.jira || '';
                     if (taskIsPinned) taskIsPinned.checked = Boolean(task.is_pinned);
+                    syncPinToggleUI();
                     if (taskFocusOrder) taskFocusOrder.value = task.focus_order || '';
                     if (taskClient) {
                         const savedClient = task.client || '';
-                        const exists = Array.from(taskClient.options).some((opt) => opt.value === savedClient);
-                        if (savedClient && !exists) {
+                        const matchOption = Array.from(taskClient.options).find((opt) => {
+                            if (opt.value === savedClient) return true;
+                            const optName = String(opt.dataset.clientName || '').trim();
+                            return optName && optName === savedClient;
+                        });
+
+                        if (savedClient && matchOption) {
+                            taskClient.value = matchOption.value;
+                        } else if (savedClient) {
                             const legacyOption = document.createElement('option');
                             legacyOption.value = savedClient;
                             legacyOption.textContent = `${savedClient} (legado)`;
                             taskClient.appendChild(legacyOption);
+                            taskClient.value = savedClient;
                         }
-                        taskClient.value = savedClient;
                     }
                     document.getElementById('taskType').value = task.type || 'task';
 
@@ -88,6 +98,7 @@ const ModalModule = (() => {
             // Definir data de solicitação como hoje
             document.getElementById('taskRequestDate').value = new Date().toISOString().split('T')[0];
             if (taskIsPinned) taskIsPinned.checked = false;
+            syncPinToggleUI();
             if (taskFocusOrder) taskFocusOrder.value = '';
         }
 
@@ -98,6 +109,22 @@ const ModalModule = (() => {
     const hideModal = () => {
         if (modalOverlay) {
             modalOverlay.classList.remove('visible');
+        }
+    };
+
+    const syncPinToggleUI = () => {
+        if (!taskPinToggleBtn || !taskIsPinned) return;
+        const isPinned = Boolean(taskIsPinned.checked);
+        taskPinToggleBtn.classList.toggle('active', isPinned);
+        taskPinToggleBtn.setAttribute('aria-pressed', isPinned ? 'true' : 'false');
+        const title = isPinned ? 'Remover destaque do post-it' : 'Destacar no post-it';
+        taskPinToggleBtn.setAttribute('title', title);
+        taskPinToggleBtn.setAttribute('aria-label', title);
+        if (taskFocusOrder) {
+            taskFocusOrder.disabled = !isPinned;
+            taskFocusOrder.title = isPinned
+                ? 'Ordem no post-it (menor aparece primeiro)'
+                : 'Marque o pin para definir a ordem no post-it';
         }
     };
 
@@ -143,7 +170,7 @@ const ModalModule = (() => {
             return;
         }
 
-        if (taskFocusOrder && taskFocusOrder.value) {
+        if (taskIsPinned && taskIsPinned.checked && taskFocusOrder && taskFocusOrder.value) {
             const parsedFocusOrder = Number(taskFocusOrder.value);
             if (!Number.isFinite(parsedFocusOrder) || parsedFocusOrder < 1) {
                 UtilsModule.showNotification('A ordem do post-it deve ser um número maior que zero.', 'error');
@@ -164,7 +191,9 @@ const ModalModule = (() => {
             jira: document.getElementById('taskJira').value || null,
             client: document.getElementById('taskClient').value || null,
             is_pinned: taskIsPinned ? taskIsPinned.checked : false,
-            focus_order: taskFocusOrder && taskFocusOrder.value ? Number(taskFocusOrder.value) : null,
+            focus_order: taskIsPinned && taskIsPinned.checked && taskFocusOrder && taskFocusOrder.value
+                ? Number(taskFocusOrder.value)
+                : null,
             type: document.getElementById('taskType').value
         };
 
@@ -176,17 +205,19 @@ const ModalModule = (() => {
 
         try {
             let result;
+            const columns = await StorageModule.getColumns();
+            const targetColumn = columns.find(c => c.type === taskData.status);
 
             if (taskId) {
                 // Editar tarefa existente
+                if (targetColumn) {
+                    taskData.column_id = targetColumn.id;
+                }
                 result = await StorageModule.updateTask(taskId, taskData);
             } else {
                 // Criar nova tarefa - Buscar column_id baseado no status
-                const columns = await StorageModule.getColumns();
-                const column = columns.find(c => c.type === taskData.status);
-
-                if (column) {
-                    taskData.column_id = column.id;
+                if (targetColumn) {
+                    taskData.column_id = targetColumn.id;
                 } else {
                     // Fallback: usar primeira coluna
                     taskData.column_id = columns[0]?.id;
@@ -282,6 +313,13 @@ const ModalModule = (() => {
             deleteTaskBtn.addEventListener('click', deleteTask);
         }
 
+        if (taskPinToggleBtn && taskIsPinned) {
+            taskPinToggleBtn.addEventListener('click', () => {
+                taskIsPinned.checked = !taskIsPinned.checked;
+                syncPinToggleUI();
+            });
+        }
+
         const modal = modalOverlay.querySelector('.modal');
 
         // Só fecha quando o clique começa E termina fora do modal.
@@ -315,7 +353,7 @@ const ModalModule = (() => {
         try {
             const { data, error } = await window.supabaseClient
                 .from('clients')
-                .select('name, status')
+                .select('name, acronym, status')
                 .order('name', { ascending: true });
 
             if (error) throw error;
@@ -324,12 +362,17 @@ const ModalModule = (() => {
                 if (!client || !client.name) return;
 
                 const option = document.createElement('option');
-                option.value = client.name;
+                const acronym = String(client.acronym || '').trim();
+                const optionValue = acronym || client.name;
+                option.value = optionValue;
+                option.dataset.clientName = client.name;
+                option.dataset.clientAcronym = acronym;
+                const baseLabel = acronym ? `${acronym} - ${client.name}` : client.name;
                 option.textContent = client.status === 'inactive'
-                    ? `${client.name} (inativo)`
-                    : client.name;
+                    ? `${baseLabel} (inativo)`
+                    : baseLabel;
 
-                if (selectedValue && selectedValue === client.name) {
+                if (selectedValue && (selectedValue === optionValue || selectedValue === client.name)) {
                     option.selected = true;
                 }
 
@@ -361,3 +404,5 @@ if (document.readyState === 'loading') {
 } else {
     ModalModule.initModal();
 }
+
+

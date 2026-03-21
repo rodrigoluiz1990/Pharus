@@ -1,9 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pharus - Configuracoes</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/sidebar.css">
@@ -11,7 +12,60 @@
         .settings-page {
             padding: 24px;
             display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 14px;
+            align-items: start;
+        }
+
+        .settings-tabs {
+            background: #fff;
+            border: 1px solid #dce3ec;
+            border-radius: 10px;
+            padding: 8px;
+            display: grid;
+            gap: 6px;
+            position: sticky;
+            top: 88px;
+        }
+
+        .settings-tab-btn {
+            border: 1px solid transparent;
+            background: #f6f9fc;
+            color: #2f465e;
+            border-radius: 8px;
+            min-height: 40px;
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .settings-tab-btn:hover {
+            background: #eef5fd;
+            border-color: #d7e3ef;
+        }
+
+        .settings-tab-btn.active {
+            background: #2f8ee5;
+            border-color: #2f8ee5;
+            color: #fff;
+        }
+
+        .settings-content {
+            min-width: 0;
+        }
+
+        .settings-tab-panel {
+            display: none;
             gap: 16px;
+        }
+
+        .settings-tab-panel.active {
+            display: grid;
         }
 
         .settings-card {
@@ -23,9 +77,42 @@
             gap: 12px;
         }
 
+        .settings-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
         .settings-card h3 {
             margin: 0;
             color: #253a50;
+        }
+
+        .settings-card-toggle {
+            border: 1px solid #d4deea;
+            background: #f6f9fc;
+            color: #3a5169;
+            border-radius: 8px;
+            padding: 6px 10px;
+            min-height: 32px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .settings-card-toggle:hover {
+            background: #eef5fd;
+            border-color: #c6d4e3;
+        }
+
+        .settings-card-body {
+            display: grid;
+            gap: 12px;
+        }
+
+        .settings-card-body.collapsed {
+            display: none;
         }
 
         .settings-card p {
@@ -75,6 +162,83 @@
             font-size: 13px;
             color: #4b6278;
         }
+
+        .table-columns-order-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            gap: 8px;
+        }
+
+        .table-columns-order-item {
+            border: 1px solid #d6e1ec;
+            background: #f8fbff;
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            cursor: grab;
+        }
+
+        .table-columns-order-item.dragging {
+            opacity: 0.6;
+        }
+
+        .table-columns-order-item .drag-hint {
+            color: #4f6680;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .table-columns-width-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+        }
+
+        .table-column-width-item {
+            border: 1px solid #d6e1ec;
+            background: #f8fbff;
+            border-radius: 8px;
+            padding: 10px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .table-column-width-item label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #2b435c;
+        }
+
+        .table-column-width-item input {
+            width: 100%;
+            border: 1px solid #cbd7e4;
+            border-radius: 6px;
+            padding: 7px 8px;
+            font-size: 13px;
+        }
+
+        @media (max-width: 960px) {
+            .settings-page {
+                grid-template-columns: 1fr;
+            }
+
+            .settings-tabs {
+                position: static;
+                display: flex;
+                flex-wrap: wrap;
+            }
+
+            .settings-tab-btn {
+                text-align: center;
+                justify-content: center;
+                flex: 1 1 180px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -88,36 +252,133 @@
             </div>
 
             <div class="settings-page">
-                <section class="settings-card">
-                    <h3>Extensao Chrome (modo post-it)</h3>
-                    <p>Instalacao manual assistida para usar o Pharus na barra lateral do navegador.</p>
+                <aside class="settings-tabs" role="tablist" aria-label="Tipos de configuracao">
+                    <button class="settings-tab-btn" id="settingsTabGeneral" data-tab="general" role="tab" aria-selected="false">
+                        <i class="fas fa-sliders-h"></i> Geral
+                    </button>
+                    <button class="settings-tab-btn active" id="settingsTabExtension" data-tab="extension" role="tab" aria-selected="true">
+                        <i class="fas fa-puzzle-piece"></i> Extensao
+                    </button>
+                    <button class="settings-tab-btn" id="settingsTabTable" data-tab="table" role="tab" aria-selected="false">
+                        <i class="fas fa-table"></i> Tabela
+                    </button>
+                </aside>
 
-                    <ol class="extension-steps">
-                        <li>Abra <strong>chrome://extensions</strong> no Google Chrome.</li>
-                        <li>Ative o botao <strong>Modo do desenvolvedor</strong> no canto superior direito.</li>
-                        <li>Clique em <strong>Carregar sem compactacao</strong>.</li>
-                        <li>Selecione a pasta <strong>chrome-extension</strong> do projeto Pharus.</li>
-                        <li>Clique no icone da extensao para abrir o painel lateral.</li>
-                    </ol>
+                <div class="settings-content">
+                    <section class="settings-tab-panel" id="settingsPanelGeneral" data-panel="general" role="tabpanel">
+                        <section class="settings-card">
+                            <div class="settings-card-header">
+                                <h3>Identidade do Projeto</h3>
+                                <button class="settings-card-toggle" type="button" data-card-toggle="card-general-project-name" aria-expanded="true">Esconder</button>
+                            </div>
+                            <div class="settings-card-body" id="card-general-project-name">
+                                <p>Defina o nome exibido no menu lateral, abaixo do bloco de usuario.</p>
 
-                    <div class="path-box" id="extensionFolderPath">Pharus\chrome-extension</div>
+                                <div class="table-column-width-item">
+                                    <label for="projectDisplayNameInput">Nome do projeto</label>
+                                    <input id="projectDisplayNameInput" type="text" maxlength="40" placeholder="Ex: Pharus">
+                                </div>
 
-                    <div class="settings-actions">
-                        <button class="btn btn-primary" id="openExtensionsBtn">
-                            <i class="fas fa-puzzle-piece"></i> Abrir chrome://extensions
-                        </button>
-                        <button class="btn btn-secondary" id="copyExtensionsUrlBtn">
-                            <i class="fas fa-copy"></i> Copiar link chrome://extensions
-                        </button>
-                        <button class="btn btn-secondary" id="copyFolderHintBtn">
-                            <i class="fas fa-copy"></i> Copiar nome da pasta
-                        </button>
-                    </div>
+                                <div class="settings-actions">
+                                    <button class="btn btn-primary" id="saveProjectDisplayNameBtn">
+                                        <i class="fas fa-save"></i> Salvar nome do projeto
+                                    </button>
+                                    <button class="btn btn-secondary" id="resetProjectDisplayNameBtn">
+                                        <i class="fas fa-undo"></i> Restaurar padrao
+                                    </button>
+                                </div>
 
-                    <p class="status-hint" id="extensionInstallHint">
-                        Dica: se o Chrome bloquear o botao de abertura, copie o link e cole na barra de endereco.
-                    </p>
-                </section>
+                                <p class="status-hint" id="projectDisplayNameStatus" aria-live="polite"></p>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section class="settings-tab-panel active" id="settingsPanelExtension" data-panel="extension" role="tabpanel">
+                        <section class="settings-card">
+                            <div class="settings-card-header">
+                                <h3>Extensao Chrome (modo post-it)</h3>
+                                <button class="settings-card-toggle" type="button" data-card-toggle="card-extension" aria-expanded="true">Esconder</button>
+                            </div>
+                            <div class="settings-card-body" id="card-extension">
+                                <p>Instalacao manual assistida para usar o Pharus na barra lateral do navegador.</p>
+
+                                <ol class="extension-steps">
+                                    <li>Abra <strong>chrome://extensions</strong> no Google Chrome.</li>
+                                    <li>Ative o botao <strong>Modo do desenvolvedor</strong> no canto superior direito.</li>
+                                    <li>Clique em <strong>Carregar sem compactacao</strong>.</li>
+                                    <li>Selecione a pasta <strong>chrome-extension</strong> do projeto Pharus.</li>
+                                    <li>Clique no icone da extensao para abrir o painel lateral.</li>
+                                </ol>
+
+                                <div class="path-box" id="extensionFolderPath">Pharus\chrome-extension</div>
+
+                                <div class="settings-actions">
+                                    <button class="btn btn-primary" id="openExtensionsBtn">
+                                        <i class="fas fa-puzzle-piece"></i> Abrir chrome://extensions
+                                    </button>
+                                    <button class="btn btn-secondary" id="copyExtensionsUrlBtn">
+                                        <i class="fas fa-copy"></i> Copiar link chrome://extensions
+                                    </button>
+                                    <button class="btn btn-secondary" id="copyFolderHintBtn">
+                                        <i class="fas fa-copy"></i> Copiar nome da pasta
+                                    </button>
+                                </div>
+
+                                <p class="status-hint" id="extensionInstallHint">
+                                    Dica: se o Chrome bloquear o botao de abertura, copie o link e cole na barra de endereco.
+                                </p>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section class="settings-tab-panel" id="settingsPanelTable" data-panel="table" role="tabpanel">
+                        <section class="settings-card">
+                            <div class="settings-card-header">
+                                <h3>Ordem das colunas (modo tabela)</h3>
+                                <button class="settings-card-toggle" type="button" data-card-toggle="card-table-order" aria-expanded="true">Esconder</button>
+                            </div>
+                            <div class="settings-card-body" id="card-table-order">
+                                <p>Defina a ordem das colunas da tabela de tarefas. Arraste para cima/baixo e salve.</p>
+
+                                <ul id="tableColumnsOrderList" class="table-columns-order-list"></ul>
+
+                                <div class="settings-actions">
+                                    <button class="btn btn-primary" id="saveTableColumnsOrderBtn">
+                                        <i class="fas fa-save"></i> Salvar ordem das colunas
+                                    </button>
+                                    <button class="btn btn-secondary" id="resetTableColumnsOrderBtn">
+                                        <i class="fas fa-undo"></i> Restaurar padrao
+                                    </button>
+                                </div>
+
+                                <p class="status-hint" id="tableColumnsOrderStatus" aria-live="polite"></p>
+                            </div>
+                        </section>
+
+                        <section class="settings-card">
+                            <div class="settings-card-header">
+                                <h3>Largura das colunas (modo tabela)</h3>
+                                <button class="settings-card-toggle" type="button" data-card-toggle="card-table-width" aria-expanded="true">Esconder</button>
+                            </div>
+                            <div class="settings-card-body" id="card-table-width">
+                                <p>Defina a largura em pixels para cada coluna da tabela de tarefas.</p>
+
+                                <div id="tableColumnsWidthGrid" class="table-columns-width-grid"></div>
+
+                                <div class="settings-actions">
+                                    <button class="btn btn-primary" id="saveTableColumnsWidthBtn">
+                                        <i class="fas fa-save"></i> Salvar largura das colunas
+                                    </button>
+                                    <button class="btn btn-secondary" id="resetTableColumnsWidthBtn">
+                                        <i class="fas fa-undo"></i> Restaurar largura padrao
+                                    </button>
+                                </div>
+
+                                <p class="status-hint" id="tableColumnsWidthStatus" aria-live="polite"></p>
+                            </div>
+                        </section>
+                    </section>
+                </div>
             </div>
         </div>
     </div>
@@ -133,3 +394,5 @@
     <script src="scripts/settings.js"></script>
 </body>
 </html>
+
+

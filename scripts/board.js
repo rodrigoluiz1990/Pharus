@@ -5,16 +5,34 @@ const BoardModule = (() => {
     const taskBoard = document.getElementById("taskBoard");
     const sociousView = document.getElementById("sociousView");
     const sociousTableBody = document.getElementById("sociousTableBody");
+    const sociousTableHeadRow = document.getElementById("sociousTableHeadRow");
     const boardViewBtn = document.getElementById("boardViewBtn");
     const sociousViewBtn = document.getElementById("sociousViewBtn");
     const titleOnlyViewBtn = document.getElementById("titleOnlyViewBtn");
     const addTaskSocious = document.getElementById("addTaskSocious");
     const VIEW_MODE_KEY = "pharus_board_view_mode";
+    const TABLE_COLUMNS_ORDER_KEY = "pharus_table_columns_order";
+    const TABLE_COLUMNS_WIDTHS_KEY = "pharus_table_columns_widths";
+    const TABLE_COLUMN_MIN_WIDTH = 50;
+    const DEFAULT_TABLE_COLUMNS_ORDER = ["pin", "title", "assignee", "request_date", "due_date", "status", "priority", "client", "type", "actions"];
+    const DEFAULT_TABLE_COLUMNS_WIDTHS = {
+        pin: 56,
+        title: 320,
+        assignee: 200,
+        request_date: 120,
+        due_date: 120,
+        status: 150,
+        priority: 150,
+        client: 200,
+        type: 150,
+        actions: 100,
+    };
 
     // Dados
     let tasks = [];
     let columns = [];
     let users = [];
+    let clients = [];
     let filteredTasks = [];
     let isInitialized = false;
     let isInitializing = false;
@@ -23,10 +41,11 @@ const BoardModule = (() => {
     let lastLoadHadChanges = true;
     let queryTaskHandled = false;
 
-    const buildDataSignature = (columnsData, tasksData, usersData) => {
+    const buildDataSignature = (columnsData, tasksData, usersData, clientsData) => {
         const safeColumns = Array.isArray(columnsData) ? columnsData : [];
         const safeTasks = Array.isArray(tasksData) ? tasksData : [];
         const safeUsers = Array.isArray(usersData) ? usersData : [];
+        const safeClients = Array.isArray(clientsData) ? clientsData : [];
 
         const normalizedColumns = safeColumns
             .map((c) => ({
@@ -65,10 +84,21 @@ const BoardModule = (() => {
             }))
             .sort((a, b) => a.id.localeCompare(b.id));
 
+        const normalizedClients = safeClients
+            .map((c) => ({
+                id: String(c.id ?? ''),
+                name: String(c.name ?? ''),
+                acronym: String(c.acronym ?? ''),
+                status: String(c.status ?? ''),
+                updated_at: String(c.updated_at ?? ''),
+            }))
+            .sort((a, b) => a.id.localeCompare(b.id));
+
         return JSON.stringify({
             columns: normalizedColumns,
             tasks: normalizedTasks,
             users: normalizedUsers,
+            clients: normalizedClients,
         });
     };
 
@@ -81,16 +111,18 @@ const BoardModule = (() => {
                 UtilsModule.showLoading('Carregando dados...');
             }
 
-            const [columnsData, tasksData, usersData] = await Promise.all([
+            const [columnsData, tasksData, usersData, clientsData] = await Promise.all([
                 StorageModule.getColumns(),
                 StorageModule.getTasks(),
-                StorageModule.getUsers()
+                StorageModule.getUsers(),
+                StorageModule.getClients(),
             ]);
 
             columns = columnsData;
             tasks = tasksData;
             users = usersData;
-            const currentSignature = buildDataSignature(columnsData, tasksData, usersData);
+            clients = clientsData;
+            const currentSignature = buildDataSignature(columnsData, tasksData, usersData, clientsData);
             lastLoadHadChanges = currentSignature !== lastDataSignature;
             lastDataSignature = currentSignature;
 
@@ -100,14 +132,14 @@ const BoardModule = (() => {
             if (!silent) {
                 UtilsModule.hideLoading();
             }
-            return [columns, tasks, users];
+            return [columns, tasks, users, clients];
         } catch (error) {
             if (!silent) {
                 UtilsModule.hideLoading();
             }
             lastLoadHadChanges = false;
             UtilsModule.handleApiError(error, 'carregar dados do board');
-            return [[], [], []];
+            return [[], [], [], []];
         }
     };
 
@@ -143,10 +175,13 @@ const BoardModule = (() => {
 
         try {
             // Mostrar estado de carregamento na tabela
+            const visibleColumnsCount = getTableColumnsOrder().length;
+            renderSociousTableHeader();
+
             if (showTableLoading) {
                 sociousTableBody.innerHTML = `
                     <tr class="loading-row">
-                        <td colspan="10">Carregando tarefas...</td>
+                        <td colspan="${visibleColumnsCount}">Carregando tarefas...</td>
                     </tr>
                 `;
             }
@@ -159,7 +194,7 @@ const BoardModule = (() => {
             if (filteredTasks.length === 0) {
                 sociousTableBody.innerHTML = `
                     <tr>
-                        <td colspan="10" style="text-align: center; padding: 30px; color: #6c757d;">
+                        <td colspan="${visibleColumnsCount}" style="text-align: center; padding: 30px; color: #6c757d;">
                             Nenhuma tarefa encontrada.
                         </td>
                     </tr>
@@ -177,7 +212,7 @@ const BoardModule = (() => {
             UtilsModule.handleApiError(error, 'renderizar visualização de tabela');
             sociousTableBody.innerHTML = `
                 <tr>
-                    <td colspan="10" style="text-align: center; padding: 30px; color: #dc3545;">
+                    <td colspan="${getTableColumnsOrder().length}" style="text-align: center; padding: 30px; color: #dc3545;">
                         Erro ao carregar tarefas.
                     </td>
                 </tr>
@@ -246,12 +281,18 @@ const BoardModule = (() => {
         const priorityClass = `tag-priority-${priorityInfo.class}`;
         const typeClass = `tag-type-${typeInfo.class}`;
         const safeTitle = escapeHtml(task.title || "Sem título");
-        const pinnedIcon = task.is_pinned ? '<i class="fas fa-thumbtack task-pin-icon" title="Post-it"></i> ' : '';
+        const pinActiveClass = task.is_pinned ? 'active' : '';
+        const pinTitle = task.is_pinned ? 'Remover do post-it' : 'Destacar no post-it';
         const safeAssigneeName = escapeHtml(assignee ? assignee.name : "Não atribuído");
-        const safeClient = escapeHtml(task.client || "Sem cliente");
+        const safeClient = escapeHtml(getClientLabelForTask(task.client) || "Sem cliente");
 
         taskElement.innerHTML = `
-            <div class="task-title">${pinnedIcon}${safeTitle}</div>
+            <div class="task-title-row">
+                <button class="board-pin-toggle-btn ${pinActiveClass}" data-task-id="${task.id}" title="${pinTitle}" aria-label="${pinTitle}">
+                    <i class="fas fa-thumbtack"></i>
+                </button>
+                <div class="task-title">${safeTitle}</div>
+            </div>
             <div class="task-tags">
                 <span class="task-tag tag-status">${statusInfo.text}</span>
                 <span class="task-tag ${priorityClass}">${priorityInfo.text}</span>
@@ -266,6 +307,15 @@ const BoardModule = (() => {
 
         setupTaskDragDrop(taskElement, task.id);
         setupTaskClick(taskElement, task.id);
+
+        const boardPinBtn = taskElement.querySelector(".board-pin-toggle-btn");
+        if (boardPinBtn) {
+            boardPinBtn.addEventListener("click", async (e) => {
+                e.stopPropagation();
+                await toggleTaskPinned(task.id, !Boolean(task.is_pinned));
+            });
+        }
+
         return taskElement;
     };
 
@@ -278,30 +328,60 @@ const BoardModule = (() => {
         const row = document.createElement("tr");
         const dataAttribute = getDateAttribute(task.due_date);
         const safeTitle = escapeHtml(task.title || "Sem titulo");
-        const pinnedIcon = task.is_pinned ? '<i class="fas fa-thumbtack task-pin-icon" title="Post-it"></i> ' : '';
+        const pinActiveClass = task.is_pinned ? 'active' : '';
+        const pinTitle = task.is_pinned ? 'Remover do post-it' : 'Destacar no post-it';
         const safeAssigneeName = escapeHtml(assignee ? assignee.name : "Nao atribuido");
-        const safeClient = escapeHtml(task.client || "-");
+        const safeClient = escapeHtml(getClientLabelForTask(task.client));
 
-        row.innerHTML = `
-            <td>
-                <label class="checkbox-container">
-                    <div class="custom-checkbox"></div>
-                </label>
-            </td>
-            <td>${pinnedIcon}${safeTitle}</td>
-            <td>${safeAssigneeName}</td>
-            <td>${UtilsModule.formatDate(task.request_date)}</td>
-            <td ${dataAttribute}>${UtilsModule.formatDate(task.due_date)}</td>
-            <td class="status-${statusInfo.class}">${statusInfo.text}</td>
-            <td class="prioridade-${priorityInfo.class}">${priorityInfo.text}</td>
-            <td>${safeClient}</td>
-            <td class="tipo-${typeInfo.class}">${typeInfo.text}</td>
-            <td>
-                <button class="action-btn" data-task-id="${task.id}">
-                    <i class="fas fa-edit"></i>
-                </button>
-            </td>
-        `;
+        const cellByKey = {
+            pin: `
+                <td data-col="pin">
+                    <button class="pin-toggle-btn ${pinActiveClass}" data-task-id="${task.id}" title="${pinTitle}" aria-label="${pinTitle}">
+                        <i class="fas fa-thumbtack"></i>
+                    </button>
+                </td>
+            `,
+            title: `
+                <td data-col="title">
+                    <div class="table-title-with-pin">
+                        <button class="title-pin-toggle-btn ${pinActiveClass}" data-task-id="${task.id}" title="${pinTitle}" aria-label="${pinTitle}">
+                            <i class="fas fa-thumbtack"></i>
+                        </button>
+                        <span class="table-title-text">${safeTitle}</span>
+                    </div>
+                </td>
+            `,
+            assignee: `<td data-col="assignee">${safeAssigneeName}</td>`,
+            request_date: `<td data-col="request_date">${UtilsModule.formatDate(task.request_date)}</td>`,
+            due_date: `<td data-col="due_date" ${dataAttribute}>${UtilsModule.formatDate(task.due_date)}</td>`,
+            status: `<td data-col="status" class="status-${statusInfo.class}">${statusInfo.text}</td>`,
+            priority: `<td data-col="priority" class="prioridade-${priorityInfo.class}">${priorityInfo.text}</td>`,
+            client: `<td data-col="client">${safeClient}</td>`,
+            type: `<td data-col="type" class="tipo-${typeInfo.class}">${typeInfo.text}</td>`,
+            actions: `
+                <td data-col="actions">
+                    <button class="action-btn row-edit-btn" data-task-id="${task.id}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </td>
+            `,
+        };
+
+        row.innerHTML = getTableColumnsOrder()
+            .map((key) => cellByKey[key] || "")
+            .join("");
+
+        const widthByKey = getTableColumnsWidths();
+        const cells = row.querySelectorAll("td[data-col]");
+        cells.forEach((cell) => {
+            const colKey = cell.dataset.col;
+            const width = widthByKey[colKey];
+            if (!width) return;
+            const widthPx = `${width}px`;
+            cell.style.width = widthPx;
+            cell.style.minWidth = widthPx;
+            cell.style.maxWidth = widthPx;
+        });
 
         setupRowEvents(row, task.id);
         return row;
@@ -323,7 +403,7 @@ const BoardModule = (() => {
     // ========== CONFIGURAÇÕES DE EVENTOS ========== //
 
     const setupRowEvents = (row, taskId) => {
-        const btn = row.querySelector("button");
+        const btn = row.querySelector(".row-edit-btn");
         if (btn) {
             btn.addEventListener("click", (e) => {
                 e.stopPropagation();
@@ -331,17 +411,39 @@ const BoardModule = (() => {
             });
         }
 
-        const checkbox = row.querySelector(".custom-checkbox");
-        if (checkbox) {
-            checkbox.addEventListener("click", (e) => {
+        const pinBtn = row.querySelector(".pin-toggle-btn");
+        const titlePinBtn = row.querySelector(".title-pin-toggle-btn");
+        const pinCell = row.querySelector('td[data-col="pin"]');
+        if (pinBtn) {
+            pinBtn.addEventListener("click", async (e) => {
                 e.stopPropagation();
-                checkbox.classList.toggle("checked");
-                updateTaskCompletion(taskId, checkbox.classList.contains("checked"));
+                const task = tasks.find((item) => String(item.id) === String(taskId));
+                if (!task) return;
+                await toggleTaskPinned(taskId, !Boolean(task.is_pinned));
+            });
+        }
+
+        if (pinCell && pinBtn) {
+            pinCell.addEventListener("click", (e) => {
+                e.stopPropagation();
+                // Se clicou fora do botão, aciona o toggle mesmo assim
+                if (!e.target.closest(".pin-toggle-btn")) {
+                    pinBtn.click();
+                }
+            });
+        }
+
+        if (titlePinBtn) {
+            titlePinBtn.addEventListener("click", async (e) => {
+                e.stopPropagation();
+                const task = tasks.find((item) => String(item.id) === String(taskId));
+                if (!task) return;
+                await toggleTaskPinned(taskId, !Boolean(task.is_pinned));
             });
         }
 
         row.addEventListener("click", (e) => {
-            if (e.target.closest("button") || e.target.closest(".custom-checkbox")) return;
+            if (e.target.closest("button") || e.target.closest(".pin-toggle-btn") || e.target.closest('td[data-col="pin"]')) return;
             openTaskModalFallback(taskId);
         });
     };
@@ -446,6 +548,89 @@ const BoardModule = (() => {
         if (due < today) return 'data-vencida="true"';
         if (due.getTime() === today.getTime()) return 'data-hoje="true"';
         return 'data-futura="true"';
+    };
+
+    const getTableColumnsOrder = () => {
+        try {
+            const raw = localStorage.getItem(TABLE_COLUMNS_ORDER_KEY);
+            if (!raw) return [...DEFAULT_TABLE_COLUMNS_ORDER];
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) return [...DEFAULT_TABLE_COLUMNS_ORDER];
+            const valid = parsed.filter((key) => DEFAULT_TABLE_COLUMNS_ORDER.includes(key));
+            const missing = DEFAULT_TABLE_COLUMNS_ORDER.filter((key) => !valid.includes(key));
+            return [...valid, ...missing];
+        } catch (_error) {
+            return [...DEFAULT_TABLE_COLUMNS_ORDER];
+        }
+    };
+
+    const getClientLabelForTask = (taskClientValue) => {
+        const raw = String(taskClientValue || '').trim();
+        if (!raw) return '-';
+
+        const byAcronym = clients.find((client) => String(client.acronym || '').trim().toLowerCase() === raw.toLowerCase());
+        if (byAcronym) return String(byAcronym.acronym || byAcronym.name || raw);
+
+        const byName = clients.find((client) => String(client.name || '').trim().toLowerCase() === raw.toLowerCase());
+        if (byName) {
+            const acronym = String(byName.acronym || '').trim();
+            return acronym || String(byName.name || raw);
+        }
+
+        return raw;
+    };
+
+    const getTableColumnsWidths = () => {
+        try {
+            const raw = localStorage.getItem(TABLE_COLUMNS_WIDTHS_KEY);
+            const parsed = raw ? JSON.parse(raw) : {};
+            const safeParsed = parsed && typeof parsed === "object" ? parsed : {};
+            const normalized = {};
+
+            DEFAULT_TABLE_COLUMNS_ORDER.forEach((key) => {
+                const fallback = DEFAULT_TABLE_COLUMNS_WIDTHS[key] || 120;
+                const candidate = Number(safeParsed[key]);
+                normalized[key] = Number.isFinite(candidate)
+                    ? Math.max(TABLE_COLUMN_MIN_WIDTH, Math.min(900, Math.round(candidate)))
+                    : fallback;
+            });
+
+            return normalized;
+        } catch (_error) {
+            return { ...DEFAULT_TABLE_COLUMNS_WIDTHS };
+        }
+    };
+
+    const renderSociousTableHeader = () => {
+        if (!sociousTableHeadRow) return;
+        const headerByKey = {
+            pin: "Pin",
+            title: "Tarefa",
+            assignee: "Responsavel",
+            request_date: "Data Solicitacao",
+            due_date: "Data Entrega",
+            status: "Status",
+            priority: "Prioridade",
+            client: "Cliente",
+            type: "Tipo",
+            actions: "Acoes",
+        };
+
+        const widthByKey = getTableColumnsWidths();
+
+        sociousTableHeadRow.innerHTML = "";
+        getTableColumnsOrder().forEach((key) => {
+            const th = document.createElement("th");
+            th.textContent = headerByKey[key] || key;
+            th.dataset.col = key;
+            if (widthByKey[key]) {
+                const widthPx = `${widthByKey[key]}px`;
+                th.style.width = widthPx;
+                th.style.minWidth = widthPx;
+                th.style.maxWidth = widthPx;
+            }
+            sociousTableHeadRow.appendChild(th);
+        });
     };
 
     const getStatusFromColumnId = async (columnId) => {
@@ -575,6 +760,18 @@ const BoardModule = (() => {
             localStorage.setItem(VIEW_MODE_KEY, mode);
         } catch (error) {
             console.warn("Nao foi possivel salvar o modo de visualizacao:", error);
+        }
+    };
+
+    const toggleTaskPinned = async (taskId, isPinned) => {
+        try {
+            await StorageModule.updateTask(taskId, {
+                is_pinned: Boolean(isPinned),
+            });
+
+            window.dispatchEvent(new CustomEvent('tasksUpdated'));
+        } catch (error) {
+            console.error('Erro ao atualizar destaque da tarefa:', error);
         }
     };
 
@@ -718,7 +915,7 @@ const BoardModule = (() => {
         return UtilsModule.escapeHtml(String(value ?? ''));
     };
 
-    // ========== API PÚBLICA ========== //
+    // ========== API PUBLICA ========== //
     return {
         initBoard,
         renderBoard,
@@ -729,17 +926,9 @@ const BoardModule = (() => {
     };
 })();
 
-// Inicializar o módulo
+// Inicializar o modulo
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', BoardModule.initBoard);
 } else {
     BoardModule.initBoard();
 }
-
-
-
-
-
-
-
-

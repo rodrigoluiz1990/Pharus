@@ -103,6 +103,22 @@ const StorageModule = (() => {
         }
     };
 
+    // --------- Clients ----------
+    const getClients = async () => {
+        try {
+            const { data, error } = await supabaseClient
+                .from('clients')
+                .select('id, name, acronym, status')
+                .order('name', { ascending: true });
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Erro ao buscar clientes:', error);
+            return [];
+        }
+    };
+
     // --------- Tasks ----------
     const getTasks = async () => {
         try {
@@ -242,6 +258,7 @@ const StorageModule = (() => {
         // colunas
         getColumns,
         createDefaultColumns,
+        getClients,
 
         // tarefas
         getTasks,
