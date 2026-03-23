@@ -2,6 +2,14 @@
 .users-view {
     padding: 20px;
     display: none;
+    min-width: 0;
+}
+
+#usersTableContainer {
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .users-header {
@@ -15,6 +23,7 @@
 
 .users-table {
     width: 100%;
+    min-width: 980px;
     border-collapse: collapse;
     background: white;
     border-radius: 8px;
@@ -25,7 +34,7 @@
 .users-table th {
     background-color: #f8f9fa;
     padding: 12px 15px;
-    text-align: left;
+    text-align: center;
     font-weight: 600;
     color: #495057;
     border-bottom: 2px solid #e9ecef;
@@ -91,6 +100,13 @@
 .user-actions {
     display: flex;
     gap: 8px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+
+.users-table th:last-child,
+.users-table td:last-child {
+    white-space: nowrap;
 }
 
 .btn-edit, .btn-delete {

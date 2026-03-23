@@ -31,9 +31,13 @@
     const notify = (message, type = 'info') => {
         if (window.UtilsModule && typeof window.UtilsModule.showNotification === 'function') {
             window.UtilsModule.showNotification(message, type);
-            return;
+        } else {
+            console.log(`[${type}] ${message}`);
         }
-        console.log(`[${type}] ${message}`);
+
+        if (type === 'error') {
+            window.alert(message);
+        }
     };
 
     const showLoading = (message) => {
@@ -63,6 +67,15 @@
             raw.includes('does not exist') ||
             raw.includes('relation') ||
             raw.includes('not found')
+        );
+    };
+
+    const isSchemaMismatchError = (error) => {
+        const raw = String(error?.message || error?.details || error || '').toLowerCase();
+        return raw.includes('column') && (
+            raw.includes('created_by') ||
+            raw.includes('updated_at') ||
+            raw.includes('visible_until')
         );
     };
 
@@ -297,6 +310,14 @@
         };
     };
 
+    const toBasePayload = (payload) => ({
+        title: payload.title,
+        content: payload.content,
+        priority: payload.priority,
+        status: payload.status,
+        visible_until: payload.visible_until || null,
+    });
+
     const insertLocal = (payload) => {
         const item = {
             ...payload,
@@ -337,17 +358,36 @@
                 if (noticeId) updateLocal(noticeId, payload);
                 else insertLocal(payload);
             } else if (noticeId) {
-                const { error } = await window.supabaseClient
+                let { error } = await window.supabaseClient
                     .from('notice_board_posts')
                     .update(payload)
                     .eq('id', noticeId);
+
+                if (error && isSchemaMismatchError(error)) {
+                    const basePayload = toBasePayload(payload);
+                    const retry = await window.supabaseClient
+                        .from('notice_board_posts')
+                        .update(basePayload)
+                        .eq('id', noticeId);
+                    error = retry.error;
+                }
+
                 if (error) throw error;
             } else {
                 const insertPayload = { ...payload };
                 delete insertPayload.updated_at;
-                const { error } = await window.supabaseClient
+                let { error } = await window.supabaseClient
                     .from('notice_board_posts')
                     .insert([insertPayload]);
+
+                if (error && isSchemaMismatchError(error)) {
+                    const basePayload = toBasePayload(payload);
+                    const retry = await window.supabaseClient
+                        .from('notice_board_posts')
+                        .insert([basePayload]);
+                    error = retry.error;
+                }
+
                 if (error) throw error;
             }
 
@@ -357,6 +397,15 @@
             applyFilters();
         } catch (error) {
             console.error('Erro ao salvar aviso:', error);
+            if (isMissingTableError(error)) {
+                if (noticeId) updateLocal(noticeId, payload);
+                else insertLocal(payload);
+                useLocalFallback = true;
+                notify('Aviso salvo localmente (tabela do banco ainda nao existe).', 'warning');
+                closeModal();
+                applyFilters();
+                return;
+            }
             notify(`Falha ao salvar aviso: ${error.message || 'erro inesperado'}`, 'error');
         } finally {
             hideLoading();

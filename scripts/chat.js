@@ -1,4 +1,4 @@
-// scripts/chat.js
+﻿// scripts/chat.js
 const ChatModule = (() => {
     let currentReceiver = null;
     let chatSocket = null;
@@ -52,14 +52,14 @@ const ChatModule = (() => {
             await loadCurrentUser();
             setupEventListeners();
             setupRealtimeSubscription();
-            loadContacts();
+            await loadContacts();
             updateUnreadBadge();
             isInitialized = true;
             maybeAutoOpenChatFromUrl();
             
-            console.log('Módulo de chat inicializado com sucesso');
+            console.log('MÃ³dulo de chat inicializado com sucesso');
         } catch (error) {
-            console.error('Erro ao inicializar módulo de chat:', error);
+            console.error('Erro ao inicializar mÃ³dulo de chat:', error);
         }
     };
 
@@ -119,7 +119,7 @@ const ChatModule = (() => {
             elements.emojiBtn = document.getElementById('emojiBtn');
             elements.emojiPicker = document.getElementById('emojiPicker');
             
-            // Aplicar estilos se não estiverem carregados
+            // Aplicar estilos se nÃ£o estiverem carregados
             if (!document.querySelector('link[href="styles/chat.css"]')) {
                 const link = document.createElement('link');
                 link.rel = 'stylesheet';
@@ -128,18 +128,17 @@ const ChatModule = (() => {
             }
         } catch (error) {
             console.error('Erro ao carregar interface do chat:', error);
-            // Criar interface básica se o arquivo não existir
+            // Criar interface bÃ¡sica se o arquivo nÃ£o existir
             createFallbackInterface();
         }
     };
 
     const createFallbackInterface = () => {
-        // Implementação de fallback caso o chat.html não exista
+        // ImplementaÃ§Ã£o de fallback caso o chat.html nÃ£o exista
         const chatHTML = `
             <div id="chatContainer" class="chat-hidden">
                 <div class="chat-header">
                     <h3>Chat</h3>
-                    <button id="closeChat" class="close-chat"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="chat-contacts">
                     <div id="contactsList"></div>
@@ -197,36 +196,36 @@ const ChatModule = (() => {
 
     const loadCurrentUser = async () => {
         try {
-            // Verificar se o Supabase Client está disponível
+            // Verificar se o Supabase Client estÃ¡ disponÃ­vel
             if (!window.supabaseClient) {
-                console.warn('Supabase Client não disponível');
-                throw new Error('Supabase Client não está disponível');
+                console.warn('Supabase Client nÃ£o disponÃ­vel');
+                throw new Error('Supabase Client nÃ£o estÃ¡ disponÃ­vel');
             }
             
-            // Verificar se o método auth.getUser existe
+            // Verificar se o mÃ©todo auth.getUser existe
             if (!window.supabaseClient.auth || typeof window.supabaseClient.auth.getUser !== 'function') {
-                console.warn('Método auth.getUser não disponível');
-                throw new Error('Autenticação não disponível');
+                console.warn('MÃ©todo auth.getUser nÃ£o disponÃ­vel');
+                throw new Error('AutenticaÃ§Ã£o nÃ£o disponÃ­vel');
             }
             
             const { data, error } = await window.supabaseClient.auth.getUser();
             
             if (error) {
-                console.error('Erro ao obter usuário:', error);
+                console.error('Erro ao obter usuÃ¡rio:', error);
                 throw error;
             }
             
             if (!data || !data.user) {
-                console.warn('Nenhum usuário autenticado encontrado');
-                throw new Error('Usuário não autenticado');
+                console.warn('Nenhum usuÃ¡rio autenticado encontrado');
+                throw new Error('UsuÃ¡rio nÃ£o autenticado');
             }
             
             currentUser = data.user;
-            console.log('Usuário carregado:', currentUser.id);
+            console.log('UsuÃ¡rio carregado:', currentUser.id);
             
         } catch (error) {
-            console.error('Erro ao carregar usuário atual:', error);
-            // Tentar obter o usuário da sessão como fallback
+            console.error('Erro ao carregar usuÃ¡rio atual:', error);
+            // Tentar obter o usuÃ¡rio da sessÃ£o como fallback
             await tryGetUserFromSession();
         }
     };
@@ -237,11 +236,11 @@ const ChatModule = (() => {
                 const { data: sessionData } = await window.supabaseClient.auth.getSession();
                 if (sessionData && sessionData.session && sessionData.session.user) {
                     currentUser = sessionData.session.user;
-                    console.log('Usuário obtido da sessão:', currentUser.id);
+                    console.log('UsuÃ¡rio obtido da sessÃ£o:', currentUser.id);
                 }
             }
         } catch (sessionError) {
-            console.error('Erro ao obter usuário da sessão:', sessionError);
+            console.error('Erro ao obter usuÃ¡rio da sessÃ£o:', sessionError);
         }
     };
 
@@ -305,7 +304,7 @@ const ChatModule = (() => {
     const toggleChat = () => {
         if (!elements.chatContainer) return;
         
-        // Se o usuário não estiver carregado, tentar carregar novamente
+        // Se o usuÃ¡rio nÃ£o estiver carregado, tentar carregar novamente
         if (!currentUser) {
             loadCurrentUser().then(() => {
                 if (currentUser) {
@@ -318,8 +317,8 @@ const ChatModule = (() => {
                         stopConversationPolling();
                     }
                 } else {
-                    console.error('Não foi possível carregar o usuário para o chat');
-                    UtilsModule.showNotification('Erro ao abrir o chat. Faça login novamente.', 'error');
+                    console.error('NÃ£o foi possÃ­vel carregar o usuÃ¡rio para o chat');
+                    UtilsModule.showNotification('Erro ao abrir o chat. FaÃ§a login novamente.', 'error');
                 }
             });
             return;
@@ -355,6 +354,7 @@ const ChatModule = (() => {
         if (elements.chatContainer) {
             elements.chatContainer.classList.remove('chat-open');
         }
+        currentReceiver = null;
         hideEmojiPicker();
         stopContactsPolling();
         stopConversationPolling();
@@ -396,45 +396,98 @@ const ChatModule = (() => {
         });
     };
 
+    const buildUnreadMap = (messages) => {
+        const map = new Map();
+        (messages || []).forEach((message) => {
+            const senderId = String(message.sender_id || '');
+            if (!senderId) return;
+            map.set(senderId, (map.get(senderId) || 0) + 1);
+        });
+        return map;
+    };
+
+    const buildLastMessageMap = (messages) => {
+        const map = new Map();
+        (messages || []).forEach((message) => {
+            const senderId = String(message.sender_id || '');
+            const receiverId = String(message.receiver_id || '');
+            const contactId = senderId === String(currentUser.id) ? receiverId : senderId;
+            if (!contactId || map.has(contactId)) return;
+            map.set(contactId, message);
+        });
+        return map;
+    };
+
     const loadContacts = async () => {
         try {
             if (!elements.contactsList || !currentUser) return;
-            
+
             elements.contactsList.innerHTML = '<div class="loading-contacts">Carregando contatos...</div>';
-            
-            const { data: contacts, error } = await window.supabaseClient
-                .from('user_profiles')
-                .select('id, full_name, email, status, last_sign_in_at')
-                .neq('id', currentUser.id)
-                .order('full_name');
-            
-            if (error) throw error;
-            
+
+            const [contactsResult, unreadResult, messagesResult] = await Promise.all([
+                window.supabaseClient
+                    .from('user_profiles')
+                    .select('id, full_name, email, status, last_sign_in_at')
+                    .neq('id', currentUser.id)
+                    .order('full_name', { ascending: true }),
+                window.supabaseClient
+                    .from('chat_messages')
+                    .select('id, sender_id, receiver_id, is_read')
+                    .eq('receiver_id', currentUser.id)
+                    .eq('is_read', false),
+                window.supabaseClient
+                    .from('chat_messages')
+                    .select('id, sender_id, receiver_id, message, created_at')
+                    .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+                    .order('created_at', { ascending: false }),
+            ]);
+
+            if (contactsResult.error) throw contactsResult.error;
+            if (unreadResult.error) throw unreadResult.error;
+            if (messagesResult.error) throw messagesResult.error;
+
+            const contacts = contactsResult.data || [];
+            const unreadBySender = buildUnreadMap(unreadResult.data || []);
+            const lastByContact = buildLastMessageMap(messagesResult.data || []);
+
+            unreadMessages = unreadBySender;
+            updateUnreadBadge();
+
             elements.contactsList.innerHTML = '';
-            
-            if (!contacts || contacts.length === 0) {
-                elements.contactsList.innerHTML = '<div class="no-contacts">Nenhum contato disponível</div>';
+
+            if (!contacts.length) {
+                elements.contactsList.innerHTML = '<div class="no-contacts">Nenhum contato disponivel</div>';
                 return;
             }
-            
-            // Atualizar contador online
-            const onlineCount = contacts.filter(c => c.status === 'active').length;
+
+            contacts.sort((a, b) => {
+                const aLast = lastByContact.get(a.id);
+                const bLast = lastByContact.get(b.id);
+                const aTime = aLast?.created_at ? new Date(aLast.created_at).getTime() : 0;
+                const bTime = bLast?.created_at ? new Date(bLast.created_at).getTime() : 0;
+                if (aTime !== bTime) return bTime - aTime;
+                const aName = String(a.full_name || a.email || '');
+                const bName = String(b.full_name || b.email || '');
+                return aName.localeCompare(bName, 'pt-BR');
+            });
+
+            const onlineCount = contacts.filter((contact) => contact.status === 'active').length;
             if (elements.onlineCount) {
                 elements.onlineCount.textContent = `${onlineCount} online`;
             }
-            
-            contacts.forEach(contact => {
+
+            contacts.forEach((contact) => {
                 const contactElement = document.createElement('div');
                 const statusClass = getSafeStatusClass(contact.status);
                 contactElement.className = `contact-item ${statusClass}`;
                 contactElement.dataset.userId = contact.id;
-                
-                const avatarText = contact.full_name 
-                    ? contact.full_name.charAt(0).toUpperCase() 
+
+                const avatarText = contact.full_name
+                    ? contact.full_name.charAt(0).toUpperCase()
                     : contact.email.charAt(0).toUpperCase();
-                
+
                 const unreadCount = unreadMessages.get(contact.id) || 0;
-                
+
                 contactElement.innerHTML = `
                     <div class="contact-avatar">${escapeHtml(avatarText)}</div>
                     <div class="contact-info">
@@ -443,7 +496,7 @@ const ChatModule = (() => {
                     </div>
                     ${unreadCount > 0 ? `<div class="unread-count">${unreadCount}</div>` : ''}
                 `;
-                
+
                 contactElement.addEventListener('click', () => openChat(contact));
                 elements.contactsList.appendChild(contactElement);
             });
@@ -454,10 +507,9 @@ const ChatModule = (() => {
             }
         }
     };
-
     const openChat = async (contact) => {
         if (!currentUser) {
-            console.error('Usuário não autenticado, não é possível abrir chat');
+            console.error('UsuÃ¡rio nÃ£o autenticado, nÃ£o Ã© possÃ­vel abrir chat');
             return;
         }
         
@@ -474,7 +526,7 @@ const ChatModule = (() => {
                 : contact.email.charAt(0).toUpperCase();
         }
         
-        // Mostrar área de mensagens
+        // Mostrar Ã¡rea de mensagens
         if (document.querySelector('.chat-contacts')) {
             document.querySelector('.chat-contacts').style.display = 'none';
         }
@@ -485,7 +537,7 @@ const ChatModule = (() => {
         // Carregar mensagens
         await loadMessages(contact.id, { silent: false, forceRender: true, autoScroll: true });
         
-        // Limpar contador de não lidas
+        // Limpar contador de nÃ£o lidas
         unreadMessages.set(contact.id, 0);
         updateUnreadBadge();
         
@@ -714,7 +766,7 @@ const ChatModule = (() => {
         }
         
         try {
-            // Desabilitar botão durante o envio
+            // Desabilitar botÃ£o durante o envio
             if (elements.sendButton) {
                 elements.sendButton.disabled = true;
             }
@@ -754,7 +806,7 @@ const ChatModule = (() => {
 
     const setupRealtimeSubscription = () => {
         if (!currentUser) {
-            console.warn('Não é possível configurar subscription: usuário não autenticado');
+            console.warn('NÃ£o Ã© possÃ­vel configurar subscription: usuÃ¡rio nÃ£o autenticado');
             return;
         }
         
@@ -799,13 +851,13 @@ const ChatModule = (() => {
             await markMessageAsRead(message.id);
             flashChatContainer();
         } else {
-            // Mostrar notificação
+            // Mostrar notificaÃ§Ã£o
             const senderName = await getSenderName(message.sender_id);
             if (window.UtilsModule && window.UtilsModule.showNotification) {
                 window.UtilsModule.showNotification(`Nova mensagem de ${senderName}: ${message.message.substring(0, 50)}${message.message.length > 50 ? '...' : ''}`, 'info');
             }
             
-            // Atualizar contador de não lidas
+            // Atualizar contador de nÃ£o lidas
             showInChatNewMessageToast(senderName, message.message);
             updateUnreadCount(message.sender_id);
         }
@@ -824,7 +876,7 @@ const ChatModule = (() => {
             return data.full_name || data.email;
         } catch (error) {
             console.error('Erro ao obter nome do remetente:', error);
-            return 'Alguém';
+            return 'AlguÃ©m';
         }
     };
 
@@ -833,7 +885,7 @@ const ChatModule = (() => {
         unreadMessages.set(senderId, currentCount + 1);
         updateUnreadBadge();
         
-        // Atualizar na lista de contatos se visível
+        // Atualizar na lista de contatos se visÃ­vel
         if (elements.contactsList) {
             const contactElement = elements.contactsList.querySelector(`[data-user-id="${senderId}"]`);
             if (contactElement) {
@@ -860,9 +912,13 @@ const ChatModule = (() => {
     };
 
     const updateUnreadBadge = () => {
-        if (!elements.unreadBadge) return;
-        
         const totalUnread = Array.from(unreadMessages.values()).reduce((sum, count) => sum + count, 0);
+
+        window.dispatchEvent(new CustomEvent('pharus:chat-unread-updated', {
+            detail: { totalUnread }
+        }));
+
+        if (!elements.unreadBadge) return;
         
         if (totalUnread > 0) {
             elements.unreadBadge.textContent = totalUnread > 99 ? '99+' : totalUnread;
@@ -871,7 +927,7 @@ const ChatModule = (() => {
             void elements.unreadBadge.offsetWidth;
             elements.unreadBadge.classList.add('new-unread');
             
-            // Adicionar animação de pulsação
+            // Adicionar animaÃ§Ã£o de pulsaÃ§Ã£o
             if (elements.chatToggle) {
                 elements.chatToggle.classList.add('pulse');
                 setTimeout(() => {
@@ -933,7 +989,7 @@ const ChatModule = (() => {
             
             if (error) throw error;
             
-            // Atualizar contador de não lidas
+            // Atualizar contador de nÃ£o lidas
             unreadMessages.set(contactId, 0);
             updateUnreadBadge();
             
@@ -1042,7 +1098,7 @@ const ChatModule = (() => {
         if (!isAllowedAttachmentExtension(extension)) {
             const allowedList = '.pdf, .jpg, .jpeg, .png, .webp, .txt, .zip, .patch, .diff, .doc, .docx, .xls, .xlsx, .log, .json, .csv, .xml, .sql, .ps1, .sh, .md';
             if (window.UtilsModule && window.UtilsModule.showNotification) {
-                window.UtilsModule.showNotification(`Tipo de arquivo não permitido (${extension || 'sem extensão'}). Permitidos: ${allowedList}`, 'error');
+                window.UtilsModule.showNotification(`Tipo de arquivo nÃ£o permitido (${extension || 'sem extensÃ£o'}). Permitidos: ${allowedList}`, 'error');
             }
             event.target.value = '';
             return;
@@ -1353,7 +1409,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkAuth = setInterval(() => {
         if (window.supabaseClient) {
             clearInterval(checkAuth);
-            // Verificar se há um usuário autenticado
+            // Verificar se hÃ¡ um usuÃ¡rio autenticado
             window.supabaseClient.auth.getUser()
                 .then(({ data: { user } }) => {
                     if (user) {
@@ -1361,7 +1417,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 })
                 .catch(error => {
-                    console.error('Erro ao verificar autenticação:', error);
+                    console.error('Erro ao verificar autenticaÃ§Ã£o:', error);
                 });
         }
     }, 100);

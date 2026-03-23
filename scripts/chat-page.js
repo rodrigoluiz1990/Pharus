@@ -158,6 +158,8 @@ const ChatPageModule = (() => {
                 return a.label.localeCompare(b.label, 'pt-BR');
             });
 
+            emitUnreadUpdate();
+
             applySearchFilter();
             const snapshot = buildContactsSnapshot(state.filteredContacts);
             if (forceRender || snapshot !== state.contactsSnapshot) {
@@ -195,6 +197,13 @@ const ChatPageModule = (() => {
             map.set(senderId, (map.get(senderId) || 0) + 1);
         });
         return map;
+    };
+
+    const emitUnreadUpdate = () => {
+        const totalUnread = state.contacts.reduce((sum, contact) => sum + Number(contact.unread || 0), 0);
+        window.dispatchEvent(new CustomEvent('pharus:chat-unread-updated', {
+            detail: { totalUnread }
+        }));
     };
 
     const buildLastMessageMap = (messages) => {
@@ -654,6 +663,7 @@ const ChatPageModule = (() => {
                 .eq('receiver_id', state.currentUser.id)
                 .eq('is_read', false);
             if (error) throw error;
+            await loadContacts({ forceRender: true });
         } catch (error) {
             console.error('Erro ao marcar mensagens como lidas:', error);
         }

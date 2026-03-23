@@ -9,6 +9,7 @@ class SidebarManager {
         this.collapseStorageKey = 'pharus_sidebar_collapsed';
         this.projectTitleStorageKey = 'pharus_project_display_name';
         this.defaultProjectTitle = 'Pharus';
+        this.sidebarUnreadInterval = null;
         this.init();
     }
 
@@ -62,6 +63,7 @@ class SidebarManager {
         this.applyPageHeaderProjectName();
         this.applyBrowserTabTitle();
         this.setupProjectNameListeners();
+        this.setupSidebarChatUnreadBadge();
         this.setupChatMenuItem(); // MOVER para depois do setupNavigation
 
         console.log('Sidebar inicializado com sucesso');
@@ -230,6 +232,77 @@ class SidebarManager {
             this.applyPageHeaderProjectName(event.newValue);
             this.applyBrowserTabTitle(event.newValue);
         });
+    }
+
+    setupSidebarChatUnreadBadge() {
+        this.chatMenuItemElement = document.querySelector('.menu-item[data-page="chatconversas.html"]');
+        this.chatUnreadBadgeElement = document.getElementById('sidebarChatUnreadBadge');
+        if (!this.chatUnreadBadgeElement) return;
+
+        window.addEventListener('pharus:chat-unread-updated', (event) => {
+            const unread = Number(event?.detail?.totalUnread || 0);
+            this.applySidebarUnreadCount(unread);
+        });
+
+        this.refreshSidebarUnreadFromApi();
+
+        if (this.sidebarUnreadInterval) {
+            clearInterval(this.sidebarUnreadInterval);
+        }
+
+        this.sidebarUnreadInterval = setInterval(() => {
+            this.refreshSidebarUnreadFromApi();
+        }, 15000);
+    }
+
+    applySidebarUnreadCount(unreadCount) {
+        if (!this.chatUnreadBadgeElement) return;
+        const safeCount = Number.isFinite(unreadCount) ? Math.max(0, Math.floor(unreadCount)) : 0;
+
+        if (safeCount > 0) {
+            this.chatUnreadBadgeElement.style.display = 'inline-flex';
+            this.chatUnreadBadgeElement.textContent = safeCount > 99 ? '99+' : String(safeCount);
+            if (this.chatMenuItemElement) {
+                this.chatMenuItemElement.classList.add('has-unread');
+            }
+            return;
+        }
+
+        this.chatUnreadBadgeElement.style.display = 'none';
+        this.chatUnreadBadgeElement.textContent = '0';
+        if (this.chatMenuItemElement) {
+            this.chatMenuItemElement.classList.remove('has-unread');
+        }
+    }
+
+    async refreshSidebarUnreadFromApi() {
+        try {
+            if (!window.supabaseClient || !window.supabaseClient.auth) return;
+
+            const { data: sessionData, error: sessionError } = await window.supabaseClient.auth.getSession();
+            if (sessionError) throw sessionError;
+
+            const userId = sessionData?.session?.user?.id;
+            if (!userId) {
+                this.applySidebarUnreadCount(0);
+                return;
+            }
+
+            const result = await window.supabaseClient
+                .from('chat_messages')
+                .select('id')
+                .eq('receiver_id', userId)
+                .eq('is_read', false);
+
+            const { data, error, count } = result || {};
+            if (error) throw error;
+            const resolvedCount = Number.isFinite(Number(count))
+                ? Number(count)
+                : (Array.isArray(data) ? data.length : 0);
+            this.applySidebarUnreadCount(resolvedCount);
+        } catch (error) {
+            console.error('Erro ao atualizar badge do chat no menu lateral:', error);
+        }
     }
 
     // Configurar navegação do menu
