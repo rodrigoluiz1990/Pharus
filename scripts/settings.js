@@ -30,6 +30,7 @@ const SettingsModule = (() => {
     const SETTINGS_ACTIVE_TAB_KEY = 'pharus_settings_active_tab';
     const SETTINGS_CARDS_STATE_KEY = 'pharus_settings_cards_state';
     const DEFAULT_TABLE_COLUMNS_ORDER = ['pin', 'title', 'assignee', 'request_date', 'due_date', 'status', 'priority', 'client', 'type', 'actions'];
+    const ALLOWED_SETTINGS_TABS = new Set(['general', 'permissions', 'users', 'extension', 'table']);
     const DEFAULT_TABLE_COLUMNS_WIDTHS = {
         pin: 56,
         title: 320,
@@ -52,7 +53,7 @@ const SettingsModule = (() => {
         priority: 'Prioridade',
         client: 'Cliente',
         type: 'Tipo',
-        actions: 'Acoes',
+        actions: 'Ações',
     };
 
     let tableColumnsOrder = [...DEFAULT_TABLE_COLUMNS_ORDER];
@@ -164,7 +165,7 @@ const SettingsModule = (() => {
                 return true;
             }
             console.error('Falha ao copiar texto:', error);
-            notify('Nao foi possivel copiar automaticamente. Copie manualmente.', 'warning');
+            notify('Não foi possível copiar automaticamente. Copie manualmente.', 'warning');
             return false;
         }
     };
@@ -219,7 +220,7 @@ const SettingsModule = (() => {
                 window.dispatchEvent(new CustomEvent('pharus:project-name-updated', {
                     detail: { projectName: DEFAULT_PROJECT_DISPLAY_NAME }
                 }));
-                notify('Nome do projeto restaurado para o padrao.', 'success');
+                notify('Nome do projeto restaurado para o padrão.', 'success');
                 showButtonActionFeedback(resetProjectDisplayNameBtn, originalHtml, 'success');
             });
         }
@@ -271,7 +272,7 @@ const SettingsModule = (() => {
                 localStorage.setItem(TABLE_COLUMNS_ORDER_KEY, JSON.stringify(tableColumnsOrder));
                 renderTableColumnsOrderList();
                 renderTableColumnsWidthGrid();
-                notify('Ordem padrao restaurada.', 'success');
+                notify('Ordem padrão restaurada.', 'success');
                 showButtonActionFeedback(resetTableColumnsOrderBtn, originalHtml, 'success');
             });
         }
@@ -293,14 +294,19 @@ const SettingsModule = (() => {
                 tableColumnsWidths = { ...DEFAULT_TABLE_COLUMNS_WIDTHS };
                 localStorage.setItem(TABLE_COLUMNS_WIDTHS_KEY, JSON.stringify(tableColumnsWidths));
                 renderTableColumnsWidthGrid();
-                notify('Largura padrao das colunas restaurada.', 'success');
+                notify('Largura padrão das colunas restaurada.', 'success');
                 showButtonActionFeedback(resetTableColumnsWidthBtn, originalHtml, 'success');
             });
         }
     };
 
+    const normalizeTab = (tabId) => {
+        const cleaned = String(tabId || '').trim();
+        return ALLOWED_SETTINGS_TABS.has(cleaned) ? cleaned : 'extension';
+    };
+
     const setActiveTab = (tabId) => {
-        const safeTab = tabId === 'table' || tabId === 'general' ? tabId : 'extension';
+        const safeTab = normalizeTab(tabId);
 
         settingsTabButtons.forEach((button) => {
             const isActive = button.dataset.tab === safeTab;
@@ -326,6 +332,19 @@ const SettingsModule = (() => {
                 setActiveTab(button.dataset.tab || 'extension');
             });
         });
+
+        let urlTab = '';
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            urlTab = params.get('tab') || '';
+        } catch (_error) {
+            urlTab = '';
+        }
+
+        if (urlTab) {
+            setActiveTab(urlTab);
+            return;
+        }
 
         let savedTab = 'extension';
         try {
@@ -519,3 +538,4 @@ if (document.readyState === 'loading') {
 } else {
     SettingsModule.init();
 }
+

@@ -1,4 +1,4 @@
-﻿// sort.js - Ordenacao de tarefas
+﻿// sort.js - Ordenação de tarefas
 const SortModule = (() => {
     const STORAGE_KEY = 'taskSorting';
     const LEVELS = [1, 2, 3];
@@ -7,7 +7,7 @@ const SortModule = (() => {
 
     const PRIORITY_OPTIONS = [
         { value: 'high', label: 'Alta' },
-        { value: 'medium', label: 'Media' },
+        { value: 'medium', label: 'Média' },
         { value: 'low', label: 'Baixa' },
     ];
 
@@ -21,7 +21,7 @@ const SortModule = (() => {
         { value: 'pending', label: 'Pendente' },
         { value: 'in_progress', label: 'Em Andamento' },
         { value: 'review', label: 'Em Teste' },
-        { value: 'completed', label: 'Concluido' },
+        { value: 'completed', label: 'Concluído' },
     ];
 
     const PRIORITY_WEIGHT = { low: 1, medium: 2, high: 3 };
@@ -141,7 +141,7 @@ const SortModule = (() => {
                 cachedTasks = Array.isArray(tasks) ? tasks : [];
             }
         } catch (error) {
-            console.error('Erro ao carregar tarefas para ordenacao:', error);
+            console.error('Erro ao carregar tarefas para ordenação:', error);
             cachedTasks = [];
         }
 
@@ -151,7 +151,7 @@ const SortModule = (() => {
                 cachedUsersById = buildUsersMap(users);
             }
         } catch (error) {
-            console.error('Erro ao carregar usuarios para ordenacao:', error);
+            console.error('Erro ao carregar usuários para ordenação:', error);
             cachedUsersById = {};
         }
     };
@@ -299,7 +299,7 @@ const SortModule = (() => {
         const options = sortOptionsBySavedOrder(getManualOptionsForField(field), savedOrder);
 
         if (options.length === 0) {
-            manualList.innerHTML = '<li class="sort-manual-empty">Sem valores disponiveis para este campo.</li>';
+            manualList.innerHTML = '<li class="sort-manual-empty">Sem valores disponíveis para este campo.</li>';
             return;
         }
 
@@ -368,7 +368,7 @@ const SortModule = (() => {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(currentSort));
         } catch (error) {
-            console.error('Erro ao salvar ordenacao:', error);
+            console.error('Erro ao salvar ordenação:', error);
         }
     };
 
@@ -396,7 +396,7 @@ const SortModule = (() => {
 
             currentSort = JSON.parse(JSON.stringify(DEFAULT_SORT));
         } catch (error) {
-            console.error('Erro ao carregar ordenacao salva:', error);
+            console.error('Erro ao carregar ordenação salva:', error);
             currentSort = JSON.parse(JSON.stringify(DEFAULT_SORT));
         }
     };
@@ -584,3 +584,5 @@ if (document.readyState === 'loading') {
 } else {
     SortModule.init();
 }
+
+

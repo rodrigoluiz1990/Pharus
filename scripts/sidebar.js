@@ -3,6 +3,7 @@ let sidebarInitialized = false;
 class SidebarManager {
     constructor() {
         this.currentPage = this.getCurrentPage();
+        this.currentTab = this.getCurrentTab();
         this.sidebarElement = document.querySelector('#sidebar-container .sidebar, .sidebar');
         this.bodyElement = document.body;
         this.collapseStorageKey = 'pharus_sidebar_collapsed';
@@ -15,6 +16,37 @@ class SidebarManager {
     getCurrentPage() {
         const pathParts = window.location.pathname.split('/');
         return pathParts[pathParts.length - 1];
+    }
+
+    getCurrentTab() {
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            return String(params.get('tab') || '').trim();
+        } catch (_error) {
+            return '';
+        }
+    }
+
+    isMenuTargetActive(targetPage) {
+        if (!targetPage) return false;
+        try {
+            const targetUrl = new URL(targetPage, window.location.href);
+            const targetPathParts = targetUrl.pathname.split('/');
+            const targetFile = targetPathParts[targetPathParts.length - 1];
+            if (targetFile !== this.currentPage) return false;
+
+            const targetTab = String(targetUrl.searchParams.get('tab') || '').trim();
+            if (targetTab) {
+                return targetTab === this.currentTab;
+            }
+
+            if (this.currentPage === 'configuracoes.html' && this.currentTab === 'users') {
+                return false;
+            }
+            return true;
+        } catch (_error) {
+            return targetPage === this.currentPage;
+        }
     }
 
     // Inicialização principal
@@ -208,7 +240,7 @@ class SidebarManager {
             const targetPage = item.getAttribute('data-page');
 
             // Destacar item do menu atual (apenas para itens com data-page)
-            if (targetPage && targetPage === this.currentPage) {
+            if (targetPage && this.isMenuTargetActive(targetPage)) {
                 item.classList.add('active');
                 console.log('Destacando menu:', targetPage);
             }
@@ -220,7 +252,7 @@ class SidebarManager {
                     const clickedPage = item.getAttribute('data-page');
                     console.log('Clicou no menu:', clickedPage);
 
-                    if (clickedPage && clickedPage !== this.currentPage) {
+                    if (clickedPage && !this.isMenuTargetActive(clickedPage)) {
                         console.log('Navegando para:', clickedPage);
                         window.location.href = clickedPage;
                     }

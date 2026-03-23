@@ -5,6 +5,8 @@ const DEFAULT_SETTINGS = {
   settingsOpen: false,
 };
 const DETACHED_NOTES_KEY = 'pharus_detached_notes';
+const PROJECT_DISPLAY_NAME_KEY = 'pharus_project_display_name';
+const DEFAULT_PROJECT_DISPLAY_NAME = 'Projeto';
 
 const els = {
   apiBaseInput: document.getElementById('apiBaseInput'),
@@ -30,6 +32,7 @@ const els = {
   chatOverlayFrame: document.getElementById('chatOverlayFrame'),
   chatOverlayCloseBtn: document.getElementById('chatOverlayCloseBtn'),
   chatOverlayOpenTabBtn: document.getElementById('chatOverlayOpenTabBtn'),
+  projectHeaderTitle: document.getElementById('projectHeaderTitle'),
 };
 
 let currentMode = 'tasks';
@@ -53,7 +56,7 @@ function escapeHtml(value) {
 
 function getPriorityLabel(priority) {
   if (priority === 'high') return 'Alta';
-  if (priority === 'medium') return 'Media';
+  if (priority === 'medium') return 'Média';
   if (priority === 'low') return 'Baixa';
   return String(priority || '-');
 }
@@ -81,7 +84,7 @@ function renderTasks(tasks, settings) {
     const li = document.createElement('li');
     li.className = `task-item ${task.is_pinned ? 'pinned' : ''}`;
 
-    const safeTitle = escapeHtml(task.title || 'Sem titulo');
+    const safeTitle = escapeHtml(task.title || 'Sem título');
     const dueLabel = formatDueDate(task.due_date);
     const priority = String(task.priority || 'medium');
 
@@ -227,6 +230,51 @@ function loadSettings() {
   });
 }
 
+function normalizeProjectName(value) {
+  const text = String(value || '').trim();
+  return text || DEFAULT_PROJECT_DISPLAY_NAME;
+}
+
+function getProjectNameFromStorage() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get({ [PROJECT_DISPLAY_NAME_KEY]: DEFAULT_PROJECT_DISPLAY_NAME }, (saved) => {
+      resolve(normalizeProjectName(saved?.[PROJECT_DISPLAY_NAME_KEY]));
+    });
+  });
+}
+
+function getProjectNameFromActiveTab() {
+  return new Promise((resolve) => {
+    if (!chrome.tabs || typeof chrome.tabs.query !== 'function') {
+      resolve('');
+      return;
+    }
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const title = String(tabs?.[0]?.title || '').trim();
+      const prefix = 'Pharus - ';
+      if (title.startsWith(prefix) && title.length > prefix.length) {
+        resolve(title.slice(prefix.length).trim());
+        return;
+      }
+      resolve('');
+    });
+  });
+}
+
+async function applyProjectTitle() {
+  const [tabProjectName, storedProjectName] = await Promise.all([
+    getProjectNameFromActiveTab(),
+    getProjectNameFromStorage(),
+  ]);
+  const projectName = normalizeProjectName(tabProjectName || storedProjectName);
+  const fullTitle = `Pharus - ${projectName}`;
+  if (els.projectHeaderTitle) {
+    els.projectHeaderTitle.textContent = fullTitle;
+  }
+  document.title = fullTitle;
+}
+
 function saveSettings(settings) {
   return new Promise((resolve) => {
     chrome.storage.sync.set(settings, () => resolve());
@@ -338,6 +386,7 @@ async function refreshTasks(options = {}) {
 }
 
 async function init() {
+  await applyProjectTitle();
   const settings = await loadSettings();
   if (els.apiBaseInput) els.apiBaseInput.value = settings.apiBase;
   if (els.emailInput) els.emailInput.value = settings.email;

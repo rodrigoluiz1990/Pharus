@@ -65,6 +65,14 @@
     background: #f8fafc;
     color: #324a61;
     font-weight: 700;
+    text-align: center;
+}
+
+.clients-table th:nth-child(2),
+.clients-table td:nth-child(2),
+.clients-table th:nth-child(6),
+.clients-table td:nth-child(6) {
+    text-align: center;
 }
 
 .client-status {
@@ -125,6 +133,118 @@
     gap: 12px;
 }
 
+.client-form-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.client-tab-btn {
+    border: 1px solid #d4dde8;
+    background: #f8fbff;
+    color: #2a4e72;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.client-tab-btn.active {
+    background: #2f8ee5;
+    border-color: #2f8ee5;
+    color: #fff;
+}
+
+.client-tab-panel {
+    display: none;
+}
+
+.client-tab-panel.active {
+    display: block;
+}
+
+.client-form .form-group.full-row {
+    grid-column: 1 / -1;
+}
+
+.zip-action-group .zip-search-btn {
+    width: auto;
+    min-width: 150px;
+    min-height: 44px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.remote-connection-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.remote-connections-table-wrap {
+    border: 1px solid #e4e9ef;
+    border-radius: 8px;
+    overflow-x: auto;
+}
+
+.remote-connections-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 620px;
+}
+
+.remote-connections-table th,
+.remote-connections-table td {
+    border-bottom: 1px solid #edf1f6;
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: middle;
+    font-size: 13px;
+    color: #2f3f50;
+}
+
+.remote-connections-table th {
+    background: #f8fafc;
+    color: #324a61;
+    font-weight: 700;
+}
+
+.remote-connections-table td:last-child {
+    white-space: nowrap;
+}
+
+.remote-row-actions {
+    display: inline-flex;
+    gap: 6px;
+}
+
+.remote-row-actions .btn-mini {
+    border: 1px solid #d4dde8;
+    background: #f8fbff;
+    color: #2a4e72;
+    border-radius: 6px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.remote-row-actions .btn-mini:hover {
+    background: #eef5fd;
+}
+
+.empty-remote-connections {
+    text-align: center;
+    color: #5f7388;
+}
+
 .client-form .form-group {
     margin-bottom: 12px;
 }
@@ -152,6 +272,11 @@
 
     .client-form .form-row {
         grid-template-columns: 1fr;
+    }
+
+    .zip-action-group .zip-search-btn {
+        width: 100%;
+        min-width: 0;
     }
 }
 

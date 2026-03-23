@@ -411,7 +411,7 @@ const ChatPageModule = (() => {
 
         const extension = getFileExtension(file.name);
         if (!isAllowedAttachmentExtension(extension)) {
-            window.alert(`Tipo de arquivo nao permitido (${extension || 'sem extensao'}).`);
+            window.alert(`Tipo de arquivo não permitido (${extension || 'sem extensão'}).`);
             event.target.value = '';
             return;
         }

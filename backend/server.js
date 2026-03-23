@@ -37,6 +37,7 @@ const TABLE_COLUMNS = {
     'password',
     'raw_user_meta_data',
     'role',
+    'permission_group_id',
     'status',
     'last_sign_in_at',
     'created_at',
@@ -98,9 +99,33 @@ const TABLE_COLUMNS = {
     'is_read',
     'created_at',
   ],
+  permission_groups: [
+    'id',
+    'name',
+    'description',
+    'status',
+    'created_at',
+    'updated_at',
+  ],
+  permission_group_rules: [
+    'id',
+    'group_id',
+    'screen_key',
+    'option_key',
+    'allowed',
+    'created_at',
+  ],
 };
 
-const MUTABLE_TABLES = new Set(['app_users', 'columns', 'tasks', 'clients', 'chat_messages']);
+const MUTABLE_TABLES = new Set([
+  'app_users',
+  'columns',
+  'tasks',
+  'clients',
+  'chat_messages',
+  'permission_groups',
+  'permission_group_rules',
+]);
 
 function normalizeTable(table) {
   if (!table || typeof table !== 'string') return null;

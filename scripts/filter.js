@@ -1,4 +1,4 @@
-// filter.js - Sistema de Filtros para o Quadro de Tarefas
+﻿// filter.js - Sistema de Filtros para o Quadro de Tarefas
 const FilterModule = (() => {
     // Estado dos filtros
     let currentFilters = {
@@ -23,7 +23,7 @@ const FilterModule = (() => {
     const filterBadge = document.getElementById('filterBadge');
     const filterAssignee = document.getElementById('filterAssignee');
 
-    // Inicialização do módulo
+    // InicializaÃ§Ã£o do mÃ³dulo
     const init = () => {
         if (isInitialized) return;
 
@@ -75,7 +75,7 @@ const FilterModule = (() => {
             const users = await StorageModule.getUsers();
             const currentAssignee = filterAssignee.value;
 
-            // Manter opção "Todos" e limpar outras
+            // Manter opÃ§Ã£o "Todos" e limpar outras
             filterAssignee.innerHTML = '<option value="">Todos os responsáveis</option>';
 
             users.forEach(user => {
@@ -85,7 +85,7 @@ const FilterModule = (() => {
                 filterAssignee.appendChild(option);
             });
 
-            // Restaurar seleção anterior
+            // Restaurar seleÃ§Ã£o anterior
             if (currentAssignee) {
                 filterAssignee.value = currentAssignee;
             }
@@ -122,12 +122,12 @@ const FilterModule = (() => {
             });
         }
 
-        // Responsável
+        // ResponsÃ¡vel
         if (filterAssignee) {
             filterAssignee.value = currentFilters.assignee;
         }
 
-        // Titulo
+        // Título
         const titleInput = document.getElementById('filterTitle');
         if (titleInput) {
             titleInput.value = currentFilters.title;
@@ -301,7 +301,7 @@ const FilterModule = (() => {
         return { ...currentFilters };
     };
 
-    // Verificar se há filtros ativos
+    // Verificar se hÃ¡ filtros ativos
     const hasActiveFilters = () => {
         return Object.values(currentFilters).some(value =>
             Array.isArray(value) ? value.length > 0 : value !== ''
@@ -323,4 +323,6 @@ if (document.readyState === 'loading') {
 } else {
     FilterModule.init();
 }
+
+
 

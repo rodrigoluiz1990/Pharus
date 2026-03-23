@@ -17,12 +17,12 @@ const DashboardModule = (() => {
         pending: 'Pendente',
         in_progress: 'Em Andamento',
         review: 'Em Teste',
-        completed: 'Concluido',
+        completed: 'Concluído',
     };
 
     const PRIORITY_LABELS = {
         high: 'Alta',
-        medium: 'Media',
+        medium: 'Média',
         low: 'Baixa',
     };
 
@@ -72,7 +72,7 @@ const DashboardModule = (() => {
             elements.topAssignees,
             countBy(openTasks, (task) => {
                 const assignee = task.assignee_user?.name || task.assignee || '';
-                return String(assignee || '').trim() || 'Nao atribuido';
+                return String(assignee || '').trim() || 'Não atribuído';
             }),
             6
         );
@@ -157,7 +157,7 @@ const DashboardModule = (() => {
                 const clientLabel = String(task.client || '').trim() || 'Sem cliente';
                 return `
                     <div class="dashboard-upcoming-item ${overdue ? 'overdue' : ''}">
-                        <div class="dashboard-upcoming-title">${escapeHtml(task.title || 'Sem titulo')}</div>
+                        <div class="dashboard-upcoming-title">${escapeHtml(task.title || 'Sem título')}</div>
                         <div class="dashboard-upcoming-meta">Prazo: ${escapeHtml(dueLabel)} | Status: ${escapeHtml(statusLabel)} | Cliente: ${escapeHtml(clientLabel)}</div>
                     </div>
                 `;

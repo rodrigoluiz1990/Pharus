@@ -1,5 +1,47 @@
 // scripts/utils.js
 const UtilsModule = (() => {
+  let lastSaveButton = null;
+  const SAVE_FEEDBACK_ATTR = 'data-save-feedback-original-html';
+
+  const isSaveButtonCandidate = (element) => {
+      if (!element || !(element instanceof HTMLElement)) return false;
+      const button = element.closest('button, input[type="submit"]');
+      if (!button) return false;
+      const id = String(button.id || '').toLowerCase();
+      const text = String(button.textContent || '').toLowerCase();
+      return id.includes('save') || text.includes('salvar');
+  };
+
+  const resolveButtonCandidate = (element) => {
+      if (!element || !(element instanceof HTMLElement)) return null;
+      return element.closest('button, input[type="submit"]');
+  };
+
+  const applySaveSuccessFeedback = (button) => {
+      if (!button || !(button instanceof HTMLElement)) return;
+      const originalHtml = button.getAttribute(SAVE_FEEDBACK_ATTR) || button.innerHTML;
+      button.setAttribute(SAVE_FEEDBACK_ATTR, originalHtml);
+      button.classList.add('save-success-feedback');
+      button.innerHTML = 'Salvo';
+
+      setTimeout(() => {
+          const fallbackOriginal = button.getAttribute(SAVE_FEEDBACK_ATTR) || originalHtml;
+          button.classList.remove('save-success-feedback');
+          button.innerHTML = fallbackOriginal;
+          button.removeAttribute(SAVE_FEEDBACK_ATTR);
+      }, 1500);
+  };
+
+  if (typeof document !== 'undefined') {
+      document.addEventListener('click', (event) => {
+          const target = event && event.target ? event.target : null;
+          if (!isSaveButtonCandidate(target)) return;
+          const candidate = resolveButtonCandidate(target);
+          if (candidate) {
+              lastSaveButton = candidate;
+          }
+      }, true);
+  }
   // Formatar data - Corrigindo problema de fuso horário
   const formatDate = (dateString) => {
       if (!dateString) return "-";
@@ -120,6 +162,10 @@ const UtilsModule = (() => {
       } else {
           // Fallback para alerta básico
           console.log(`${type.toUpperCase()}: ${message}`);
+      }
+
+      if (String(type).toLowerCase() === 'success' && lastSaveButton) {
+          applySaveSuccessFeedback(lastSaveButton);
       }
   };
 
@@ -242,7 +288,9 @@ const UtilsModule = (() => {
       getColumnStatusFromSupabase,
       escapeHtml,
       isEmptyObject,
-      debounce
+      debounce,
+      applySaveSuccessFeedback
   };
 })();
+
 

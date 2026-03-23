@@ -15,9 +15,9 @@
 
 .logo {
     order: 0;
-    padding: 14px 25px;
+    padding: 10px 20px 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -28,13 +28,14 @@
     margin: 0;
     font-size: 24px;
     color: #ecf0f1;
+    line-height: 1;
 }
 
 .sidebar-collapse-btn {
     position: static;
     transform: none;
-    width: 30px;
-    height: 30px;
+    width: 24px;
+    height: 24px;
     border: none;
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.12);
@@ -52,7 +53,7 @@
 .menu-items {
     order: 1;
     flex: 1;
-    padding: 20px 0;
+    padding: 10px 0;
 }
 
 .menu-item {
@@ -115,9 +116,9 @@
 }
 
 .sidebar-user-section.top-user-menu {
-    padding: 8px 12px 10px;
+    padding: 8px 12px 6px;
     border-bottom: 1px solid #34495e;
-    margin-bottom: 8px;
+    margin-bottom: 2px;
     order: -1;
 }
 
@@ -250,8 +251,8 @@
 }
 
 .sidebar.sidebar-collapsed .logo {
-    justify-content: flex-start;
-    padding: 14px 10px;
+    justify-content: center;
+    padding: 10px 8px 12px;
 }
 
 .sidebar.sidebar-collapsed .logo h1,
@@ -276,11 +277,17 @@
 
 .sidebar.sidebar-collapsed .menu-item {
     justify-content: center;
-    padding: 12px 8px;
+    padding: 12px 0;
 }
 
 .sidebar.sidebar-collapsed .menu-item i {
     margin-right: 0;
+    width: 24px;
+    min-width: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
 .sidebar.sidebar-collapsed .view-toggle {
@@ -308,12 +315,20 @@
 }
 
 .sidebar.sidebar-collapsed .sidebar-user-section.top-user-menu {
-    padding: 8px 8px 10px;
+    padding: 8px 0 10px;
+    display: flex;
+    justify-content: center;
 }
 
 .sidebar.sidebar-collapsed .sidebar-user-section.top-user-menu .user-info {
     justify-content: center;
+    width: 100%;
+    gap: 0;
     padding: 2px 0;
+}
+
+.sidebar.sidebar-collapsed .sidebar-user-section.top-user-menu .avatar {
+    margin: 0 auto;
 }
 
 body.sidebar-collapsed .content {
@@ -402,6 +417,12 @@ body.sidebar-collapsed .content {
 
     .sidebar .menu-item i {
         margin-right: 0;
+        width: 24px;
+        min-width: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
     }
 
     .sidebar .menu-item.active {

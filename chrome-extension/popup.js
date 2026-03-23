@@ -32,7 +32,7 @@ function escapeHtml(value) {
 
 function getPriorityLabel(priority) {
   if (priority === 'high') return 'Alta';
-  if (priority === 'medium') return 'Media';
+  if (priority === 'medium') return 'Média';
   if (priority === 'low') return 'Baixa';
   return String(priority || '-');
 }
@@ -60,7 +60,7 @@ function renderTasks(tasks, settings) {
     const li = document.createElement('li');
     li.className = `task-item ${task.is_pinned ? 'pinned' : ''}`;
 
-    const safeTitle = escapeHtml(task.title || 'Sem titulo');
+    const safeTitle = escapeHtml(task.title || 'Sem título');
     const dueLabel = formatDueDate(task.due_date);
     const priority = String(task.priority || 'medium');
 

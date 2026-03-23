@@ -12,9 +12,12 @@ const UsersModule = (() => {
     const userAvatarPreview = document.getElementById("userAvatarPreview");
     const userAvatarColor = document.getElementById("userAvatarColor");
     const userAvatarIcon = document.getElementById("userAvatarIcon");
+    const userPermissionGroup = document.getElementById("userPermissionGroup");
 
     let users = [];
     let currentUser = null;
+    let permissionGroups = [];
+    let canEditOtherUsers = false;
     let isInitialized = false;
     const DEFAULT_AVATAR_COLOR = '#3498db';
     const ALLOWED_AVATAR_ICONS = new Set(['', 'user', 'user-tie', 'headset', 'code', 'wrench', 'briefcase', 'star', 'bolt']);
@@ -22,6 +25,7 @@ const UsersModule = (() => {
     const loadUsers = async () => {
         try {
             showUsersLoading();
+            await loadPermissionGroups();
 
             const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
 
@@ -32,6 +36,7 @@ const UsersModule = (() => {
             // Obter usuário atual
             const { data: { user } } = await window.supabaseClient.auth.getUser();
             currentUser = user;
+            await loadCurrentUserPermissions();
 
             // Buscar usuários - tentar view primeiro
             try {
@@ -47,6 +52,7 @@ const UsersModule = (() => {
                     status: 'active',
                     last_sign_in_at: currentUser.last_sign_in_at,
                     created_at: currentUser.created_at,
+                    permission_group_id: null,
                     avatar_color: sanitizeAvatarColor(currentUser.user_metadata?.avatar_color),
                     avatar_icon: sanitizeAvatarIcon(currentUser.user_metadata?.avatar_icon),
                 }];
@@ -67,6 +73,73 @@ const UsersModule = (() => {
     const sanitizeAvatarIcon = (icon) => {
         const value = String(icon || '').trim();
         return ALLOWED_AVATAR_ICONS.has(value) ? value : '';
+    };
+
+    const loadCurrentUserPermissions = async () => {
+        canEditOtherUsers = false;
+        if (!window.supabaseClient || !currentUser?.id) return;
+
+        try {
+            const { data: userRow, error: userError } = await window.supabaseClient
+                .from('app_users')
+                .select('id, role, permission_group_id')
+                .eq('id', currentUser.id)
+                .single();
+
+            if (userError) throw userError;
+
+            const role = String(userRow?.role || currentUser?.user_metadata?.role || '').toLowerCase();
+            if (role === 'admin') {
+                canEditOtherUsers = true;
+                return;
+            }
+
+            const groupId = userRow?.permission_group_id;
+            if (!groupId) return;
+
+            const { data: ruleRows, error: ruleError } = await window.supabaseClient
+                .from('permission_group_rules')
+                .select('allowed')
+                .eq('group_id', groupId)
+                .eq('screen_key', 'usuarios')
+                .eq('option_key', 'edit');
+
+            if (ruleError) throw ruleError;
+            canEditOtherUsers = Array.isArray(ruleRows) && ruleRows.some((row) => row.allowed !== false);
+        } catch (error) {
+            canEditOtherUsers = false;
+            console.warn('Não foi possível carregar permissões do usuário atual:', error);
+        }
+    };
+
+    const loadPermissionGroups = async () => {
+        if (!window.supabaseClient || !userPermissionGroup) return;
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('permission_groups')
+                .select('id, name, status')
+                .order('name', { ascending: true });
+            if (error) throw error;
+            permissionGroups = (data || []).filter((item) => String(item.status || 'active') === 'active');
+        } catch (error) {
+            permissionGroups = [];
+            console.warn('Não foi possível carregar grupos de permissão:', error);
+        }
+        renderPermissionGroupOptions();
+    };
+
+    const renderPermissionGroupOptions = (selectedId = '') => {
+        if (!userPermissionGroup) return;
+        userPermissionGroup.innerHTML = '<option value="">Sem grupo</option>';
+        permissionGroups.forEach((group) => {
+            const option = document.createElement('option');
+            option.value = String(group.id);
+            option.textContent = String(group.name || 'Grupo');
+            if (selectedId && String(selectedId) === String(group.id)) {
+                option.selected = true;
+            }
+            userPermissionGroup.appendChild(option);
+        });
     };
 
     const getUserInitials = (name, email) => {
@@ -92,6 +165,13 @@ const UsersModule = (() => {
         return `<span class="user-avatar-badge" style="background:${safeColor}">${initials}</span>`;
     };
 
+    const getPermissionGroupName = (groupId) => {
+        const id = String(groupId || '').trim();
+        if (!id) return 'Sem grupo';
+        const group = permissionGroups.find((item) => String(item.id) === id);
+        return group ? String(group.name || 'Sem grupo') : 'Sem grupo';
+    };
+
     const updateAvatarPreview = () => {
         if (!userAvatarPreview) return;
         const color = sanitizeAvatarColor(userAvatarColor?.value);
@@ -111,7 +191,7 @@ const UsersModule = (() => {
         try {
             const { data: usersData, error } = await window.supabaseClient
                 .from('app_users')
-                .select('id,email,raw_user_meta_data,role,status,last_sign_in_at,created_at')
+                .select('id,email,raw_user_meta_data,role,status,permission_group_id,last_sign_in_at,created_at')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -122,6 +202,7 @@ const UsersModule = (() => {
                 name: user.raw_user_meta_data?.full_name || user.email?.split('@')[0] || 'Usuário',
                 role: user.role || 'user',
                 status: user.status || 'active',
+                permission_group_id: user.permission_group_id || null,
                 last_sign_in_at: user.last_sign_in_at,
                 created_at: user.created_at,
                 avatar_color: sanitizeAvatarColor(user.raw_user_meta_data?.avatar_color),
@@ -164,8 +245,8 @@ const UsersModule = (() => {
                 : '-';
 
             const safeStatusClass = `status-${getSafeStatusKey(user.status)}`;
-            const safeRoleClass = `role-${getSafeRoleKey(user.role)}`;
             const avatarHtml = renderAvatarBadgeHtml(user);
+            const permissionGroupName = getPermissionGroupName(user.permission_group_id);
 
             row.innerHTML = `
                 <td>
@@ -175,15 +256,12 @@ const UsersModule = (() => {
                     </div>
                 </td>
                 <td>${escapeHtml(user.email)}</td>
-                <td><span class="role-badge ${safeRoleClass}">${getRoleText(user.role)}</span></td>
+                <td>${escapeHtml(permissionGroupName)}</td>
                 <td><span class="user-status ${safeStatusClass}">${getStatusText(user.status)}</span></td>
                 <td>${lastAccess}</td>
                 <td>${createdAt}</td>
                 <td>
                     <div class="user-actions">
-                        <button class="btn-chat" data-user-id="${user.id}" data-user-name="${escapeHtml(user.name)}" data-user-email="${escapeHtml(user.email)}">
-                            <i class="fas fa-comment"></i> Chat
-                        </button>
                         <button class="btn-edit" data-user-id="${user.id}">
                             <i class="fas fa-edit"></i> Editar
                         </button>
@@ -196,7 +274,6 @@ const UsersModule = (() => {
 
         setTimeout(() => {
             addEditListeners();
-            addChatListeners();
         }, 100);
     };
 
@@ -218,6 +295,21 @@ const UsersModule = (() => {
             });
 
             if (error) throw error;
+
+            const createdUserId = data?.user?.id || null;
+            if (createdUserId) {
+                const { error: updateError } = await window.supabaseClient
+                    .from('app_users')
+                    .update({
+                        role: userData.role,
+                        status: userData.status,
+                        permission_group_id: userData.permission_group_id || null,
+                    })
+                    .eq('id', createdUserId);
+                if (updateError) {
+                    console.warn('Usuário criado, mas não foi possível aplicar grupo/status:', updateError);
+                }
+            }
 
             UtilsModule.hideLoading();
             UtilsModule.showNotification('Usuário criado com sucesso!', 'success');
@@ -246,7 +338,15 @@ const UsersModule = (() => {
         try {
             UtilsModule.showLoading('Atualizando usuário...');
             
-            if (currentUser && currentUser.id === userId) {
+            const isCurrentUser = Boolean(currentUser && currentUser.id === userId);
+            const canEditTarget = isCurrentUser || canEditOtherUsers;
+            if (!canEditTarget) {
+                UtilsModule.hideLoading();
+                UtilsModule.showNotification('Você não tem permissão para editar outros usuários.', 'warning');
+                return;
+            }
+
+            if (isCurrentUser) {
                 // Atualizar usuário atual via auth API
                 const updatePayload = {
                     email: userData.email,
@@ -265,17 +365,49 @@ const UsersModule = (() => {
                 const { error: authError } = await window.supabaseClient.auth.updateUser(updatePayload);
                 
                 if (authError) throw authError;
+
+                const { error: profileError } = await window.supabaseClient
+                    .from('app_users')
+                    .update({
+                        role: userData.role,
+                        status: userData.status,
+                        permission_group_id: userData.permission_group_id || null,
+                    })
+                    .eq('id', userId);
+                if (profileError) throw profileError;
                 
                 UtilsModule.hideLoading();
                 UtilsModule.showNotification('Seu perfil foi atualizado com sucesso!', 'success');
             } else {
-                // Para outros usuários, mostrar mensagem informativa
+                const targetUser = users.find((item) => String(item.id) === String(userId));
+                const effectiveRole = String(userData.role || targetUser?.role || 'user');
+                const metadata = {
+                    full_name: userData.name,
+                    role: effectiveRole,
+                    avatar_color: userData.avatar_color,
+                    avatar_icon: userData.avatar_icon,
+                };
+
+                const payload = {
+                    email: userData.email,
+                    role: effectiveRole,
+                    status: userData.status,
+                    permission_group_id: userData.permission_group_id || null,
+                    raw_user_meta_data: metadata,
+                };
+
+                if (userData.password && String(userData.password).trim()) {
+                    payload.password = userData.password;
+                }
+
+                const { error: updateError } = await window.supabaseClient
+                    .from('app_users')
+                    .update(payload)
+                    .eq('id', userId);
+                if (updateError) throw updateError;
+
                 UtilsModule.hideLoading();
-                UtilsModule.showNotification(
-                    'Para editar outros usuários, use o painel de Authentication do Supabase.', 
-                    'info'
-                );
-                return;
+                UtilsModule.showNotification('Usuário atualizado com sucesso!', 'success');
             }
 
             loadUsers();
@@ -304,7 +436,7 @@ const UsersModule = (() => {
         userIdField.value = user.id;
         
         // Resetar todos os campos primeiro
-        const fields = ['userName', 'userEmail', 'userRole', 'userStatus', 'userAvatarColor', 'userAvatarIcon'];
+        const fields = ['userName', 'userEmail', 'userStatus', 'userPermissionGroup', 'userAvatarColor', 'userAvatarIcon'];
         fields.forEach(field => {
             const element = document.getElementById(field);
             if (element) {
@@ -315,16 +447,20 @@ const UsersModule = (() => {
 
         document.getElementById('userName').value = user.name;
         document.getElementById('userEmail').value = user.email;
-        document.getElementById('userRole').value = user.role;
         document.getElementById('userStatus').value = user.status;
+        if (userPermissionGroup) {
+            renderPermissionGroupOptions(user.permission_group_id || '');
+            userPermissionGroup.value = user.permission_group_id || '';
+        }
         if (userAvatarColor) userAvatarColor.value = sanitizeAvatarColor(user.avatar_color);
         if (userAvatarIcon) userAvatarIcon.value = sanitizeAvatarIcon(user.avatar_icon);
         updateAvatarPreview();
 
         // Verificar se é o usuário atual
         const isCurrentUser = currentUser && currentUser.id === userId;
+        const canEditTarget = Boolean(isCurrentUser || canEditOtherUsers);
 
-        if (!isCurrentUser) {
+        if (!canEditTarget) {
             // Desabilitar campos para usuários que não são o atual
             fields.forEach(field => {
                 const element = document.getElementById(field);
@@ -333,7 +469,7 @@ const UsersModule = (() => {
                     element.style.opacity = '0.6';
                 }
             });
-            UtilsModule.showNotification('Apenas edição do próprio usuário é permitida', 'warning');
+            UtilsModule.showNotification('Apenas usuários com permissão de editar usuários podem alterar outros perfis.', 'warning');
         }
 
         // Limpar e tornar opcionais os campos de senha na edição
@@ -343,29 +479,6 @@ const UsersModule = (() => {
         document.getElementById('userConfirmPassword').required = false;
 
         userModal.style.display = 'flex';
-    };
-
-    const addChatListeners = () => {
-        const chatButtons = document.querySelectorAll('.btn-chat');
-        if (chatButtons.length === 0) return;
-        
-        chatButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const userId = e.currentTarget.dataset.userId;
-                const userName = e.currentTarget.dataset.userName;
-                const userEmail = e.currentTarget.dataset.userEmail;
-                openChatWithUser(userId, userName, userEmail);
-            });
-        });
-    };
-
-    const openChatWithUser = (userId, userName, userEmail) => {
-        const targetId = encodeURIComponent(String(userId || '').trim());
-        if (!targetId) {
-            UtilsModule.showNotification('Contato invalido para abrir chat.', 'error');
-            return;
-        }
-        window.location.href = `chatconversas.html?userId=${targetId}`;
     };
 
     const addEditListeners = () => {
@@ -386,7 +499,7 @@ const UsersModule = (() => {
         userForm.reset();
         
         // Habilitar todos os campos
-        const fields = ['userName', 'userEmail', 'userRole', 'userStatus', 'userAvatarColor', 'userAvatarIcon'];
+        const fields = ['userName', 'userEmail', 'userStatus', 'userPermissionGroup', 'userAvatarColor', 'userAvatarIcon'];
         fields.forEach(field => {
             const element = document.getElementById(field);
             if (element) {
@@ -404,6 +517,10 @@ const UsersModule = (() => {
         document.getElementById('userConfirmPassword').required = true;
         if (userAvatarColor) userAvatarColor.value = DEFAULT_AVATAR_COLOR;
         if (userAvatarIcon) userAvatarIcon.value = '';
+        if (userPermissionGroup) {
+            renderPermissionGroupOptions('');
+            userPermissionGroup.value = '';
+        }
         updateAvatarPreview();
         
         userModal.style.display = 'flex';
@@ -419,8 +536,11 @@ const UsersModule = (() => {
         const formData = {
             name: document.getElementById('userName').value.trim(),
             email: document.getElementById('userEmail').value.trim(),
-            role: document.getElementById('userRole').value,
+            role: (userIdField.value
+                ? (users.find((u) => String(u.id) === String(userIdField.value))?.role || 'user')
+                : 'user'),
             status: document.getElementById('userStatus').value,
+            permission_group_id: userPermissionGroup ? (userPermissionGroup.value || null) : null,
             password: document.getElementById('userPassword').value,
             avatar_color: sanitizeAvatarColor(userAvatarColor?.value),
             avatar_icon: sanitizeAvatarIcon(userAvatarIcon?.value),
@@ -557,8 +677,7 @@ const UsersModule = (() => {
 
     return {
         initUsersModule,
-        loadUsers,
-        openChatWithUser
+        loadUsers
     };
 })();
 

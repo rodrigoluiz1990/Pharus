@@ -1,4 +1,4 @@
-// board.js — VERSÃO AJUSTADA (mantém estrutura original, dropdown robusto)
+// board.js - VERS?O AJUSTADA (mant?m estrutura original, dropdown robusto)
 
 const BoardModule = (() => {
     // Elementos do DOM
@@ -102,7 +102,7 @@ const BoardModule = (() => {
         });
     };
 
-    // ========== FUNÇÕES PRINCIPAIS ========== //
+    // ========== FUN??ES PRINCIPAIS ========== //
 
     const loadData = async (options = {}) => {
         const { silent = false } = options;
@@ -126,7 +126,7 @@ const BoardModule = (() => {
             lastLoadHadChanges = currentSignature !== lastDataSignature;
             lastDataSignature = currentSignature;
 
-            // Aplicar filtros após carregar dados
+            // Aplicar filtros ap?s carregar dados
             applyFiltersToTasks();
 
             if (!silent) {
@@ -209,7 +209,7 @@ const BoardModule = (() => {
 
             setupTableSorting();
         } catch (error) {
-            UtilsModule.handleApiError(error, 'renderizar visualização de tabela');
+            UtilsModule.handleApiError(error, 'renderizar visualiza??o de tabela');
             sociousTableBody.innerHTML = `
                 <tr>
                     <td colspan="${getTableColumnsOrder().length}" style="text-align: center; padding: 30px; color: #dc3545;">
@@ -220,7 +220,7 @@ const BoardModule = (() => {
         }
     };
 
-    // ========== FUNÇÕES AUXILIARES ========== //
+    // ========== FUN??ES AUXILIARES ========== //
 
     const createColumnElement = (column) => {
         const columnElement = document.createElement("div");
@@ -280,10 +280,10 @@ const BoardModule = (() => {
 
         const priorityClass = `tag-priority-${priorityInfo.class}`;
         const typeClass = `tag-type-${typeInfo.class}`;
-        const safeTitle = escapeHtml(task.title || "Sem título");
+        const safeTitle = escapeHtml(task.title || "Sem t?tulo");
         const pinActiveClass = task.is_pinned ? 'active' : '';
         const pinTitle = task.is_pinned ? 'Remover do post-it' : 'Destacar no post-it';
-        const safeAssigneeName = escapeHtml(assignee ? assignee.name : "Não atribuído");
+        const safeAssigneeName = escapeHtml(assignee ? assignee.name : "N?o atribu?do");
         const safeClient = escapeHtml(getClientLabelForTask(task.client) || "Sem cliente");
 
         taskElement.innerHTML = `
@@ -327,10 +327,10 @@ const BoardModule = (() => {
 
         const row = document.createElement("tr");
         const dataAttribute = getDateAttribute(task.due_date);
-        const safeTitle = escapeHtml(task.title || "Sem titulo");
+        const safeTitle = escapeHtml(task.title || "Sem t?tulo");
         const pinActiveClass = task.is_pinned ? 'active' : '';
         const pinTitle = task.is_pinned ? 'Remover do post-it' : 'Destacar no post-it';
-        const safeAssigneeName = escapeHtml(assignee ? assignee.name : "Nao atribuido");
+        const safeAssigneeName = escapeHtml(assignee ? assignee.name : "N?o atribu?do");
         const safeClient = escapeHtml(getClientLabelForTask(task.client));
 
         const cellByKey = {
@@ -400,7 +400,7 @@ const BoardModule = (() => {
         }
     };
 
-    // ========== CONFIGURAÇÕES DE EVENTOS ========== //
+    // ========== CONFIGURA??ES DE EVENTOS ========== //
 
     const setupRowEvents = (row, taskId) => {
         const btn = row.querySelector(".row-edit-btn");
@@ -426,7 +426,7 @@ const BoardModule = (() => {
         if (pinCell && pinBtn) {
             pinCell.addEventListener("click", (e) => {
                 e.stopPropagation();
-                // Se clicou fora do botão, aciona o toggle mesmo assim
+                // Se clicou fora do bot?o, aciona o toggle mesmo assim
                 if (!e.target.closest(".pin-toggle-btn")) {
                     pinBtn.click();
                 }
@@ -448,14 +448,14 @@ const BoardModule = (() => {
         });
     };
 
-    // Função fallback melhorada para abrir modal
+    // Fun??o fallback melhorada para abrir modal
     const openTaskModalFallback = async (taskId) => {
         console.log('Abrindo modal para tarefa:', taskId);
 
         try {
             UtilsModule.showLoading('Carregando tarefa...');
 
-            // Buscar tarefa específica do Supabase
+            // Buscar tarefa espec?fica do Supabase
             const { data: task, error } = await window.supabaseClient
                 .from('tasks')
                 .select('*')
@@ -463,16 +463,16 @@ const BoardModule = (() => {
                 .single();
 
             if (error) throw error;
-            if (!task) throw new Error('Tarefa não encontrada');
+            if (!task) throw new Error('Tarefa n?o encontrada');
 
             UtilsModule.hideLoading();
 
-            // USAR A FUNÇÃO DO MODALMODULE EM VEZ DE MANIPULAR DIRETAMENTE
+            // USAR A FUN??O DO MODALMODULE EM VEZ DE MANIPULAR DIRETAMENTE
             if (typeof ModalModule !== 'undefined' && ModalModule.showModal) {
                 ModalModule.showModal(null, taskId);
             } else {
-                console.error('ModalModule não disponível');
-                alert('Módulo de modal não carregado');
+                console.error('ModalModule n?o dispon?vel');
+                alert('M?dulo de modal n?o carregado');
             }
 
         } catch (error) {
@@ -482,7 +482,7 @@ const BoardModule = (() => {
         }
     };
 
-    // Função para atualizar conclusão da tarefa
+    // Fun??o para atualizar conclus?o da tarefa
     const updateTaskCompletion = async (taskId, completed) => {
         try {
             await StorageModule.updateTask(taskId, {
@@ -506,7 +506,7 @@ const BoardModule = (() => {
         }, 100);
     };
 
-    // Função para eventos de filtro
+    // Fun??o para eventos de filtro
     const setupFilterListeners = () => {
         window.addEventListener('filtersApplied', async () => {
             await loadData({ silent: true });
@@ -533,7 +533,7 @@ const BoardModule = (() => {
         });
     };
 
-    // ========== UTILITÁRIAS ========== //
+    // ========== UTILIT?RIAS ========== //
 
     const getTasksByColumn = (columnId) => {
         return filteredTasks.filter((task) => {
@@ -606,14 +606,14 @@ const BoardModule = (() => {
         const headerByKey = {
             pin: "Pin",
             title: "Tarefa",
-            assignee: "Responsavel",
-            request_date: "Data Solicitacao",
+            assignee: "Responsável",
+            request_date: "Data Solicitação",
             due_date: "Data Entrega",
             status: "Status",
             priority: "Prioridade",
             client: "Cliente",
             type: "Tipo",
-            actions: "Acoes",
+            actions: "Ações",
         };
 
         const widthByKey = getTableColumnsWidths();
@@ -659,7 +659,7 @@ const BoardModule = (() => {
         }
     };
 
-    // ========== FUNÇÕES DRAG & DROP ========== //
+    // ========== FUN??ES DRAG & DROP ========== //
 
     const setupTaskDragDrop = (taskElement, taskId) => {
         taskElement.addEventListener("dragstart", (e) => {
@@ -678,7 +678,7 @@ const BoardModule = (() => {
         });
 
         taskElement.addEventListener("drag", (e) => {
-            // Prevenir comportamento padrão
+            // Prevenir comportamento padr?o
             e.preventDefault();
         });
     };
@@ -709,13 +709,13 @@ const BoardModule = (() => {
 
     const setupTaskClick = (taskElement, taskId) => {
         taskElement.addEventListener("click", (e) => {
-            // Só abre o modal se não foi um clique em elementos interiores
+            // S? abre o modal se n?o foi um clique em elementos interiores
             if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
                 openTaskModalFallback(taskId);
             }
         });
 
-        // Adicionar botão de edição dentro do card
+        // Adicionar bot?o de edi??o dentro do card
         const editBtn = document.createElement('button');
         editBtn.className = 'task-edit-btn';
         editBtn.innerHTML = '<i class="fas fa-edit"></i>';
@@ -724,7 +724,7 @@ const BoardModule = (() => {
             openTaskModalFallback(taskId);
         });
 
-        // Adicionar o botão ao card da tarefa
+        // Adicionar o bot?o ao card da tarefa
         if (!taskElement.querySelector('.task-edit-btn')) {
             taskElement.style.position = 'relative';
             editBtn.style.position = 'absolute';
@@ -747,7 +747,7 @@ const BoardModule = (() => {
         }
     };
 
-    // ========== CONTROLES DE VISUALIZAÇÃO ========== //
+    // ========== CONTROLES DE VISUALIZA??O ========== //
 
     const setActiveViewButton = (mode) => {
         if (boardViewBtn) boardViewBtn.classList.toggle("active", mode === "board");
@@ -759,7 +759,7 @@ const BoardModule = (() => {
         try {
             localStorage.setItem(VIEW_MODE_KEY, mode);
         } catch (error) {
-            console.warn("Nao foi possivel salvar o modo de visualizacao:", error);
+            console.warn("N?o foi poss?vel salvar o modo de visualiza??o:", error);
         }
     };
 
@@ -782,7 +782,7 @@ const BoardModule = (() => {
                 return saved;
             }
         } catch (error) {
-            console.warn("Nao foi possivel recuperar o modo de visualizacao:", error);
+            console.warn("N?o foi poss?vel recuperar o modo de visualiza??o:", error);
         }
         return "board";
     };
@@ -822,7 +822,7 @@ const BoardModule = (() => {
         renderSociousView({ reloadData: true, showTableLoading: false, silentLoad: true });
     };
 
-    // ========== INICIALIZAÇÃO ========== //
+    // ========== INICIALIZA??O ========== //
 
     const initBoard = async () => {
         if (!taskBoard && !sociousView) return;
@@ -849,7 +849,7 @@ const BoardModule = (() => {
             setupAutoRefresh();
             isInitialized = true;
         } catch (error) {
-            console.error('Erro na inicialização do board:', error);
+            console.error('Erro na inicializa??o do board:', error);
         } finally {
             isInitializing = false;
         }
@@ -870,7 +870,7 @@ const BoardModule = (() => {
 
     const handleTasksUpdated = async () => {
         await loadData({ silent: true });
-        // se o board estiver visível, renderiza; senão renderiza tabela
+        // se o board estiver vis?vel, renderiza; sen?o renderiza tabela
         const boardHidden = taskBoard ? (getComputedStyle(taskBoard).display === "none") : true;
         if (!boardHidden) {
             renderBoard({ reloadData: false });

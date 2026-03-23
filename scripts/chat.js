@@ -1042,7 +1042,7 @@ const ChatModule = (() => {
         if (!isAllowedAttachmentExtension(extension)) {
             const allowedList = '.pdf, .jpg, .jpeg, .png, .webp, .txt, .zip, .patch, .diff, .doc, .docx, .xls, .xlsx, .log, .json, .csv, .xml, .sql, .ps1, .sh, .md';
             if (window.UtilsModule && window.UtilsModule.showNotification) {
-                window.UtilsModule.showNotification(`Tipo de arquivo nao permitido (${extension || 'sem extensao'}). Permitidos: ${allowedList}`, 'error');
+                window.UtilsModule.showNotification(`Tipo de arquivo não permitido (${extension || 'sem extensão'}). Permitidos: ${allowedList}`, 'error');
             }
             event.target.value = '';
             return;

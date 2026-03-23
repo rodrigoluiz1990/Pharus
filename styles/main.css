@@ -141,7 +141,7 @@ body {
     color: white;
 }
 
-/* Área de Conteúdo Melhorada */
+/* ?rea de Conte?do Melhorada */
 .content {
     flex: 1;
     padding: 20px;
@@ -192,6 +192,15 @@ body {
     border-color: var(--primary-color);
     color: var(--primary-color);
     box-shadow: var(--shadow);
+}
+
+.save-success-feedback {
+    background-color: #16a34a !important;
+    border-color: #16a34a !important;
+    color: #ffffff !important;
+    box-shadow: 0 6px 18px rgba(22, 163, 74, 0.28) !important;
+    transform: translateY(-1px);
+    transition: all .18s ease;
 }
 
 .avatar {
@@ -431,21 +440,21 @@ textarea.form-control {
     justify-content: flex-end;
 }
 
-/* === Layout em colunas para o formulário do modal === */
+/* === Layout em colunas para o formul?rio do modal === */
 #taskForm {
     display: grid;
     grid-template-columns: repeat(3, 1fr);    /* 3 colunas (ajuste se quiser 2) */
-    column-gap: 20px;    /* espaço horizontal entre colunas */
-    row-gap: 0px;    /* espaço vertical entre linhas */
-    align-items: start;    /* <--- força cada célula a alinhar pelo topo */
-    grid-auto-rows: min-content;    /* evita que linhas "cresçam" por causa de textareas */
+    column-gap: 20px;    /* espa?o horizontal entre colunas */
+    row-gap: 0px;    /* espa?o vertical entre linhas */
+    align-items: start;    /* <--- for?a cada c?lula a alinhar pelo topo */
+    grid-auto-rows: min-content;    /* evita que linhas "cres?am" por causa de textareas */
 }
 
 #taskForm .form-group {
     display: flex;
     flex-direction: column;
-    align-self: start;    /* reforça o alinhamento no nível do item */
-    margin-bottom: 0;    /* o espaço vertical agora é controlado por row-gap */
+    align-self: start;    /* refor?a o alinhamento no n?vel do item */
+    margin-bottom: 0;    /* o espa?o vertical agora ? controlado por row-gap */
 }
 
 /* Campos que devem ocupar as duas colunas */
@@ -512,7 +521,7 @@ textarea.form-control {
     box-shadow: var(--shadow);
 }
 
-/* Utilitários */
+/* Utilit?rios */
 .hidden {
     display: none !important;
 }
@@ -632,7 +641,7 @@ textarea.form-control {
     }
 }
 
-/* Animações suaves */
+/* Anima??es suaves */
 * {
     transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
 }
@@ -696,7 +705,7 @@ textarea:disabled {
     }
 }
 
-/* ===== ESTILOS ESPECÍFICOS PARA A VISUALIZAÇÃO EM TABELA ===== */
+/* ===== ESTILOS ESPEC?FICOS PARA A VISUALIZA??O EM TABELA ===== */
 
 .socious-view {
     background: white;
@@ -766,7 +775,7 @@ textarea:disabled {
     border-bottom: none;
 }
 
-/* Coluna de ações */
+/* Coluna de a??es */
 .socious-table td:last-child {
     text-align: center;
 }
@@ -906,7 +915,7 @@ textarea:disabled {
     border: 1px solid #ffeaa7;
 }
 
-/* ===== ESTILOS PARA CÉLULAS ESPECÍFICAS ===== */
+/* ===== ESTILOS PARA C?LULAS ESPEC?FICAS ===== */
 .socious-table td:nth-child(6), /* Coluna Status */
 .socious-table td:nth-child(7), /* Coluna Prioridade */
 .socious-table td:nth-child(9) { /* Coluna Tipo */
@@ -922,7 +931,7 @@ textarea:disabled {
     gap: 4px;
 }
 
-/* Ícones para status */
+/* ?cones para status */
 .status-cell::before {
     content: '';
     display: inline-block;
@@ -956,7 +965,7 @@ textarea:disabled {
     background-color: #721c24;
 }
 
-/* Hover effects para células coloridas */
+/* Hover effects para c?lulas coloridas */
 .status-cell:hover,
 .prioridade-cell:hover,
 .tipo-cell:hover {
@@ -1030,7 +1039,7 @@ textarea:disabled {
     }
 
     /* Ocultar colunas menos importantes em mobile */
-    .socious-table th:nth-child(4), /* Data Solicitação */
+    .socious-table th:nth-child(4), /* Data Solicita??o */
     .socious-table td:nth-child(4),
     .socious-table th:nth-child(8), /* Cliente */
     .socious-table td:nth-child(8) {
@@ -1038,7 +1047,7 @@ textarea:disabled {
     }
 }
 
-/* Animações de entrada para as células */
+/* Anima??es de entrada para as c?lulas */
 @keyframes fadeInCell {
     from {
         opacity: 0;
@@ -1074,7 +1083,7 @@ tr.vencida .status-cell {
     color: #721c24;
 }
 
-/* Tooltip para células truncadas */
+/* Tooltip para c?lulas truncadas */
 .socious-table td {
     position: relative;
 }

@@ -1,13 +1,16 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pharus - Configuracoes</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>Pharus - Configurações</title>
+    <link rel="icon" type="image/svg+xml" href="lighthouse-favicon.svg?v=20260321d">
+    <link rel="alternate icon" type="image/png" href="lighthouse-favicon-32.png?v=20260321d">
+    <link rel="shortcut icon" type="image/png" href="lighthouse-favicon-32.png?v=20260321d">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/sidebar.css">
+    <link rel="stylesheet" href="styles/users.css">
     <style>
         .settings-page {
             padding: 24px;
@@ -222,6 +225,129 @@
             font-size: 13px;
         }
 
+        .permission-groups-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 12px;
+        }
+
+        .permission-groups-list {
+            border: 1px solid #e3ebf5;
+            border-radius: 10px;
+            background: #ffffff;
+            max-height: 360px;
+            overflow: auto;
+            padding: 8px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .permission-group-item {
+            border: 1px solid #edf2f8;
+            background: #ffffff;
+            color: #2e475f;
+            border-radius: 8px;
+            padding: 9px 10px;
+            text-align: left;
+            cursor: pointer;
+            display: grid;
+            gap: 2px;
+            transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+        }
+
+        .permission-group-item:hover {
+            border-color: #cdd9e8;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+            transform: translateY(-1px);
+        }
+
+        .permission-group-item.active {
+            border-color: #2f8ee5;
+            background: #f6faff;
+            box-shadow: 0 0 0 2px rgba(47, 142, 229, 0.12);
+        }
+
+        .permission-group-item .group-name {
+            font-weight: 700;
+            font-size: 13px;
+            color: #20354a;
+        }
+
+        .permission-group-item .group-meta {
+            font-size: 12px;
+            color: #567089;
+        }
+
+        .permission-group-form {
+            display: grid;
+            gap: 10px;
+        }
+
+        .permission-group-checkbox {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #2c455e;
+            font-weight: 600;
+        }
+
+        .permission-grid {
+            display: grid;
+            gap: 10px;
+        }
+
+        .permission-screen-card {
+            border: 1px solid #e6edf6;
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 10px 12px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .permission-screen-title {
+            margin: 0;
+            font-size: 14px;
+            color: #264059;
+            font-weight: 700;
+        }
+
+        .permission-options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+            gap: 8px;
+        }
+
+        .permission-option {
+            border: none;
+            background: #ffffff;
+            border-radius: 999px;
+            padding: 7px 10px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            width: 100%;
+            min-height: 40px;
+            color: #2f495f;
+            font-size: 13px;
+            transition: border-color .15s ease, background-color .15s ease;
+        }
+
+        .permission-option:hover {
+            background: #f9fbfe;
+        }
+
+        .permission-save-highlight {
+            animation: permission-save-pop 450ms ease-out;
+        }
+
+        @keyframes permission-save-pop {
+            0% { transform: scale(1); box-shadow: 0 0 0 rgba(47,142,229,0); }
+            45% { transform: scale(1.03); box-shadow: 0 0 0 8px rgba(47,142,229,0.16); }
+            100% { transform: scale(1); box-shadow: 0 0 0 rgba(47,142,229,0); }
+        }
+
         @media (max-width: 960px) {
             .settings-page {
                 grid-template-columns: 1fr;
@@ -247,17 +373,23 @@
         <div class="content">
             <div class="header">
                 <div class="project-title">
-                    <h2>Configuracoes</h2>
+                    <h2>Configurações</h2>
                 </div>
             </div>
 
             <div class="settings-page">
-                <aside class="settings-tabs" role="tablist" aria-label="Tipos de configuracao">
+                <aside class="settings-tabs" role="tablist" aria-label="Tipos de configuração">
                     <button class="settings-tab-btn" id="settingsTabGeneral" data-tab="general" role="tab" aria-selected="false">
                         <i class="fas fa-sliders-h"></i> Geral
                     </button>
+                    <button class="settings-tab-btn" id="settingsTabPermissions" data-tab="permissions" role="tab" aria-selected="false">
+                        <i class="fas fa-user-shield"></i> Permissões
+                    </button>
+                    <button class="settings-tab-btn" id="settingsTabUsers" data-tab="users" role="tab" aria-selected="false">
+                        <i class="fas fa-users"></i> Usuários
+                    </button>
                     <button class="settings-tab-btn active" id="settingsTabExtension" data-tab="extension" role="tab" aria-selected="true">
-                        <i class="fas fa-puzzle-piece"></i> Extensao
+                        <i class="fas fa-puzzle-piece"></i> Extensão
                     </button>
                     <button class="settings-tab-btn" id="settingsTabTable" data-tab="table" role="tab" aria-selected="false">
                         <i class="fas fa-table"></i> Tabela
@@ -272,7 +404,7 @@
                                 <button class="settings-card-toggle" type="button" data-card-toggle="card-general-project-name" aria-expanded="true">Esconder</button>
                             </div>
                             <div class="settings-card-body" id="card-general-project-name">
-                                <p>Defina o nome exibido no menu lateral, abaixo do bloco de usuario.</p>
+                                <p>Defina o nome exibido no menu lateral, abaixo do bloco de usuário.</p>
 
                                 <div class="table-column-width-item">
                                     <label for="projectDisplayNameInput">Nome do projeto</label>
@@ -284,7 +416,7 @@
                                         <i class="fas fa-save"></i> Salvar nome do projeto
                                     </button>
                                     <button class="btn btn-secondary" id="resetProjectDisplayNameBtn">
-                                        <i class="fas fa-undo"></i> Restaurar padrao
+                                        <i class="fas fa-undo"></i> Restaurar padrão
                                     </button>
                                 </div>
 
@@ -293,21 +425,128 @@
                         </section>
                     </section>
 
+                    <section class="settings-tab-panel" id="settingsPanelPermissions" data-panel="permissions" role="tabpanel">
+                        <section class="settings-card">
+                            <div class="settings-card-header">
+                                <h3>Permissões</h3>
+                                <button class="settings-card-toggle" type="button" data-card-toggle="card-permissions-groups" aria-expanded="true">Esconder</button>
+                            </div>
+                            <div class="settings-card-body" id="card-permissions-groups">
+                                <p>Crie grupos para definir o que cada perfil pode acessar e executar no sistema.</p>
+
+                                <div class="permission-groups-layout">
+                                    <div>
+                                        <div id="permissionGroupsList" class="permission-groups-list"></div>
+                                        <p class="status-hint" id="permissionGroupsStatus" aria-live="polite"></p>
+                                    </div>
+
+                                    <form id="permissionGroupForm" class="permission-group-form">
+                                        <div class="table-column-width-item">
+                                            <label for="permissionGroupNameInput">Nome do grupo</label>
+                                            <input id="permissionGroupNameInput" type="text" maxlength="80" placeholder="Ex: Operação">
+                                        </div>
+                                        <div class="table-column-width-item">
+                                            <label for="permissionGroupDescriptionInput">Descrição</label>
+                                            <input id="permissionGroupDescriptionInput" type="text" maxlength="160" placeholder="Ex: Equipe que movimenta tarefas e clientes">
+                                        </div>
+                                        <label class="permission-group-checkbox" for="permissionGroupActiveInput">
+                                            <input id="permissionGroupActiveInput" type="checkbox" checked>
+                                            Grupo ativo
+                                        </label>
+
+                                        <div class="settings-actions">
+                                            <button class="btn btn-secondary" id="newPermissionGroupBtn" type="button">
+                                                <i class="fas fa-plus"></i> Novo grupo
+                                            </button>
+                                            <button class="btn btn-primary" id="savePermissionGroupBtn" type="button">
+                                                <i class="fas fa-save"></i> Salvar grupo
+                                            </button>
+                                            <button class="btn btn-secondary" id="deletePermissionGroupBtn" type="button">
+                                                <i class="fas fa-trash"></i> Excluir grupo
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="settings-card">
+                            <div class="settings-card-header">
+                                <h3>Matriz de permissões por tela</h3>
+                                <button class="settings-card-toggle" type="button" data-card-toggle="card-permissions-matrix" aria-expanded="true">Esconder</button>
+                            </div>
+                            <div class="settings-card-body" id="card-permissions-matrix">
+                                <p>Selecione as ações permitidas para o grupo selecionado.</p>
+
+                                <div class="settings-actions">
+                                    <button class="btn btn-secondary" id="markAllPermissionsBtn" type="button">
+                                        <i class="fas fa-check-double"></i> Marcar tudo
+                                    </button>
+                                    <button class="btn btn-secondary" id="clearAllPermissionsBtn" type="button">
+                                        <i class="fas fa-eraser"></i> Limpar tudo
+                                    </button>
+                                    <button class="btn btn-primary" id="savePermissionsMatrixBtn" type="button">
+                                        <i class="fas fa-save"></i> Salvar permissões
+                                    </button>
+                                </div>
+
+                                <div id="permissionMatrixGrid" class="permission-grid"></div>
+                                <p class="status-hint" id="permissionMatrixStatus" aria-live="polite"></p>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section class="settings-tab-panel" id="settingsPanelUsers" data-panel="users" role="tabpanel">
+                        <section class="settings-card">
+                            <div class="users-view">
+                                <div class="users-header">
+                                    <h3>Gerenciamento de Usuários</h3>
+                                    <button class="btn-add-user" id="addUserBtn">
+                                        <i class="fas fa-plus"></i> Novo Usuário
+                                    </button>
+                                </div>
+
+                                <div id="usersTableContainer">
+                                    <table class="users-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Nome</th>
+                                                <th>E-mail</th>
+                                                <th>Grupo de permissão</th>
+                                                <th>Status</th>
+                                                <th>Último Acesso</th>
+                                                <th>Criado em</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="usersTableBody">
+                                            <tr>
+                                                <td colspan="7" class="loading-users">
+                                                    <i class="fas fa-spinner fa-spin"></i> Carregando usuários...
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </section>
+                    </section>
+
                     <section class="settings-tab-panel active" id="settingsPanelExtension" data-panel="extension" role="tabpanel">
                         <section class="settings-card">
                             <div class="settings-card-header">
-                                <h3>Extensao Chrome (modo post-it)</h3>
+                                <h3>Extensão Chrome (modo post-it)</h3>
                                 <button class="settings-card-toggle" type="button" data-card-toggle="card-extension" aria-expanded="true">Esconder</button>
                             </div>
                             <div class="settings-card-body" id="card-extension">
-                                <p>Instalacao manual assistida para usar o Pharus na barra lateral do navegador.</p>
+                                <p>Instalação manual assistida para usar o Pharus na barra lateral do navegador.</p>
 
                                 <ol class="extension-steps">
                                     <li>Abra <strong>chrome://extensions</strong> no Google Chrome.</li>
                                     <li>Ative o botao <strong>Modo do desenvolvedor</strong> no canto superior direito.</li>
-                                    <li>Clique em <strong>Carregar sem compactacao</strong>.</li>
+                                    <li>Clique em <strong>Carregar sem compactação</strong>.</li>
                                     <li>Selecione a pasta <strong>chrome-extension</strong> do projeto Pharus.</li>
-                                    <li>Clique no icone da extensao para abrir o painel lateral.</li>
+                                    <li>Clique no ícone da extensão para abrir o painel lateral.</li>
                                 </ol>
 
                                 <div class="path-box" id="extensionFolderPath">Pharus\chrome-extension</div>
@@ -325,7 +564,7 @@
                                 </div>
 
                                 <p class="status-hint" id="extensionInstallHint">
-                                    Dica: se o Chrome bloquear o botao de abertura, copie o link e cole na barra de endereco.
+                                    Dica: se o Chrome bloquear o botão de abertura, copie o link e cole na barra de endereço.
                                 </p>
                             </div>
                         </section>
@@ -347,7 +586,7 @@
                                         <i class="fas fa-save"></i> Salvar ordem das colunas
                                     </button>
                                     <button class="btn btn-secondary" id="resetTableColumnsOrderBtn">
-                                        <i class="fas fa-undo"></i> Restaurar padrao
+                                        <i class="fas fa-undo"></i> Restaurar padrão
                                     </button>
                                 </div>
 
@@ -370,7 +609,7 @@
                                         <i class="fas fa-save"></i> Salvar largura das colunas
                                     </button>
                                     <button class="btn btn-secondary" id="resetTableColumnsWidthBtn">
-                                        <i class="fas fa-undo"></i> Restaurar largura padrao
+                                        <i class="fas fa-undo"></i> Restaurar largura padrão
                                     </button>
                                 </div>
 
@@ -383,6 +622,111 @@
         </div>
     </div>
 
+    <div class="modal-overlay user-modal" id="userModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="userModalTitle">Novo Usuário</h3>
+                <button class="modal-close" id="closeUserModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm" class="user-form">
+                    <input type="hidden" id="userId">
+                    <div class="form-row">
+                        <div class="form-group avatar-form-group">
+                            <label>Avatar</label>
+                            <div class="user-avatar-config">
+                                <div class="user-avatar-preview" id="userAvatarPreview">U</div>
+                                <div class="user-avatar-controls">
+                                    <div class="user-avatar-control-row">
+                                        <label for="userAvatarColor">Cor</label>
+                                        <select id="userAvatarColor" class="form-control">
+                                            <option value="#3498db">Azul</option>
+                                            <option value="#4f46e5">Índigo</option>
+                                            <option value="#16a34a">Verde</option>
+                                            <option value="#f59e0b">Laranja</option>
+                                            <option value="#ef4444">Vermelho</option>
+                                            <option value="#0ea5e9">Ciano</option>
+                                            <option value="#a855f7">Roxo</option>
+                                            <option value="#334155">Grafite</option>
+                                        </select>
+                                    </div>
+                                    <div class="user-avatar-control-row">
+                                        <label for="userAvatarIcon">Ícone</label>
+                                        <select id="userAvatarIcon" class="form-control">
+                                            <option value="">Iniciais do nome</option>
+                                            <option value="user">Usuário</option>
+                                            <option value="user-tie">Executivo</option>
+                                            <option value="headset">Suporte</option>
+                                            <option value="code">Dev</option>
+                                            <option value="wrench">Técnico</option>
+                                            <option value="briefcase">Negócios</option>
+                                            <option value="star">Estrela</option>
+                                            <option value="bolt">Raio</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="userName">Nome Completo *</label>
+                            <input type="text" id="userName" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="userEmail">E-mail *</label>
+                            <input type="email" id="userEmail" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="userPermissionGroup">Grupo de permissão</label>
+                            <select id="userPermissionGroup" class="form-control">
+                                <option value="">Sem grupo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="userStatus">Status *</label>
+                            <select id="userStatus" class="form-control" required>
+                                <option value="active">Ativo</option>
+                                <option value="inactive">Inativo</option>
+                                <option value="pending">Pendente</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="userPassword">Senha</label>
+                            <input type="password" id="userPassword" class="form-control"
+                                autocomplete="new-password" minlength="6">
+                            <small class="form-text">Deixe em branco para não alterar</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="userConfirmPassword">Confirmar Senha</label>
+                            <input type="password" id="userConfirmPassword" class="form-control"
+                                autocomplete="new-password">
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                        <button type="button" class="btn btn-danger" id="deleteUser" style="display: none;">Excluir</button>
+                        <button type="button" class="btn btn-secondary" id="cancelUser">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="globalLoading" class="loading-overlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+        </div>
+        <span>Carregando...</span>
+    </div>
+
     <script src="scripts/local-supabase-client.js"></script>
     <script src="scripts/supabase-config.js"></script>
     <script src="scripts/auth.js"></script>
@@ -392,7 +736,14 @@
     <script src="scripts/profile-modal.js"></script>
     <script src="scripts/chat.js"></script>
     <script src="scripts/settings.js"></script>
+    <script src="scripts/settings-permissions.js"></script>
+    <script src="scripts/users.js"></script>
 </body>
 </html>
+
+
+
+
+
 
 

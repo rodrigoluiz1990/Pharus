@@ -31,7 +31,7 @@
     gap: 15px;
 }
 
-/* TÍTULO DO PROJETO */
+/* T?TULO DO PROJETO */
 .project-title {
     display: flex;
     align-items: center;
@@ -46,7 +46,7 @@
     font-weight: 600;
 }
 
-/* BOTÕES DE AÇÃO */
+/* BOT?ES DE A??O */
 .project-actions {
     display: flex;
     gap: 6px;
@@ -299,7 +299,7 @@
     color: #383d41;
 }
 
-/* Ajustes para o layout da meta informação */
+/* Ajustes para o layout da meta informa??o */
 .task-meta {
     display: flex;
     justify-content: space-between;
@@ -337,7 +337,7 @@
 }
 
 /* ================================================== */
-/* === VISUALIZAÇÃO SOCÍUS (TABELA) === */
+/* === VISUALIZA??O SOC?US (TABELA) === */
 /* ================================================== */
 
 .socious-view {
@@ -469,7 +469,7 @@
     font-size: 14px;
 }
 
-/* Coluna de tarefa com mais espaço */
+/* Coluna de tarefa com mais espa?o */
 .socious-table td[data-col="title"] {
     text-align: left;
     min-width: 250px;
@@ -518,7 +518,7 @@
     color: #4338ca;
 }
 
-/* Coluna de responsável */
+/* Coluna de respons?vel */
 .socious-table td[data-col="assignee"] {
     text-align: center;
     min-width: 200px;
@@ -543,7 +543,7 @@
     width: 56px;
 }
 
-/* Ação centralizada */
+/* A??o centralizada */
 .socious-table td[data-col="actions"] {
     padding: 10px 5px;
     width: 80px;
@@ -564,7 +564,7 @@
 
 /* Indicador visual para datas vencidas */
 .socious-table td[data-vencida="true"]::before {
-    content: "⚠️";
+    content: "??";
     margin-right: 4px;
     font-size: 14px;
 }
@@ -770,7 +770,7 @@
 }
 
 /* ================================================== */
-/* === BOTÃO DE EDIÇÃO NAS TAREFAS === */
+/* === BOT?O DE EDI??O NAS TAREFAS === */
 /* ================================================== */
 
 .task-edit-btn {
@@ -870,7 +870,7 @@
     font-weight: 500;
 }
 
-/* Loading states para elementos específicos */
+/* Loading states para elementos espec?ficos */
 .loading {
     opacity: 0.7;
     pointer-events: none;
