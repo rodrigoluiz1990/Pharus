@@ -74,10 +74,13 @@
                     <input type="hidden" id="agendaEventId">
 
                     <div class="form-row">
-                        <div class="form-group">
+                        <div class="form-group full-row">
                             <label for="agendaEventTitle">Titulo *</label>
                             <input type="text" id="agendaEventTitle" class="form-control" required>
                         </div>
+                    </div>
+
+                    <div class="form-row">
                         <div class="form-group">
                             <label for="agendaEventType">Tipo</label>
                             <select id="agendaEventType" class="form-control">
@@ -85,20 +88,6 @@
                                 <option value="task">Tarefa</option>
                             </select>
                         </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="agendaEventStartAt">Inicio *</label>
-                            <input type="datetime-local" id="agendaEventStartAt" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="agendaEventEndAt">Fim</label>
-                            <input type="datetime-local" id="agendaEventEndAt" class="form-control">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
                         <div class="form-group">
                             <label for="agendaEventStatus">Status</label>
                             <select id="agendaEventStatus" class="form-control">
@@ -107,11 +96,41 @@
                                 <option value="cancelled">Cancelado</option>
                             </select>
                         </div>
-                        <div class="form-group">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" id="agendaEventStartGroup">
+                            <label for="agendaEventStartAt" id="agendaEventStartLabel">Inicio *</label>
+                            <input type="datetime-local" id="agendaEventStartAt" class="form-control" required>
+                        </div>
+                        <div class="form-group" id="agendaEventEndGroup">
+                            <label for="agendaEventEndAt" id="agendaEventEndLabel">Fim</label>
+                            <input type="datetime-local" id="agendaEventEndAt" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group full-row">
                             <label class="agenda-checkbox" for="agendaEventAllDay">
                                 <input type="checkbox" id="agendaEventAllDay">
                                 Dia inteiro
                             </label>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="agendaEventRepeatType">Repetir</label>
+                            <select id="agendaEventRepeatType" class="form-control">
+                                <option value="none">Nao repetir</option>
+                                <option value="daily">Diariamente</option>
+                                <option value="weekly">Semanalmente</option>
+                                <option value="monthly">Mensalmente</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="agendaEventRepeatCount">Quantidade</label>
+                            <input type="number" id="agendaEventRepeatCount" class="form-control" min="2" max="60" value="2">
                         </div>
                     </div>
 

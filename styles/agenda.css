@@ -322,13 +322,43 @@
 
 #agendaEventForm {
     display: grid;
-    gap: 10px;
+    gap: 6px;
+}
+
+#agendaEventModal .modal {
+    max-width: 540px;
 }
 
 #agendaEventForm .form-row {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 8px;
+}
+
+#agendaEventForm .form-group.full-row {
+    grid-column: 1 / -1;
+}
+
+#agendaEventForm .form-group {
+    margin-bottom: 0;
+}
+
+#agendaEventForm .form-group label {
+    margin-top: 0;
+    margin-bottom: 4px;
+}
+
+#agendaEventForm .form-control {
+    padding: 8px 10px;
+}
+
+#agendaEventStartAt[type="date"] {
+    max-width: 100%;
+}
+
+#agendaEventForm .form-actions {
+    margin-top: 12px;
+    padding-top: 12px;
 }
 
 .agenda-checkbox {

@@ -5,6 +5,7 @@ const ChatModule = (() => {
     let currentUser = null;
     let unreadMessages = new Map();
     let isInitialized = false;
+    let isInitializing = false;
     let conversationRefreshInterval = null;
     let contactsRefreshInterval = null;
     let lastMessagesSnapshot = new Map();
@@ -43,9 +44,10 @@ const ChatModule = (() => {
     };
 
     const initChatModule = async () => {
-        if (isInitialized) {
+        if (isInitialized || isInitializing) {
             return;
         }
+        isInitializing = true;
 
         try {
             await createChatInterface();
@@ -60,6 +62,8 @@ const ChatModule = (() => {
             console.log('MÃ³dulo de chat inicializado com sucesso');
         } catch (error) {
             console.error('Erro ao inicializar mÃ³dulo de chat:', error);
+        } finally {
+            isInitializing = false;
         }
     };
 
@@ -246,15 +250,24 @@ const ChatModule = (() => {
 
     const setupEventListeners = () => {
         if (elements.chatToggle) {
-            elements.chatToggle.addEventListener('click', toggleChat);
+            if (!elements.chatToggle.dataset.boundToggle) {
+                elements.chatToggle.addEventListener('click', toggleChat);
+                elements.chatToggle.dataset.boundToggle = 'true';
+            }
         }
         
         if (elements.closeChat) {
-            elements.closeChat.addEventListener('click', closeChat);
+            if (!elements.closeChat.dataset.boundClose) {
+                elements.closeChat.addEventListener('click', closeChat);
+                elements.closeChat.dataset.boundClose = 'true';
+            }
         }
         
         if (elements.sendButton) {
-            elements.sendButton.addEventListener('click', sendMessage);
+            if (!elements.sendButton.dataset.boundSend) {
+                elements.sendButton.addEventListener('click', sendMessage);
+                elements.sendButton.dataset.boundSend = 'true';
+            }
         }
         
         if (elements.messageInput) {
@@ -268,26 +281,44 @@ const ChatModule = (() => {
         }
         
         if (elements.backToContacts) {
-            elements.backToContacts.addEventListener('click', showContacts);
+            if (!elements.backToContacts.dataset.boundBack) {
+                elements.backToContacts.addEventListener('click', showContacts);
+                elements.backToContacts.dataset.boundBack = 'true';
+            }
         }
 
         if (elements.attachFileBtn) {
-            elements.attachFileBtn.addEventListener('click', handleAttachmentButtonClick);
+            if (!elements.attachFileBtn.dataset.boundAttach) {
+                elements.attachFileBtn.addEventListener('click', handleAttachmentButtonClick);
+                elements.attachFileBtn.dataset.boundAttach = 'true';
+            }
         }
 
         if (elements.chatAttachmentInput) {
-            elements.chatAttachmentInput.addEventListener('change', handleAttachmentSelected);
+            if (!elements.chatAttachmentInput.dataset.boundAttachmentInput) {
+                elements.chatAttachmentInput.addEventListener('change', handleAttachmentSelected);
+                elements.chatAttachmentInput.dataset.boundAttachmentInput = 'true';
+            }
         }
 
         if (elements.emojiBtn) {
-            elements.emojiBtn.addEventListener('click', toggleEmojiPicker);
+            if (!elements.emojiBtn.dataset.boundEmoji) {
+                elements.emojiBtn.addEventListener('click', toggleEmojiPicker);
+                elements.emojiBtn.dataset.boundEmoji = 'true';
+            }
         }
         
         if (elements.chatSearch) {
-            elements.chatSearch.addEventListener('input', filterContacts);
+            if (!elements.chatSearch.dataset.boundSearch) {
+                elements.chatSearch.addEventListener('input', filterContacts);
+                elements.chatSearch.dataset.boundSearch = 'true';
+            }
         }
-
-        document.addEventListener('click', handleDocumentClickForEmojiPicker);
+        
+        if (!document.body.dataset.chatEmojiBound) {
+            document.addEventListener('click', handleDocumentClickForEmojiPicker);
+            document.body.dataset.chatEmojiBound = 'true';
+        }
 
         buildEmojiPicker();
 

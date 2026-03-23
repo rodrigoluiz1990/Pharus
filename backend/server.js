@@ -156,6 +156,11 @@ const TABLE_COLUMNS = {
   ],
 };
 
+const TABLE_JSON_COLUMNS = {
+  app_users: new Set(['raw_user_meta_data']),
+  clients: new Set(['remote_connections']),
+};
+
 const MUTABLE_TABLES = new Set([
   'app_users',
   'columns',
@@ -225,6 +230,18 @@ function buildWhere(filters, orExpr, values, table) {
 
 function formatError(error) {
   return { message: error?.message || 'Erro interno no servidor' };
+}
+
+function isJsonColumn(table, column) {
+  const jsonColumns = TABLE_JSON_COLUMNS[table];
+  return Boolean(jsonColumns && jsonColumns.has(column));
+}
+
+function normalizeWriteValue(table, column, value) {
+  if (!isJsonColumn(table, column)) return value;
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string') return value;
+  return JSON.stringify(value);
 }
 
 function ensureChatUploadDir() {
@@ -583,8 +600,8 @@ app.post('/api/db/query', async (req, res) => {
       const valuesPlaceholders = rows
         .map((row) => {
           const placeholders = keys.map((k) => {
-            values.push(row[k]);
-            return `$${values.length}`;
+            values.push(normalizeWriteValue(table, k, row[k]));
+            return isJsonColumn(table, k) ? `$${values.length}::jsonb` : `$${values.length}`;
           });
           return `(${placeholders.join(', ')})`;
         })
@@ -607,8 +624,10 @@ app.post('/api/db/query', async (req, res) => {
 
       const values = [];
       const sets = keys.map((k) => {
-        values.push(payload[k]);
-        return `${k} = $${values.length}`;
+        values.push(normalizeWriteValue(table, k, payload[k]));
+        return isJsonColumn(table, k)
+          ? `${k} = $${values.length}::jsonb`
+          : `${k} = $${values.length}`;
       });
 
       const whereSql = buildWhere(filters, or, values, table);

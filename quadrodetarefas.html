@@ -37,6 +37,11 @@
                         <i class="fas fa-sort"></i>
                         <span class="btn-label">Ordenar</span>
                     </button>
+                    <button class="action-btn" id="importTasksBtn" type="button">
+                        <i class="fas fa-file-import"></i>
+                        <span class="btn-label">Importar</span>
+                    </button>
+                    <input type="file" id="tasksImportInput" accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;">
                 </div>
             </div>
 
@@ -390,6 +395,33 @@
                             <button type="button" class="btn btn-secondary" id="cancelSort">Cancelar</button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Importacao -->
+        <div class="modal-overlay" id="importTasksModal" style="display: none;">
+            <div class="modal" style="max-width: 560px;">
+                <div class="modal-header">
+                    <h3>Importar Tarefas em Lote</h3>
+                    <button class="modal-close" id="closeImportTasksModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <p>Use uma planilha CSV, XLSX ou XLS para cadastrar varias tarefas de uma vez.</p>
+                        <ul style="margin: 8px 0 0 18px; color: #4b6078;">
+                            <li>A primeira linha deve conter os cabecalhos das colunas.</li>
+                            <li>Campo obrigatorio: <strong>titulo</strong>.</li>
+                            <li>Campos aceitos: titulo, descricao, status, prioridade, responsavel, data_solicitacao, data_entrega, observacao, jira, cliente, tipo, postit, ordem_postit.</li>
+                            <li>Status aceitos: pendente, em andamento, em teste, concluido.</li>
+                        </ul>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-primary" id="startImportTasksBtn">
+                            <i class="fas fa-play"></i> Iniciar importacao
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="cancelImportTasksBtn">Cancelar</button>
+                    </div>
                 </div>
             </div>
         </div>

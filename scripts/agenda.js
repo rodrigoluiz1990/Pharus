@@ -24,8 +24,14 @@
     const typeEl = document.getElementById('agendaEventType');
     const startAtEl = document.getElementById('agendaEventStartAt');
     const endAtEl = document.getElementById('agendaEventEndAt');
+    const startAtLabelEl = document.getElementById('agendaEventStartLabel');
+    const endAtLabelEl = document.getElementById('agendaEventEndLabel');
+    const startAtGroupEl = document.getElementById('agendaEventStartGroup');
+    const endAtGroupEl = document.getElementById('agendaEventEndGroup');
     const statusEl = document.getElementById('agendaEventStatus');
     const allDayEl = document.getElementById('agendaEventAllDay');
+    const repeatTypeEl = document.getElementById('agendaEventRepeatType');
+    const repeatCountEl = document.getElementById('agendaEventRepeatCount');
     const descriptionEl = document.getElementById('agendaEventDescription');
 
     const WEEKDAY_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
@@ -39,6 +45,8 @@
     let isInitialized = false;
     let useLocalFallback = false;
     let fallbackNotified = false;
+    let lastTimedStartValue = '';
+    let lastTimedEndValue = '';
 
     const notify = (message, type = 'info') => {
         if (window.UtilsModule && typeof window.UtilsModule.showNotification === 'function') {
@@ -436,6 +444,12 @@
         typeEl.value = 'event';
         statusEl.value = 'pending';
         allDayEl.checked = false;
+        if (repeatTypeEl) repeatTypeEl.value = 'none';
+        if (repeatCountEl) repeatCountEl.value = '2';
+        syncRepeatFields();
+        lastTimedStartValue = '';
+        lastTimedEndValue = '';
+        applyAllDayMode(false);
         deleteBtn.style.display = 'none';
     };
 
@@ -447,11 +461,62 @@
         return adjusted.toISOString().slice(0, 16);
     };
 
+    const toInputDate = (isoDate) => {
+        if (!isoDate) return '';
+        const date = new Date(isoDate);
+        if (Number.isNaN(date.getTime())) return '';
+        const adjusted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        return adjusted.toISOString().slice(0, 10);
+    };
+
     const toIsoFromInput = (value) => {
         if (!value) return null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+            const [year, month, day] = value.split('-').map(Number);
+            const localDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+            return localDate.toISOString();
+        }
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return null;
         return date.toISOString();
+    };
+
+    const applyAllDayMode = (enabled) => {
+        if (!startAtEl || !endAtEl) return;
+
+        if (enabled) {
+            if (startAtEl.type === 'datetime-local') {
+                lastTimedStartValue = startAtEl.value || '';
+            }
+            if (endAtEl.type === 'datetime-local') {
+                lastTimedEndValue = endAtEl.value || '';
+            }
+
+            const currentDate = /^\d{4}-\d{2}-\d{2}/.test(startAtEl.value || '')
+                ? String(startAtEl.value).slice(0, 10)
+                : toInputDate(new Date().toISOString());
+
+            startAtEl.type = 'date';
+            startAtEl.value = currentDate;
+            startAtEl.required = true;
+            if (startAtLabelEl) startAtLabelEl.textContent = 'Data *';
+            if (endAtLabelEl) endAtLabelEl.textContent = 'Fim';
+            if (endAtGroupEl) endAtGroupEl.style.display = 'none';
+            return;
+        }
+
+        const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(startAtEl.value || '')
+            ? startAtEl.value
+            : '';
+
+        startAtEl.type = 'datetime-local';
+        startAtEl.required = true;
+        if (startAtLabelEl) startAtLabelEl.textContent = 'Inicio *';
+        startAtEl.value = lastTimedStartValue || (selectedDate ? `${selectedDate}T09:00` : '');
+
+        endAtEl.type = 'datetime-local';
+        if (endAtGroupEl) endAtGroupEl.style.display = '';
+        endAtEl.value = lastTimedEndValue || (selectedDate ? `${selectedDate}T10:00` : '');
     };
 
     const fillFormForNew = (date) => {
@@ -465,6 +530,8 @@
 
         startAtEl.value = toInputDateTime(base.toISOString());
         endAtEl.value = toInputDateTime(end.toISOString());
+        lastTimedStartValue = startAtEl.value;
+        lastTimedEndValue = endAtEl.value;
     };
 
     const fillFormForEdit = (event) => {
@@ -473,10 +540,16 @@
         modalTitleEl.textContent = 'Editar item da agenda';
         titleEl.value = event.title || '';
         typeEl.value = event.event_type || 'event';
-        startAtEl.value = toInputDateTime(event.start_at);
-        endAtEl.value = toInputDateTime(event.end_at);
+        lastTimedStartValue = toInputDateTime(event.start_at);
+        lastTimedEndValue = toInputDateTime(event.end_at);
+        startAtEl.value = lastTimedStartValue;
+        endAtEl.value = lastTimedEndValue;
         statusEl.value = event.status || 'pending';
         allDayEl.checked = Boolean(event.is_all_day);
+        applyAllDayMode(Boolean(event.is_all_day));
+        if (allDayEl.checked) {
+            startAtEl.value = toInputDate(event.start_at);
+        }
         descriptionEl.value = event.description || '';
         deleteBtn.style.display = 'inline-flex';
     };
@@ -512,13 +585,9 @@
             if (allDayStart) {
                 allDayStart.setHours(0, 0, 0, 0);
                 startIso = allDayStart.toISOString();
-                if (endIso) {
-                    const allDayEnd = parseDateSafe(endIso);
-                    if (allDayEnd) {
-                        allDayEnd.setHours(23, 59, 0, 0);
-                        endIso = allDayEnd.toISOString();
-                    }
-                }
+                const allDayEnd = new Date(allDayStart);
+                allDayEnd.setHours(23, 59, 0, 0);
+                endIso = allDayEnd.toISOString();
             }
         }
 
@@ -535,6 +604,12 @@
             userId = null;
         }
 
+        const repeatType = repeatTypeEl ? String(repeatTypeEl.value || 'none') : 'none';
+        const repeatCountRaw = repeatCountEl ? Number(repeatCountEl.value) : 1;
+        const repeatCount = Number.isFinite(repeatCountRaw)
+            ? Math.max(2, Math.min(60, Math.trunc(repeatCountRaw)))
+            : 2;
+
         return {
             title,
             description: String(descriptionEl.value || '').trim() || null,
@@ -545,7 +620,64 @@
             is_all_day: Boolean(allDayEl.checked),
             created_by: userId,
             updated_at: new Date().toISOString(),
+            repeat_type: ['none', 'daily', 'weekly', 'monthly'].includes(repeatType) ? repeatType : 'none',
+            repeat_count: repeatCount,
         };
+    };
+
+    const shiftDateByFrequency = (date, repeatType, index) => {
+        const next = new Date(date);
+        if (repeatType === 'daily') {
+            next.setDate(next.getDate() + index);
+            return next;
+        }
+        if (repeatType === 'weekly') {
+            next.setDate(next.getDate() + (index * 7));
+            return next;
+        }
+        if (repeatType === 'monthly') {
+            next.setMonth(next.getMonth() + index);
+            return next;
+        }
+        return next;
+    };
+
+    const buildRecurringPayloads = (basePayload) => {
+        const repeatType = String(basePayload.repeat_type || 'none');
+        const repeatCount = Number(basePayload.repeat_count || 1);
+
+        const cleanBase = { ...basePayload };
+        delete cleanBase.repeat_type;
+        delete cleanBase.repeat_count;
+
+        if (repeatType === 'none' || repeatCount < 2) {
+            return [cleanBase];
+        }
+
+        const startBase = parseDateSafe(basePayload.start_at);
+        const endBase = parseDateSafe(basePayload.end_at || basePayload.start_at);
+        if (!startBase || !endBase) {
+            return [cleanBase];
+        }
+
+        const payloads = [];
+        for (let i = 0; i < repeatCount; i += 1) {
+            const shiftedStart = shiftDateByFrequency(startBase, repeatType, i);
+            const shiftedEnd = shiftDateByFrequency(endBase, repeatType, i);
+            payloads.push({
+                ...cleanBase,
+                start_at: shiftedStart.toISOString(),
+                end_at: shiftedEnd.toISOString(),
+            });
+        }
+
+        return payloads;
+    };
+
+    const syncRepeatFields = () => {
+        if (!repeatTypeEl || !repeatCountEl) return;
+        const disabled = String(repeatTypeEl.value || 'none') === 'none';
+        repeatCountEl.disabled = disabled;
     };
 
     const insertLocal = (payload) => {
@@ -582,32 +714,52 @@
     const saveEvent = async (ev) => {
         ev.preventDefault();
 
-        const payload = await getPayloadFromForm();
-        if (!payload) return;
+        const payloadWithRepeat = await getPayloadFromForm();
+        if (!payloadWithRepeat) return;
 
         const eventId = idEl.value;
 
         showLoading('Salvando agenda...');
         try {
+            const repeatType = String(payloadWithRepeat.repeat_type || 'none');
+            const repeatCount = Number(payloadWithRepeat.repeat_count || 1);
+
             if (useLocalFallback) {
-                if (eventId) updateLocal(eventId, payload);
-                else insertLocal(payload);
+                if (eventId) {
+                    const updatePayload = { ...payloadWithRepeat };
+                    delete updatePayload.repeat_type;
+                    delete updatePayload.repeat_count;
+                    updateLocal(eventId, updatePayload);
+                } else {
+                    const inserts = buildRecurringPayloads(payloadWithRepeat);
+                    inserts.forEach((item) => insertLocal(item));
+                }
             } else if (eventId) {
+                const updatePayload = { ...payloadWithRepeat };
+                delete updatePayload.repeat_type;
+                delete updatePayload.repeat_count;
                 const { error } = await window.supabaseClient
                     .from('agenda_events')
-                    .update(payload)
+                    .update(updatePayload)
                     .eq('id', eventId);
                 if (error) throw error;
             } else {
-                const insertPayload = { ...payload };
-                delete insertPayload.updated_at;
+                const insertPayloads = buildRecurringPayloads(payloadWithRepeat).map((item) => {
+                    const copy = { ...item };
+                    delete copy.updated_at;
+                    return copy;
+                });
                 const { error } = await window.supabaseClient
                     .from('agenda_events')
-                    .insert([insertPayload]);
+                    .insert(insertPayloads);
                 if (error) throw error;
             }
 
-            notify('Compromisso salvo com sucesso.', 'success');
+            if (!eventId && repeatType !== 'none' && repeatCount > 1) {
+                notify(`Compromissos salvos com repeticao (${repeatCount} ocorrencias).`, 'success');
+            } else {
+                notify('Compromisso salvo com sucesso.', 'success');
+            }
             closeModal();
             await refreshAgenda();
         } catch (error) {
@@ -684,6 +836,14 @@
         if (deleteBtn) deleteBtn.addEventListener('click', () => void deleteEvent());
 
         if (formEl) formEl.addEventListener('submit', (event) => void saveEvent(event));
+        if (allDayEl) {
+            allDayEl.addEventListener('change', () => {
+                applyAllDayMode(Boolean(allDayEl.checked));
+            });
+        }
+        if (repeatTypeEl) {
+            repeatTypeEl.addEventListener('change', syncRepeatFields);
+        }
 
         if (modalEl) {
             modalEl.addEventListener('click', (event) => {
@@ -726,6 +886,7 @@
         isInitialized = true;
 
         attachEvents();
+        syncRepeatFields();
         await refreshAgenda();
     };
 

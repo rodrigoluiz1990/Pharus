@@ -6,6 +6,7 @@ class SidebarManager {
         this.currentTab = this.getCurrentTab();
         this.sidebarElement = document.querySelector('#sidebar-container .sidebar, .sidebar');
         this.bodyElement = document.body;
+        this.isNavigating = false;
         this.collapseStorageKey = 'pharus_sidebar_collapsed';
         this.projectTitleStorageKey = 'pharus_project_display_name';
         this.defaultProjectTitle = 'Pharus';
@@ -55,6 +56,7 @@ class SidebarManager {
         console.log('Inicializando sidebar...');
         console.log('Página atual detectada:', this.currentPage);
 
+        this.setupPageTransition();
         this.setupNavigation();
         this.setupCollapseToggle();
         this.setupViewToggle();
@@ -67,6 +69,25 @@ class SidebarManager {
         this.setupChatMenuItem(); // MOVER para depois do setupNavigation
 
         console.log('Sidebar inicializado com sucesso');
+    }
+
+    setupPageTransition() {
+        if (!this.bodyElement) return;
+        this.bodyElement.classList.remove('page-leaving');
+        this.bodyElement.classList.add('page-ready');
+    }
+
+    navigateWithTransition(targetPage) {
+        if (!targetPage || this.isNavigating) return;
+        this.isNavigating = true;
+
+        if (this.bodyElement) {
+            this.bodyElement.classList.add('page-leaving');
+        }
+
+        window.setTimeout(() => {
+            window.location.href = targetPage;
+        }, 140);
     }
 
     setupCollapseToggle() {
@@ -327,7 +348,7 @@ class SidebarManager {
 
                     if (clickedPage && !this.isMenuTargetActive(clickedPage)) {
                         console.log('Navegando para:', clickedPage);
-                        window.location.href = clickedPage;
+                        this.navigateWithTransition(clickedPage);
                     }
                 });
             }

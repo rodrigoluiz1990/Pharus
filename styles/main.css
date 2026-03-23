@@ -31,6 +31,17 @@ body {
     overflow-x: auto;
 }
 
+body.page-ready .content {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+body.page-leaving .content {
+    opacity: 0.92;
+    transform: translateY(0);
+    pointer-events: none;
+}
+
 /* Container Principal */
 .container {
     display: flex;
@@ -43,6 +54,10 @@ body {
     margin-left: 250px;    /* Largura do sidebar */
     display: flex;
     flex-direction: column;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity .14s ease, transform .14s ease;
+    will-change: opacity, transform;
 }
 
 /* Sidebar Melhorado */

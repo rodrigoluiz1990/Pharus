@@ -445,7 +445,9 @@ const ClientsModule = (() => {
 
     const getFormPayload = () => {
         const draftConnection = getRemoteConnectionFormValues();
-        const hasDraft = Boolean(draftConnection.tool || draftConnection.access_id || draftConnection.password || draftConnection.notes);
+        const hasDraftDetails = Boolean(draftConnection.access_id || draftConnection.password || draftConnection.notes);
+        const hasCustomTool = Boolean(draftConnection.tool && String(draftConnection.tool).toLowerCase() !== 'anydesk');
+        const hasDraft = hasDraftDetails || hasCustomTool;
         const mergedConnections = [...remoteConnections];
         if (hasDraft) {
             if (editingRemoteConnectionIndex >= 0 && mergedConnections[editingRemoteConnectionIndex]) {

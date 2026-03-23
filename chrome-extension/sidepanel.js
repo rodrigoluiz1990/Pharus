@@ -20,9 +20,13 @@ const els = {
   statusText: document.getElementById('statusText'),
   tasksList: document.getElementById('tasksList'),
   modeTasksBtn: document.getElementById('modeTasksBtn'),
+  modeNoticesBtn: document.getElementById('modeNoticesBtn'),
   modeDetachedBtn: document.getElementById('modeDetachedBtn'),
   modeChatBtn: document.getElementById('modeChatBtn'),
   focusTasksSection: document.getElementById('focusTasksSection'),
+  noticesSection: document.getElementById('noticesSection'),
+  noticesStatusText: document.getElementById('noticesStatusText'),
+  noticesList: document.getElementById('noticesList'),
   detachedSection: document.getElementById('detachedSection'),
   detachedStatusText: document.getElementById('detachedStatusText'),
   detachedInput: document.getElementById('detachedInput'),
@@ -43,6 +47,10 @@ const normalizeBase = (value) => String(value || '').trim().replace(/\/+$/, '');
 
 function setStatus(text) {
   if (els.statusText) els.statusText.textContent = text;
+}
+
+function setNoticesStatus(text) {
+  if (els.noticesStatusText) els.noticesStatusText.textContent = text;
 }
 
 function escapeHtml(value) {
@@ -103,6 +111,62 @@ function renderTasks(tasks, settings) {
     });
 
     els.tasksList.appendChild(li);
+  });
+}
+
+function isNoticeVisible(notice) {
+  const status = String(notice?.status || '').toLowerCase();
+  if (status && status !== 'active') return false;
+  const visibleUntil = notice?.visible_until;
+  if (!visibleUntil) return true;
+  const endDate = new Date(visibleUntil);
+  if (Number.isNaN(endDate.getTime())) return true;
+  return endDate.getTime() >= Date.now();
+}
+
+function getNoticePriorityLabel(priority) {
+  if (priority === 'high') return 'Alta';
+  if (priority === 'medium') return 'Media';
+  if (priority === 'low') return 'Baixa';
+  return String(priority || '-');
+}
+
+function renderNotices(notices) {
+  if (!els.noticesList) return;
+  els.noticesList.innerHTML = '';
+
+  const safeNotices = Array.isArray(notices) ? notices.filter(isNoticeVisible) : [];
+  if (safeNotices.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'empty';
+    li.textContent = 'Nenhum aviso ativo.';
+    els.noticesList.appendChild(li);
+    return;
+  }
+
+  safeNotices.forEach((notice) => {
+    const li = document.createElement('li');
+    li.className = 'task-item';
+    const priority = String(notice.priority || 'medium');
+    const title = escapeHtml(notice.title || 'Aviso');
+    const content = escapeHtml(notice.content || '');
+    const validUntil = formatDueDate(notice.visible_until);
+
+    li.innerHTML = `
+      <div class="task-title">${title}</div>
+      ${content ? `<div class="notice-content">${content}</div>` : ''}
+      <div class="task-meta">
+        <span class="badge priority-${priority}">${getNoticePriorityLabel(priority)}</span>
+        <span>${validUntil === 'Sem prazo' ? 'Sem prazo' : `Ate ${validUntil}`}</span>
+      </div>
+    `;
+
+    li.addEventListener('click', () => {
+      const settingsNow = getFormSettings();
+      chrome.tabs.create({ url: `${settingsNow.apiBase}/avisos.html` });
+    });
+
+    els.noticesList.appendChild(li);
   });
 }
 
@@ -319,18 +383,23 @@ function closeChatOverlay() {
 }
 
 function setMode(mode, options = {}) {
-  const modeValue = mode === 'chat' ? 'chat' : (mode === 'detached' ? 'detached' : 'tasks');
+  const modeValue = mode === 'chat'
+    ? 'chat'
+    : (mode === 'detached' ? 'detached' : (mode === 'notices' ? 'notices' : 'tasks'));
   const keepStatus = Boolean(options.keepStatus);
   currentMode = modeValue;
 
   els.modeTasksBtn?.classList.toggle('active', modeValue === 'tasks');
+  els.modeNoticesBtn?.classList.toggle('active', modeValue === 'notices');
   els.modeDetachedBtn?.classList.toggle('active', modeValue === 'detached');
   els.modeChatBtn?.classList.toggle('active', modeValue === 'chat');
   els.modeTasksBtn?.setAttribute('aria-selected', modeValue === 'tasks' ? 'true' : 'false');
+  els.modeNoticesBtn?.setAttribute('aria-selected', modeValue === 'notices' ? 'true' : 'false');
   els.modeDetachedBtn?.setAttribute('aria-selected', modeValue === 'detached' ? 'true' : 'false');
   els.modeChatBtn?.setAttribute('aria-selected', modeValue === 'chat' ? 'true' : 'false');
 
   if (els.focusTasksSection) els.focusTasksSection.classList.toggle('hidden', modeValue !== 'tasks');
+  if (els.noticesSection) els.noticesSection.classList.toggle('hidden', modeValue !== 'notices');
   if (els.detachedSection) els.detachedSection.classList.toggle('hidden', modeValue !== 'detached');
 
   if (modeValue === 'chat') {
@@ -345,6 +414,8 @@ function setMode(mode, options = {}) {
   if (!keepStatus) {
     if (modeValue === 'detached') {
       updateDetachedStatus();
+    } else if (modeValue === 'notices') {
+      setNoticesStatus('Visualizacao de avisos ativa.');
     } else {
       setStatus('Visualizacao de tarefas ativa.');
     }
@@ -385,6 +456,47 @@ async function refreshTasks(options = {}) {
   }
 }
 
+async function fetchNotices(settings) {
+  const response = await fetch(`${settings.apiBase}/api/db/query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      table: 'notice_board_posts',
+      action: 'select',
+      select: 'id,title,content,priority,status,visible_until,created_at',
+      order: { column: 'created_at', ascending: false },
+    }),
+  });
+  const payload = await response.json();
+  if (!response.ok || payload.error) {
+    throw new Error(payload?.error?.message || `Erro HTTP ${response.status}`);
+  }
+  return Array.isArray(payload.data) ? payload.data : [];
+}
+
+async function refreshNotices(options = {}) {
+  const { force = false } = options;
+  if (!force && currentMode !== 'notices') return;
+
+  const settings = getFormSettings();
+  setNoticesStatus('Atualizando avisos...');
+
+  try {
+    const notices = await fetchNotices(settings);
+    const activeCount = notices.filter(isNoticeVisible).length;
+    renderNotices(notices);
+    setNoticesStatus(`${activeCount} aviso(s) ativo(s) carregado(s)`);
+  } catch (error) {
+    renderNotices([]);
+    setNoticesStatus(`Falha ao carregar: ${error.message}`);
+  }
+}
+
+function refreshCurrentMode(options = {}) {
+  if (currentMode === 'notices') return refreshNotices(options);
+  return refreshTasks(options);
+}
+
 async function init() {
   await applyProjectTitle();
   const settings = await loadSettings();
@@ -415,7 +527,7 @@ async function init() {
   }
 
   if (els.refreshBtn) {
-    els.refreshBtn.addEventListener('click', () => refreshTasks({ force: true }));
+    els.refreshBtn.addEventListener('click', () => refreshCurrentMode({ force: true }));
   }
 
   if (els.modeTasksBtn) {
@@ -430,6 +542,13 @@ async function init() {
       setMode('detached', { keepStatus: true });
       renderDetachedNotes();
       updateDetachedStatus();
+    });
+  }
+
+  if (els.modeNoticesBtn) {
+    els.modeNoticesBtn.addEventListener('click', () => {
+      setMode('notices', { keepStatus: true });
+      refreshNotices({ force: true });
     });
   }
 
@@ -475,7 +594,7 @@ async function init() {
   setMode('tasks', { keepStatus: true });
   await refreshTasks({ force: true });
   setInterval(() => {
-    refreshTasks();
+    refreshCurrentMode();
   }, 45000);
 }
 

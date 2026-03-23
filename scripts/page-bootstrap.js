@@ -63,7 +63,8 @@ const PageBootstrap = (() => {
             'scripts/filter.js',
             'scripts/sort.js',
             'scripts/table-sort.js',
-            'scripts/board.js'
+            'scripts/board.js',
+            'scripts/task-import.js'
         ]);
 
         if (typeof ModalModule !== 'undefined' && typeof ModalModule.initModal === 'function') {
@@ -80,6 +81,10 @@ const PageBootstrap = (() => {
 
         if (typeof BoardModule !== 'undefined' && typeof BoardModule.initBoard === 'function') {
             await BoardModule.initBoard();
+        }
+
+        if (typeof TaskImportModule !== 'undefined' && typeof TaskImportModule.init === 'function') {
+            TaskImportModule.init();
         }
     };
 
