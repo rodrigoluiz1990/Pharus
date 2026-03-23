@@ -161,6 +161,32 @@ CREATE TABLE IF NOT EXISTS permission_group_rules (
   CONSTRAINT uq_permission_group_rule UNIQUE (group_id, screen_key, option_key)
 );
 
+CREATE TABLE IF NOT EXISTS agenda_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT NULL,
+  event_type TEXT NOT NULL DEFAULT 'event',
+  status TEXT NOT NULL DEFAULT 'pending',
+  start_at TIMESTAMPTZ NOT NULL,
+  end_at TIMESTAMPTZ NULL,
+  is_all_day BOOLEAN NOT NULL DEFAULT FALSE,
+  created_by UUID NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS notice_board_posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  priority TEXT NOT NULL DEFAULT 'medium',
+  status TEXT NOT NULL DEFAULT 'active',
+  visible_until DATE NULL,
+  created_by UUID NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 ALTER TABLE IF EXISTS app_users
   ADD COLUMN IF NOT EXISTS permission_group_id UUID NULL REFERENCES permission_groups(id) ON DELETE SET NULL;
 
@@ -233,6 +259,20 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_permission_groups_updated_at') THEN
     CREATE TRIGGER trg_permission_groups_updated_at
     BEFORE UPDATE ON permission_groups
+    FOR EACH ROW
+    EXECUTE PROCEDURE set_updated_at();
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_agenda_events_updated_at') THEN
+    CREATE TRIGGER trg_agenda_events_updated_at
+    BEFORE UPDATE ON agenda_events
+    FOR EACH ROW
+    EXECUTE PROCEDURE set_updated_at();
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_notice_board_posts_updated_at') THEN
+    CREATE TRIGGER trg_notice_board_posts_updated_at
+    BEFORE UPDATE ON notice_board_posts
     FOR EACH ROW
     EXECUTE PROCEDURE set_updated_at();
   END IF;

@@ -1,0 +1,116 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharus - Quadro de Avisos</title>
+    <link rel="icon" type="image/svg+xml" href="lighthouse-favicon.svg?v=20260321d">
+    <link rel="alternate icon" type="image/png" href="lighthouse-favicon-32.png?v=20260321d">
+    <link rel="shortcut icon" type="image/png" href="lighthouse-favicon-32.png?v=20260321d">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/sidebar.css">
+    <link rel="stylesheet" href="styles/avisos.css">
+</head>
+<body>
+    <div class="container">
+        <div id="sidebar-container"></div>
+
+        <div class="content">
+            <div class="header">
+                <div class="project-title">
+                    <h2>Quadro de Avisos</h2>
+                </div>
+                <div class="project-actions">
+                    <button class="action-btn" id="newNoticeBtn">
+                        <i class="fas fa-plus"></i> Novo aviso
+                    </button>
+                </div>
+            </div>
+
+            <div class="notices-view">
+                <div class="notices-filters">
+                    <input type="text" id="noticeSearchInput" class="form-control" placeholder="Buscar por titulo ou conteudo...">
+                    <select id="noticeStatusFilter" class="form-control">
+                        <option value="active">Ativos</option>
+                        <option value="all">Todos</option>
+                        <option value="archived">Arquivados</option>
+                    </select>
+                </div>
+
+                <div id="noticesList" class="notices-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="noticeModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="noticeModalTitle">Novo aviso</h3>
+                <button class="modal-close" id="closeNoticeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="noticeForm">
+                    <input type="hidden" id="noticeId">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="noticeTitle">Titulo *</label>
+                            <input type="text" id="noticeTitle" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="noticePriority">Prioridade</label>
+                            <select id="noticePriority" class="form-control">
+                                <option value="medium">Media</option>
+                                <option value="high">Alta</option>
+                                <option value="urgent">Urgente</option>
+                                <option value="low">Baixa</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="noticeStatus">Status</label>
+                            <select id="noticeStatus" class="form-control">
+                                <option value="active">Ativo</option>
+                                <option value="archived">Arquivado</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="noticeVisibleUntil">Visivel ate</label>
+                            <input type="date" id="noticeVisibleUntil" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="noticeContent">Conteudo *</label>
+                        <textarea id="noticeContent" class="form-control" rows="5" required></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                        <button type="button" class="btn btn-danger" id="deleteNoticeBtn" style="display:none;">Excluir</button>
+                        <button type="button" class="btn btn-secondary" id="cancelNoticeBtn">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="globalLoading" class="loading-overlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+        </div>
+        <span>Carregando...</span>
+    </div>
+
+    <script src="scripts/local-supabase-client.js"></script>
+    <script src="scripts/supabase-config.js"></script>
+    <script src="scripts/auth.js"></script>
+    <script src="scripts/component-loader.js"></script>
+    <script src="scripts/page-bootstrap.js"></script>
+    <script src="scripts/profile-modal.js"></script>
+    <script src="scripts/chat.js"></script>
+</body>
+</html>

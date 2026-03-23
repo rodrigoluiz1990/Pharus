@@ -16,12 +16,14 @@ const SettingsPermissionsModule = (() => {
 
     const SCREENS = [
         { key: 'dashboard', label: 'Dashboard', options: ['view', 'widgets'] },
+        { key: 'agenda', label: 'Agenda', options: ['view', 'create', 'edit', 'delete', 'complete'] },
+        { key: 'avisos', label: 'Quadro de avisos', options: ['view', 'create', 'edit', 'delete', 'archive'] },
         { key: 'quadro_tarefas', label: 'Quadro de tarefas', options: ['view', 'create', 'edit', 'move', 'delete', 'pin'] },
         { key: 'clientes', label: 'Clientes', options: ['view', 'create', 'edit', 'delete'] },
-        { key: 'usuarios', label: 'Usuários', options: ['view', 'create', 'edit', 'delete', 'chat'] },
+        { key: 'usuarios', label: 'Usuarios', options: ['view', 'create', 'edit', 'delete', 'chat'] },
         { key: 'chat', label: 'Chat', options: ['view', 'send', 'attachment'] },
-        { key: 'relatorios', label: 'Relatórios', options: ['view', 'export'] },
-        { key: 'configuracoes', label: 'Configurações', options: ['view', 'project', 'permissions', 'table'] },
+        { key: 'relatorios', label: 'Relatorios', options: ['view', 'export'] },
+        { key: 'configuracoes', label: 'Configuracoes', options: ['view', 'project', 'permissions', 'table'] },
     ];
 
     const OPTION_LABELS = {
@@ -31,13 +33,15 @@ const SettingsPermissionsModule = (() => {
         edit: 'Editar',
         move: 'Mover',
         delete: 'Excluir',
+        complete: 'Concluir',
         pin: 'Fixar foco',
+        archive: 'Arquivar',
         chat: 'Abrir chat',
         send: 'Enviar mensagem',
         attachment: 'Enviar anexo',
         export: 'Exportar',
         project: 'Editar dados gerais',
-        permissions: 'Gerenciar permissões',
+        permissions: 'Gerenciar permissoes',
         table: 'Editar tabela',
     };
 
@@ -69,7 +73,7 @@ const SettingsPermissionsModule = (() => {
         if (!matrixGridEl) return;
         matrixGridEl.innerHTML = '';
         if (!selectedGroupId) {
-            matrixGridEl.innerHTML = '<div class="status-hint">Selecione ou crie um grupo para editar permissões.</div>';
+            matrixGridEl.innerHTML = '<div class="status-hint">Selecione ou crie um grupo para editar permissoes.</div>';
             return;
         }
 
@@ -145,7 +149,7 @@ const SettingsPermissionsModule = (() => {
             return true;
         } catch (error) {
             schemaOk = false;
-            const msg = 'Permissões indisponíveis. Rode o SQL atualizado (permission_groups e permission_group_rules).';
+            const msg = 'Permissoes indisponiveis. Rode o SQL atualizado (permission_groups e permission_group_rules).';
             setStatus(groupsStatusEl, msg);
             setStatus(matrixStatusEl, msg);
             console.error(error);
@@ -229,12 +233,12 @@ const SettingsPermissionsModule = (() => {
         if (error) throw error;
         selectedGroupId = null;
         await loadGroups();
-        notify('Grupo excluído com sucesso.', 'success');
+        notify('Grupo excluido com sucesso.', 'success');
     };
 
     const saveMatrix = async () => {
         if (!selectedGroupId) {
-            notify('Selecione um grupo antes de salvar permissões.', 'warning');
+            notify('Selecione um grupo antes de salvar permissoes.', 'warning');
             return;
         }
         const { error: deleteError } = await window.supabaseClient.from('permission_group_rules').delete().eq('group_id', selectedGroupId);
@@ -248,13 +252,13 @@ const SettingsPermissionsModule = (() => {
             const { error: insertError } = await window.supabaseClient.from('permission_group_rules').insert(rows);
             if (insertError) throw insertError;
         }
-        setStatus(matrixStatusEl, `Permissões salvas (${rows.length} regra(s)).`);
-        notify('Permissões salvas com sucesso.', 'success');
+        setStatus(matrixStatusEl, `Permissoes salvas (${rows.length} regra(s)).`);
+        notify('Permissoes salvas com sucesso.', 'success');
     };
 
     const toggleAll = (enabled) => {
         if (!selectedGroupId) {
-            notify('Selecione um grupo antes de editar permissões.', 'warning');
+            notify('Selecione um grupo antes de editar permissoes.', 'warning');
             return;
         }
         if (!enabled) {
@@ -287,7 +291,7 @@ const SettingsPermissionsModule = (() => {
         if (deleteGroupBtn) deleteGroupBtn.addEventListener('click', () => void deleteGroup().catch((e) => notify(`Falha ao excluir grupo: ${e.message || 'erro'}`, 'error')));
         if (saveMatrixBtn) saveMatrixBtn.addEventListener('click', () => void saveMatrix()
             .then(() => applySaveFeedback(saveMatrixBtn))
-            .catch((e) => notify(`Falha ao salvar permissões: ${e.message || 'erro'}`, 'error')));
+            .catch((e) => notify(`Falha ao salvar permissoes: ${e.message || 'erro'}`, 'error')));
         if (markAllBtn) markAllBtn.addEventListener('click', () => toggleAll(true));
         if (clearAllBtn) clearAllBtn.addEventListener('click', () => toggleAll(false));
 
@@ -323,3 +327,4 @@ if (document.readyState === 'loading') {
 } else {
     void SettingsPermissionsModule.init();
 }
+

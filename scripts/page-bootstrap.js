@@ -107,6 +107,28 @@ const PageBootstrap = (() => {
         }
     };
 
+    const initAgendaPage = async () => {
+        await loadScripts([
+            'scripts/utils.js',
+            'scripts/agenda.js'
+        ]);
+
+        if (typeof AgendaModule !== 'undefined' && typeof AgendaModule.init === 'function') {
+            AgendaModule.init();
+        }
+    };
+
+    const initNoticesPage = async () => {
+        await loadScripts([
+            'scripts/utils.js',
+            'scripts/avisos.js'
+        ]);
+
+        if (typeof AvisosModule !== 'undefined' && typeof AvisosModule.init === 'function') {
+            AvisosModule.init();
+        }
+    };
+
     const initByPage = async () => {
         const page = getCurrentPage();
 
@@ -122,6 +144,16 @@ const PageBootstrap = (() => {
 
         if (page === 'clientes.html') {
             await initClientsPage();
+            return;
+        }
+
+        if (page === 'agenda.html') {
+            await initAgendaPage();
+            return;
+        }
+
+        if (page === 'avisos.html') {
+            await initNoticesPage();
         }
     };
 

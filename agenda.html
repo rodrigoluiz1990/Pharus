@@ -1,0 +1,148 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharus - Agenda</title>
+    <link rel="icon" type="image/svg+xml" href="lighthouse-favicon.svg?v=20260321d">
+    <link rel="alternate icon" type="image/png" href="lighthouse-favicon-32.png?v=20260321d">
+    <link rel="shortcut icon" type="image/png" href="lighthouse-favicon-32.png?v=20260321d">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/sidebar.css">
+    <link rel="stylesheet" href="styles/agenda.css">
+</head>
+<body>
+    <div class="container">
+        <div id="sidebar-container"></div>
+        <div class="content">
+            <div class="header">
+                <div class="project-title">
+                    <h2>Agenda</h2>
+                </div>
+                <div class="project-actions">
+                    <button class="action-btn" id="newAgendaEventBtn">
+                        <i class="fas fa-plus"></i> Novo evento
+                    </button>
+                </div>
+            </div>
+
+            <div class="agenda-view">
+                <section class="agenda-calendar-card">
+                    <div class="agenda-calendar-header">
+                        <div class="agenda-calendar-nav">
+                            <button type="button" class="btn btn-secondary" id="agendaPrevMonthBtn">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <h3 id="agendaMonthLabel">Mes/Ano</h3>
+                            <button type="button" class="btn btn-secondary" id="agendaNextMonthBtn">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+
+                        <div class="agenda-view-toggle" role="tablist" aria-label="Visualizacao da agenda">
+                            <button type="button" class="agenda-view-btn" id="agendaViewDayBtn" data-view="day">Dia</button>
+                            <button type="button" class="agenda-view-btn" id="agendaViewWeekBtn" data-view="week">Semana</button>
+                            <button type="button" class="agenda-view-btn active" id="agendaViewMonthBtn" data-view="month">Mes</button>
+                        </div>
+                    </div>
+
+                    <div class="agenda-weekdays">
+                        <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sab</span>
+                    </div>
+                    <div id="agendaCalendarGrid" class="agenda-calendar-grid"></div>
+                </section>
+
+                <section class="agenda-upcoming-card">
+                    <div class="agenda-upcoming-header">
+                        <h3>Proximos compromissos</h3>
+                    </div>
+                    <div id="agendaUpcomingList" class="agenda-upcoming-list"></div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="agendaEventModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="agendaEventModalTitle">Novo evento</h3>
+                <button class="modal-close" id="closeAgendaEventModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="agendaEventForm">
+                    <input type="hidden" id="agendaEventId">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="agendaEventTitle">Titulo *</label>
+                            <input type="text" id="agendaEventTitle" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="agendaEventType">Tipo</label>
+                            <select id="agendaEventType" class="form-control">
+                                <option value="event">Evento</option>
+                                <option value="task">Tarefa</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="agendaEventStartAt">Inicio *</label>
+                            <input type="datetime-local" id="agendaEventStartAt" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="agendaEventEndAt">Fim</label>
+                            <input type="datetime-local" id="agendaEventEndAt" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="agendaEventStatus">Status</label>
+                            <select id="agendaEventStatus" class="form-control">
+                                <option value="pending">Pendente</option>
+                                <option value="done">Concluido</option>
+                                <option value="cancelled">Cancelado</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="agenda-checkbox" for="agendaEventAllDay">
+                                <input type="checkbox" id="agendaEventAllDay">
+                                Dia inteiro
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="agendaEventDescription">Descricao</label>
+                        <textarea id="agendaEventDescription" class="form-control" rows="4"></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                        <button type="button" class="btn btn-danger" id="deleteAgendaEventBtn" style="display:none;">Excluir</button>
+                        <button type="button" class="btn btn-secondary" id="cancelAgendaEventBtn">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="globalLoading" class="loading-overlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+        </div>
+        <span>Carregando...</span>
+    </div>
+
+    <script src="scripts/local-supabase-client.js"></script>
+    <script src="scripts/supabase-config.js"></script>
+    <script src="scripts/auth.js"></script>
+    <script src="scripts/component-loader.js"></script>
+    <script src="scripts/page-bootstrap.js"></script>
+    <script src="scripts/profile-modal.js"></script>
+    <script src="scripts/chat.js"></script>
+</body>
+</html>
