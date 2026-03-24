@@ -40,6 +40,35 @@
     border-bottom: 2px solid #e9ecef;
 }
 
+.users-table th.users-sortable-header {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: background-color .16s ease, color .16s ease;
+}
+
+.users-table th.users-sortable-header:hover {
+    background-color: #eef4fa;
+    color: #2f4963;
+}
+
+.users-table th.users-sortable-header::after {
+    content: "";
+    font-size: 11px;
+    margin-left: 6px;
+    opacity: 0;
+}
+
+.users-table th.users-sortable-header.users-sort-asc::after {
+    content: "\25B2";
+    opacity: 0.95;
+}
+
+.users-table th.users-sortable-header.users-sort-desc::after {
+    content: "\25BC";
+    opacity: 0.95;
+}
+
 .users-table td {
     padding: 12px 15px;
     border-bottom: 1px solid #e9ecef;

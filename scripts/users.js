@@ -19,8 +19,18 @@ const UsersModule = (() => {
     let permissionGroups = [];
     let canEditOtherUsers = false;
     let isInitialized = false;
+    let usersSortKey = 'created_at';
+    let usersSortDirection = 'desc';
     const DEFAULT_AVATAR_COLOR = '#3498db';
     const ALLOWED_AVATAR_ICONS = new Set(['', 'user', 'user-tie', 'headset', 'code', 'wrench', 'briefcase', 'star', 'bolt']);
+    const USER_SORTABLE_HEADERS = [
+        { index: 0, key: 'name' },
+        { index: 1, key: 'email' },
+        { index: 2, key: 'permission_group' },
+        { index: 3, key: 'status' },
+        { index: 4, key: 'last_sign_in_at' },
+        { index: 5, key: 'created_at' },
+    ];
 
     const loadUsers = async () => {
         try {
@@ -231,8 +241,9 @@ const UsersModule = (() => {
         }
 
         usersTableBody.innerHTML = '';
+        const sortedUsers = getSortedUsers(users);
 
-        users.forEach(user => {
+        sortedUsers.forEach(user => {
             const row = document.createElement('tr');
 
             const lastAccess = user.last_sign_in_at
@@ -275,6 +286,93 @@ const UsersModule = (() => {
         setTimeout(() => {
             addEditListeners();
         }, 100);
+    };
+
+    const normalizeComparableDate = (value) => {
+        const date = value ? new Date(value) : null;
+        if (!date || Number.isNaN(date.getTime())) return 0;
+        return date.getTime();
+    };
+
+    const normalizeComparableString = (value) => String(value || '').trim().toLowerCase();
+
+    const getComparableValue = (user, sortKey) => {
+        if (!user) return '';
+        switch (sortKey) {
+            case 'name':
+                return normalizeComparableString(user.name);
+            case 'email':
+                return normalizeComparableString(user.email);
+            case 'permission_group':
+                return normalizeComparableString(getPermissionGroupName(user.permission_group_id));
+            case 'status':
+                return normalizeComparableString(getStatusText(user.status));
+            case 'last_sign_in_at':
+                return normalizeComparableDate(user.last_sign_in_at);
+            case 'created_at':
+                return normalizeComparableDate(user.created_at);
+            default:
+                return normalizeComparableString(user.name);
+        }
+    };
+
+    const getSortedUsers = (rawUsers) => {
+        const directionFactor = usersSortDirection === 'asc' ? 1 : -1;
+        const source = Array.isArray(rawUsers) ? [...rawUsers] : [];
+
+        source.sort((a, b) => {
+            const aValue = getComparableValue(a, usersSortKey);
+            const bValue = getComparableValue(b, usersSortKey);
+
+            if (aValue < bValue) return -1 * directionFactor;
+            if (aValue > bValue) return 1 * directionFactor;
+            return normalizeComparableString(a?.name).localeCompare(normalizeComparableString(b?.name));
+        });
+
+        return source;
+    };
+
+    const updateUsersSortHeaderStyles = () => {
+        const headers = document.querySelectorAll('.users-table thead th');
+        if (!headers || !headers.length) return;
+
+        headers.forEach((header) => {
+            const key = String(header.dataset.sortKey || '').trim();
+            const isSortable = Boolean(key);
+            header.classList.toggle('users-sortable-header', isSortable);
+            header.classList.toggle('users-sort-asc', isSortable && key === usersSortKey && usersSortDirection === 'asc');
+            header.classList.toggle('users-sort-desc', isSortable && key === usersSortKey && usersSortDirection === 'desc');
+        });
+    };
+
+    const setupUsersTableSorting = () => {
+        const table = document.querySelector('.users-table');
+        if (!table) return;
+        const headers = table.querySelectorAll('thead th');
+        if (!headers || !headers.length) return;
+
+        USER_SORTABLE_HEADERS.forEach(({ index, key }) => {
+            const header = headers[index];
+            if (!header) return;
+
+            header.dataset.sortKey = key;
+            header.classList.add('users-sortable-header');
+            if (header.dataset.sortBound === 'true') return;
+
+            header.addEventListener('click', () => {
+                if (usersSortKey === key) {
+                    usersSortDirection = usersSortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    usersSortKey = key;
+                    usersSortDirection = key === 'created_at' || key === 'last_sign_in_at' ? 'desc' : 'asc';
+                }
+                updateUsersSortHeaderStyles();
+                renderUsersTable();
+            });
+            header.dataset.sortBound = 'true';
+        });
+
+        updateUsersSortHeaderStyles();
     };
 
     const createUser = async (userData) => {
@@ -669,6 +767,7 @@ const UsersModule = (() => {
         const userEmailInput = document.getElementById('userEmail');
         if (userNameInput) userNameInput.addEventListener('input', updateAvatarPreview);
         if (userEmailInput) userEmailInput.addEventListener('input', updateAvatarPreview);
+        setupUsersTableSorting();
         isInitialized = true;
 
         console.log('Módulo de usuários inicializado');
