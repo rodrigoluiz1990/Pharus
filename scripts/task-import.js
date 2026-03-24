@@ -6,18 +6,28 @@ const TaskImportModule = (() => {
     const startImportBtn = document.getElementById('startImportTasksBtn');
     const cancelImportBtn = document.getElementById('cancelImportTasksBtn');
     const closeImportBtn = document.getElementById('closeImportTasksModal');
+    const introStepEl = document.getElementById('importIntroStep');
+    const previewStepEl = document.getElementById('importPreviewStep');
+    const previewSummaryEl = document.getElementById('importPreviewSummary');
+    const previewTableBodyEl = document.getElementById('importPreviewTableBody');
+    const backPreviewBtn = document.getElementById('backImportPreviewBtn');
+    const cancelPreviewBtn = document.getElementById('cancelImportPreviewBtn');
+    const confirmImportBtn = document.getElementById('confirmImportTasksBtn');
+
     let isInitialized = false;
     let xlsxLoaderPromise = null;
+    let previewRows = [];
+    let lookupData = null;
 
     const HEADER_ALIASES = {
         title: ['title', 'titulo', 'nome'],
-        description: ['description', 'descricao'],
+        description: ['description', 'descrição'],
         status: ['status', 'situacao'],
         priority: ['priority', 'prioridade'],
         assignee: ['assignee', 'responsavel', 'responsavel_email', 'email_responsavel', 'usuario'],
         request_date: ['request_date', 'data_solicitacao', 'data_solicitacao_abertura', 'abertura'],
         due_date: ['due_date', 'data_entrega', 'prazo', 'data_vencimento'],
-        observation: ['observation', 'observacao', 'obs'],
+        observation: ['observation', 'observação', 'obs'],
         jira: ['jira', 'tarefa_jira', 'chamado_jira'],
         client: ['client', 'cliente', 'cliente_sigla', 'sigla_cliente'],
         type: ['type', 'tipo'],
@@ -65,9 +75,7 @@ const TaskImportModule = (() => {
                     inQuotes = !inQuotes;
                     continue;
                 }
-                if (!inQuotes && char === candidate) {
-                    count += 1;
-                }
+                if (!inQuotes && char === candidate) count += 1;
             }
             if (count > bestCount) {
                 bestCount = count;
@@ -113,14 +121,10 @@ const TaskImportModule = (() => {
 
     const parseCsv = (text) => {
         const raw = String(text || '').replace(/^\uFEFF/, '').trim();
-        if (!raw) {
-            return { headers: [], rows: [] };
-        }
+        if (!raw) return { headers: [], rows: [] };
 
         const lines = raw.split(/\r?\n/).filter((line) => String(line || '').trim() !== '');
-        if (!lines.length) {
-            return { headers: [], rows: [] };
-        }
+        if (!lines.length) return { headers: [], rows: [] };
 
         const delimiter = detectDelimiter(lines[0]);
         const originalHeaders = parseCsvLine(lines[0], delimiter);
@@ -170,28 +174,17 @@ const TaskImportModule = (() => {
         }
 
         const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
-        if (!isExcel) {
-            throw new Error('formato de arquivo nao suportado');
-        }
+        if (!isExcel) throw new Error('formato de arquivo nao suportado');
 
         const XLSX = await loadSheetJs();
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: 'array' });
         const firstSheetName = workbook.SheetNames?.[0];
-        if (!firstSheetName) {
-            return { headers: [], rows: [] };
-        }
+        if (!firstSheetName) return { headers: [], rows: [] };
 
         const worksheet = workbook.Sheets[firstSheetName];
-        const matrix = XLSX.utils.sheet_to_json(worksheet, {
-            header: 1,
-            defval: '',
-            raw: false
-        });
-
-        if (!Array.isArray(matrix) || matrix.length === 0) {
-            return { headers: [], rows: [] };
-        }
+        const matrix = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', raw: false });
+        if (!Array.isArray(matrix) || matrix.length === 0) return { headers: [], rows: [] };
 
         const originalHeaders = (matrix[0] || []).map((header) => String(header || '').trim());
         const headers = originalHeaders.map((header) => HEADER_MAP.get(normalizeText(header)) || normalizeText(header));
@@ -285,9 +278,7 @@ const TaskImportModule = (() => {
         const raw = String(value || '').trim();
         if (!raw) return null;
 
-        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-            return raw;
-        }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
 
         if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(raw) || /^\d{1,2}-\d{1,2}-\d{4}$/.test(raw)) {
             const parts = raw.replace(/-/g, '/').split('/');
@@ -317,6 +308,7 @@ const TaskImportModule = (() => {
 
         const users = await StorageModule.getUsers();
         const clients = await StorageModule.getClients();
+        const existingTasks = await StorageModule.getTasks();
 
         const usersByKey = new Map();
         (users || []).forEach((user) => {
@@ -333,7 +325,7 @@ const TaskImportModule = (() => {
             const name = String(client.name || '').trim();
             const acronym = String(client.acronym || '').trim();
             if (name) clientsByKey.set(normalizeText(name), name);
-            if (acronym) clientsByKey.set(normalizeText(acronym), acronym);
+            if (acronym) clientsByKey.set(normalizeText(acronym), name || acronym);
         });
 
         const columnsByType = {};
@@ -344,59 +336,449 @@ const TaskImportModule = (() => {
             }
         });
 
+        const usersOptions = (users || [])
+            .map((user) => {
+                const id = String(user.id || '').trim();
+                const name = String(user.name || '').trim();
+                const email = String(user.email || '').trim();
+                if (!id) return null;
+                return {
+                    value: id,
+                    label: name ? `${name}${email ? ` (${email})` : ''}` : (email || id)
+                };
+            })
+            .filter(Boolean);
+
+        const usersCatalog = (users || [])
+            .map((user) => {
+                const id = String(user.id || '').trim();
+                const name = String(user.name || '').trim();
+                const email = String(user.email || '').trim();
+                if (!id) return null;
+                return {
+                    id,
+                    name,
+                    email,
+                    nameKey: normalizeText(name),
+                    emailKey: normalizeText(email),
+                    label: name ? `${name}${email ? ` (${email})` : ''}` : (email || id)
+                };
+            })
+            .filter(Boolean);
+
+        const clientsOptions = (clients || [])
+            .map((client) => {
+                const name = String(client.name || '').trim();
+                const acronym = String(client.acronym || '').trim();
+                if (!name) return null;
+                return {
+                    value: name,
+                    label: acronym ? `${name} (${acronym})` : name
+                };
+            })
+            .filter(Boolean);
+
+        const clientsCatalog = (clients || [])
+            .map((client) => {
+                const name = String(client.name || '').trim();
+                const acronym = String(client.acronym || '').trim();
+                if (!name) return null;
+                return {
+                    value: name,
+                    name,
+                    acronym,
+                    nameKey: normalizeText(name),
+                    acronymKey: normalizeText(acronym),
+                    label: acronym ? `${name} (${acronym})` : name
+                };
+            })
+            .filter(Boolean);
+
+        const existingTitleKeys = new Set();
+        (existingTasks || []).forEach((task) => {
+            const key = normalizeText(task?.title || '');
+            if (key) existingTitleKeys.add(key);
+        });
+
         return {
             usersByKey,
             clientsByKey,
-            columnsByType
+            columnsByType,
+            usersOptions,
+            clientsOptions,
+            usersCatalog,
+            clientsCatalog,
+            existingTitleKeys
         };
     };
 
-    const buildTaskFromRow = (row, lookup, lineNumber) => {
-        const title = String(row.title || '').trim();
-        if (!title) {
-            throw new Error(`linha ${lineNumber}: titulo obrigatorio`);
-        }
-
-        const status = normalizeStatus(row.status);
-        const priority = normalizePriority(row.priority);
-        const type = normalizeType(row.type);
-        const assigneeRaw = normalizeText(row.assignee || '');
-        const assignee = assigneeRaw ? (lookup.usersByKey.get(assigneeRaw) || null) : null;
-        const clientRaw = String(row.client || '').trim();
-        const client = clientRaw ? (lookup.clientsByKey.get(normalizeText(clientRaw)) || clientRaw) : null;
-        const isPinned = parseBoolean(row.is_pinned);
-        const focusOrderRaw = String(row.focus_order || '').trim();
-        const focusOrder = isPinned && /^\d+$/.test(focusOrderRaw) ? Number(focusOrderRaw) : null;
+    const buildDraftFromRow = (row, lineNumber) => {
         const requestDate = parseDateToIso(row.request_date) || getTodayIso();
         const dueDate = parseDateToIso(row.due_date);
+        const isPinned = parseBoolean(row.is_pinned);
+        const focusOrderRaw = String(row.focus_order || '').trim();
+
+        return {
+            lineNumber,
+            title: String(row.title || '').trim(),
+            description: String(row.description || '').trim(),
+            status: normalizeStatus(row.status),
+            priority: normalizePriority(row.priority),
+            assignee: String(row.assignee || '').trim(),
+            request_date: requestDate,
+            due_date: dueDate || '',
+            observation: String(row.observation || '').trim(),
+            jira: String(row.jira || '').trim(),
+            client: String(row.client || '').trim(),
+            type: normalizeType(row.type),
+            is_pinned: isPinned,
+            focus_order: isPinned && /^\d+$/.test(focusOrderRaw) ? String(Number(focusOrderRaw)) : '',
+            error: ''
+        };
+    };
+
+    const levenshteinDistance = (a, b) => {
+        const left = String(a || '');
+        const right = String(b || '');
+        if (left === right) return 0;
+        if (!left.length) return right.length;
+        if (!right.length) return left.length;
+
+        const dp = Array.from({ length: left.length + 1 }, (_, i) => [i]);
+        for (let j = 0; j <= right.length; j += 1) dp[0][j] = j;
+        for (let i = 1; i <= left.length; i += 1) {
+            for (let j = 1; j <= right.length; j += 1) {
+                const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+                dp[i][j] = Math.min(
+                    dp[i - 1][j] + 1,
+                    dp[i][j - 1] + 1,
+                    dp[i - 1][j - 1] + cost
+                );
+            }
+        }
+        return dp[left.length][right.length];
+    };
+
+    const similarityScore = (source, candidate) => {
+        const a = String(source || '');
+        const b = String(candidate || '');
+        if (!a || !b) return 0;
+        if (a === b) return 1;
+        if (a.includes(b) || b.includes(a)) return Math.min(a.length, b.length) / Math.max(a.length, b.length);
+        const distance = levenshteinDistance(a, b);
+        return 1 - (distance / Math.max(a.length, b.length));
+    };
+
+    const splitTokens = (value) => normalizeText(value)
+        .split('_')
+        .filter((token) => token.length > 0);
+
+    const tokenMatchScore = (queryKey, candidateKey) => {
+        const query = String(queryKey || '');
+        const candidate = String(candidateKey || '');
+        if (!query || !candidate) return 0;
+        if (query === candidate) return 1;
+        if (candidate.startsWith(query) || query.startsWith(candidate)) return 0.93;
+
+        const queryTokens = splitTokens(query);
+        const candidateTokens = splitTokens(candidate);
+        if (!queryTokens.length || !candidateTokens.length) return 0;
+
+        let matches = 0;
+        queryTokens.forEach((qToken) => {
+            const hit = candidateTokens.some((cToken) => (
+                cToken === qToken
+                || cToken.startsWith(qToken)
+                || qToken.startsWith(cToken)
+            ));
+            if (hit) matches += 1;
+        });
+
+        if (matches === 0) return 0;
+        const coverage = matches / queryTokens.length;
+        return 0.65 + (coverage * 0.3);
+    };
+
+    const findBestUserMatch = (rawValue, lookup) => {
+        const key = normalizeText(rawValue);
+        const candidates = lookup?.usersCatalog || [];
+        let best = null;
+        let bestScore = 0;
+        candidates.forEach((candidate) => {
+            const score = Math.max(
+                similarityScore(key, candidate.nameKey),
+                similarityScore(key, candidate.emailKey),
+                tokenMatchScore(key, candidate.nameKey),
+                tokenMatchScore(key, candidate.emailKey)
+            );
+            if (score > bestScore) {
+                bestScore = score;
+                best = candidate;
+            }
+        });
+        if (!best || bestScore < 0.6) return null;
+        return best;
+    };
+
+    const findBestClientMatch = (rawValue, lookup) => {
+        const key = normalizeText(rawValue);
+        const candidates = lookup?.clientsCatalog || [];
+        let best = null;
+        let bestScore = 0;
+        candidates.forEach((candidate) => {
+            const acronymExact = candidate.acronymKey && candidate.acronymKey === key ? 1 : 0;
+            const acronymPrefix = candidate.acronymKey && (candidate.acronymKey.startsWith(key) || key.startsWith(candidate.acronymKey)) ? 0.9 : 0;
+            const score = Math.max(
+                acronymExact,
+                acronymPrefix,
+                similarityScore(key, candidate.nameKey),
+                tokenMatchScore(key, candidate.nameKey)
+            );
+            if (score > bestScore) {
+                bestScore = score;
+                best = candidate;
+            }
+        });
+        if (!best || bestScore < 0.6) return null;
+        return best;
+    };
+
+    const resolveAssignee = (rawValue, lookup) => {
+        const raw = String(rawValue || '').trim();
+        if (!raw) return { matched: true, value: null, suggestion: '' };
+        const key = normalizeText(raw);
+        const exact = lookup?.usersByKey?.get(key);
+        if (exact) return { matched: true, value: exact, suggestion: '' };
+        const similar = findBestUserMatch(raw, lookup);
+        if (similar) return { matched: true, value: similar.id, suggestion: similar.label };
+        return { matched: false, value: null, suggestion: '' };
+    };
+
+    const resolveClient = (rawValue, lookup) => {
+        const raw = String(rawValue || '').trim();
+        if (!raw) return { matched: true, value: null, suggestion: '' };
+        const key = normalizeText(raw);
+        const exact = lookup?.clientsByKey?.get(key);
+        if (exact) return { matched: true, value: exact, suggestion: '' };
+        const similar = findBestClientMatch(raw, lookup);
+        if (similar) return { matched: true, value: similar.value, suggestion: similar.label };
+        return { matched: false, value: null, suggestion: '' };
+    };
+
+    const validateDraft = (draft, lookup) => {
+        const title = String(draft.title || '').trim();
+        if (!title) return 'Título obrigatório';
+        if (lookup?.existingTitleKeys?.has(normalizeText(title))) return 'Já existe tarefa com este título no quadro';
+        const assigneeResolved = resolveAssignee(draft.assignee, lookup);
+        if (String(draft.assignee || '').trim() && !assigneeResolved.matched) return 'Responsável não encontrado no cadastro';
+        const clientResolved = resolveClient(draft.client, lookup);
+        if (String(draft.client || '').trim() && !clientResolved.matched) return 'Cliente não encontrado (use nome similar ou sigla cadastrada)';
+        if (draft.request_date && !/^\d{4}-\d{2}-\d{2}$/.test(draft.request_date)) return 'Data solicitação inválida';
+        if (draft.due_date && !/^\d{4}-\d{2}-\d{2}$/.test(draft.due_date)) return 'Data entrega inválida';
+        if (draft.is_pinned && draft.focus_order && !/^\d+$/.test(String(draft.focus_order))) return 'Ordem inválida';
+        return '';
+    };
+
+    const toTaskPayload = (draft, lookup) => {
+        const assignee = resolveAssignee(draft.assignee, lookup).value;
+        const client = resolveClient(draft.client, lookup).value;
+
+        const status = normalizeStatus(draft.status);
         const columnId = lookup.columnsByType[status] || lookup.columnsByType.pending || null;
 
         return {
-            title,
-            description: String(row.description || '').trim() || null,
+            title: String(draft.title || '').trim(),
+            description: String(draft.description || '').trim() || null,
             status,
-            priority,
+            priority: normalizePriority(draft.priority),
             assignee,
-            request_date: requestDate,
-            due_date: dueDate,
-            observation: String(row.observation || '').trim() || null,
-            jira: String(row.jira || '').trim() || null,
+            request_date: draft.request_date || getTodayIso(),
+            due_date: draft.due_date || null,
+            observation: String(draft.observation || '').trim() || null,
+            jira: String(draft.jira || '').trim() || null,
             client,
-            type,
-            is_pinned: isPinned,
-            focus_order: focusOrder,
+            type: normalizeType(draft.type),
+            is_pinned: Boolean(draft.is_pinned),
+            focus_order: Boolean(draft.is_pinned) && /^\d+$/.test(String(draft.focus_order || '')) ? Number(draft.focus_order) : null,
             column_id: columnId
         };
+    };
+
+    const setStep = (step) => {
+        if (!introStepEl || !previewStepEl) return;
+        const showPreview = step === 'preview';
+        introStepEl.style.display = showPreview ? 'none' : '';
+        previewStepEl.style.display = showPreview ? '' : 'none';
     };
 
     const openImportModal = () => {
         if (!importModal) return;
         importModal.style.display = 'flex';
+        setStep('intro');
     };
 
     const closeImportModal = () => {
         if (!importModal) return;
         importModal.style.display = 'none';
+        if (fileInput) fileInput.value = '';
+        previewRows = [];
+        lookupData = null;
+        if (previewTableBodyEl) previewTableBodyEl.innerHTML = '';
+        if (previewSummaryEl) previewSummaryEl.textContent = '';
+    };
+
+    const updatePreviewSummary = () => {
+        if (!previewSummaryEl) return;
+        const total = previewRows.length;
+        const invalid = previewRows.filter((row) => row.error).length;
+        const valid = total - invalid;
+        previewSummaryEl.textContent = `${total} registro(s) carregado(s): ${valid} valido(s) e ${invalid} com ajuste pendente.`;
+    };
+
+    const buildSelectOptions = (current, options) => {
+        return options.map((item) => {
+            const selected = item.value === current ? ' selected' : '';
+            return `<option value="${escapeHtml(item.value)}"${selected}>${escapeHtml(item.label)}</option>`;
+        }).join('');
+    };
+
+    const buildAssigneeOptions = (row) => {
+        const options = [{ value: '', label: 'Sem responsável' }];
+        const currentRaw = String(row.assignee || '').trim();
+        const resolved = resolveAssignee(currentRaw, lookupData);
+        const selectedValue = String(resolved.value || '').trim();
+
+        (lookupData?.usersOptions || []).forEach((item) => options.push(item));
+
+        if (currentRaw && !selectedValue) {
+            options.push({ value: currentRaw, label: `${currentRaw} (não cadastrado)` });
+        }
+
+        return { options, selectedValue: selectedValue || currentRaw };
+    };
+
+    const buildClientOptions = (row) => {
+        const options = [{ value: '', label: 'Sem cliente' }];
+        const currentRaw = String(row.client || '').trim();
+        const resolved = resolveClient(currentRaw, lookupData);
+        const mappedClient = String(resolved.value || '').trim();
+
+        (lookupData?.clientsOptions || []).forEach((item) => options.push(item));
+
+        if (currentRaw && !mappedClient && !options.some((item) => item.value === currentRaw)) {
+            options.push({ value: currentRaw, label: `${currentRaw} (não cadastrado)` });
+        }
+
+        return { options, selectedValue: mappedClient || currentRaw };
+    };
+
+    const renderPreviewTable = () => {
+        if (!previewTableBodyEl) return;
+
+        const statusOptions = [
+            { value: 'pending', label: 'Pendente' },
+            { value: 'in_progress', label: 'Em andamento' },
+            { value: 'review', label: 'Em teste' },
+            { value: 'completed', label: 'Concluído' }
+        ];
+
+        const priorityOptions = [
+            { value: 'low', label: 'Baixa' },
+            { value: 'medium', label: 'Média' },
+            { value: 'high', label: 'Alta' }
+        ];
+
+        const typeOptions = [
+            { value: 'task', label: 'Novo' },
+            { value: 'bug', label: 'Erro' },
+            { value: 'improvement', label: 'Melhoria' }
+        ];
+
+        previewTableBodyEl.innerHTML = previewRows.map((row, idx) => {
+            const assigneeSelect = buildAssigneeOptions(row);
+            const clientSelect = buildClientOptions(row);
+            return `
+            <tr data-index="${idx}">
+                <td class="import-preview-line">${row.lineNumber}</td>
+                <td><input class="form-control" data-field="title" value="${escapeHtml(row.title)}"></td>
+                <td><select class="form-control" data-field="status">${buildSelectOptions(row.status, statusOptions)}</select></td>
+                <td><select class="form-control" data-field="priority">${buildSelectOptions(row.priority, priorityOptions)}</select></td>
+                <td><select class="form-control" data-field="assignee">${buildSelectOptions(assigneeSelect.selectedValue, assigneeSelect.options)}</select></td>
+                <td><select class="form-control" data-field="client">${buildSelectOptions(clientSelect.selectedValue, clientSelect.options)}</select></td>
+                <td><input type="date" class="form-control" data-field="request_date" value="${escapeHtml(row.request_date)}"></td>
+                <td><input type="date" class="form-control" data-field="due_date" value="${escapeHtml(row.due_date)}"></td>
+                <td><select class="form-control" data-field="type">${buildSelectOptions(row.type, typeOptions)}</select></td>
+                <td style="text-align:center;"><input type="checkbox" data-field="is_pinned" ${row.is_pinned ? 'checked' : ''}></td>
+                <td><input class="form-control" data-field="focus_order" value="${escapeHtml(row.focus_order)}"></td>
+                <td style="text-align:center;">
+                    <button type="button" class="btn btn-danger import-preview-remove-btn" data-action="remove-row">Remover</button>
+                </td>
+                <td class="import-preview-error">${escapeHtml(row.error || '')}</td>
+            </tr>
+        `;
+        }).join('');
+
+        updatePreviewSummary();
+    };
+
+    const escapeHtml = (value) => {
+        const div = document.createElement('div');
+        div.textContent = String(value ?? '');
+        return div.innerHTML;
+    };
+
+    const applyRowValidation = (rowIndex) => {
+        const row = previewRows[rowIndex];
+        if (!row) return;
+        row.error = validateDraft(row, lookupData);
+
+        const tr = previewTableBodyEl?.querySelector(`tr[data-index="${rowIndex}"]`);
+        if (!tr) return;
+        const errorCell = tr.querySelector('.import-preview-error');
+        if (errorCell) errorCell.textContent = row.error || '';
+        updatePreviewSummary();
+    };
+
+    const onPreviewFieldChange = (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const tr = target.closest('tr[data-index]');
+        if (!tr) return;
+
+        const index = Number(tr.getAttribute('data-index'));
+        if (!Number.isInteger(index) || !previewRows[index]) return;
+
+        const field = target.getAttribute('data-field');
+        const action = target.getAttribute('data-action');
+        if (action === 'remove-row') {
+            previewRows.splice(index, 1);
+            renderPreviewTable();
+            return;
+        }
+        if (!field) return;
+
+        if (target instanceof HTMLInputElement && target.type === 'checkbox') {
+            previewRows[index][field] = Boolean(target.checked);
+        } else if (target instanceof HTMLInputElement || target instanceof HTMLSelectElement) {
+            previewRows[index][field] = String(target.value || '');
+        }
+
+        if (field === 'status') {
+            previewRows[index].status = normalizeStatus(previewRows[index].status);
+        }
+        if (field === 'priority') {
+            previewRows[index].priority = normalizePriority(previewRows[index].priority);
+        }
+        if (field === 'type') {
+            previewRows[index].type = normalizeType(previewRows[index].type);
+        }
+        if (field === 'is_pinned' && !previewRows[index].is_pinned) {
+            previewRows[index].focus_order = '';
+            const focusInput = tr.querySelector('input[data-field="focus_order"]');
+            if (focusInput) focusInput.value = '';
+        }
+
+        applyRowValidation(index);
     };
 
     const onImportClick = () => {
@@ -404,7 +786,6 @@ const TaskImportModule = (() => {
     };
 
     const onStartImportClick = () => {
-        closeImportModal();
         if (!fileInput) return;
         fileInput.click();
     };
@@ -414,7 +795,7 @@ const TaskImportModule = (() => {
         if (!file) return;
 
         try {
-            UtilsModule.showLoading('Importando tarefas da planilha...');
+            UtilsModule.showLoading('Lendo planilha para pre-visualização...');
             const parsed = await parseSpreadsheetFile(file);
             const rows = Array.isArray(parsed.rows) ? parsed.rows : [];
 
@@ -423,22 +804,50 @@ const TaskImportModule = (() => {
                 return;
             }
 
-            const lookup = await buildLookupData();
-            const errors = [];
-            let successCount = 0;
+            lookupData = await buildLookupData();
+            previewRows = rows.map((row, idx) => {
+                const draft = buildDraftFromRow(row, idx + 2);
+                draft.error = validateDraft(draft, lookupData);
+                return draft;
+            });
 
-            for (let i = 0; i < rows.length; i += 1) {
-                const lineNumber = i + 2;
+            renderPreviewTable();
+            setStep('preview');
+        } catch (error) {
+            console.error('Erro ao ler planilha:', error);
+            UtilsModule.showNotification('Não foi possível ler a planilha.', 'error');
+        } finally {
+            UtilsModule.hideLoading();
+            if (fileInput) fileInput.value = '';
+        }
+    };
+
+    const onConfirmImportClick = async () => {
+        if (!lookupData || !previewRows.length) return;
+
+        const invalid = previewRows.filter((row) => row.error);
+        if (invalid.length > 0) {
+            UtilsModule.showNotification('Existem registros com erro. Corrija antes de confirmar a importacao.', 'warning');
+            return;
+        }
+
+        try {
+            UtilsModule.showLoading('Importando tarefas da pre-visualização...');
+            let successCount = 0;
+            const errors = [];
+
+            for (let i = 0; i < previewRows.length; i += 1) {
+                const row = previewRows[i];
                 try {
-                    const taskPayload = buildTaskFromRow(rows[i], lookup, lineNumber);
-                    const result = await StorageModule.saveTask(taskPayload);
+                    const payload = toTaskPayload(row, lookupData);
+                    const result = await StorageModule.saveTask(payload);
                     if (!result) {
-                        errors.push(`linha ${lineNumber}: falha ao salvar`);
+                        errors.push(`linha ${row.lineNumber}: falha ao salvar`);
                         continue;
                     }
                     successCount += 1;
                 } catch (rowError) {
-                    errors.push(String(rowError?.message || `linha ${lineNumber}: erro desconhecido`));
+                    errors.push(`linha ${row.lineNumber}: ${String(rowError?.message || 'erro desconhecido')}`);
                 }
             }
 
@@ -448,6 +857,7 @@ const TaskImportModule = (() => {
 
             if (errors.length === 0) {
                 UtilsModule.showNotification(`${successCount} tarefa(s) importada(s) com sucesso.`, 'success');
+                closeImportModal();
                 return;
             }
 
@@ -458,10 +868,9 @@ const TaskImportModule = (() => {
             );
         } catch (error) {
             console.error('Erro ao importar tarefas:', error);
-            UtilsModule.showNotification('Nao foi possivel importar a planilha.', 'error');
+            UtilsModule.showNotification('Não foi possível concluir a importacao.', 'error');
         } finally {
             UtilsModule.hideLoading();
-            if (fileInput) fileInput.value = '';
         }
     };
 
@@ -471,18 +880,23 @@ const TaskImportModule = (() => {
 
         importBtn.addEventListener('click', onImportClick);
         startImportBtn.addEventListener('click', onStartImportClick);
+        confirmImportBtn?.addEventListener('click', () => void onConfirmImportClick());
+        backPreviewBtn?.addEventListener('click', () => setStep('intro'));
         cancelImportBtn.addEventListener('click', closeImportModal);
+        cancelPreviewBtn?.addEventListener('click', closeImportModal);
         closeImportBtn.addEventListener('click', closeImportModal);
         importModal.addEventListener('click', (event) => {
             if (event.target === importModal) {
                 closeImportModal();
             }
         });
+
+        previewTableBodyEl?.addEventListener('input', onPreviewFieldChange);
+        previewTableBodyEl?.addEventListener('change', onPreviewFieldChange);
+        previewTableBodyEl?.addEventListener('click', onPreviewFieldChange);
         fileInput.addEventListener('change', onFileChange);
         isInitialized = true;
     };
 
-    return {
-        init
-    };
+    return { init };
 })();

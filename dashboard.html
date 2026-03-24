@@ -41,15 +41,29 @@
                     </article>
                 </div>
 
-                <div class="dashboard-panels-grid">
+                <div class="dashboard-charts-grid">
                     <section class="dashboard-panel">
                         <h3>Status das Tarefas</h3>
-                        <div id="dashStatusBreakdown" class="dashboard-breakdown-list"></div>
+                        <div class="dashboard-types-chart-wrap dashboard-types-chart-wrap-compact">
+                            <canvas id="dashStatusChart" class="dashboard-types-chart dashboard-types-chart-compact" aria-label="Grafico de status das tarefas"></canvas>
+                            <div id="dashStatusLegend" class="dashboard-types-legend"></div>
+                        </div>
                     </section>
 
                     <section class="dashboard-panel">
                         <h3>Prioridades</h3>
-                        <div id="dashPriorityBreakdown" class="dashboard-breakdown-list"></div>
+                        <div class="dashboard-types-chart-wrap dashboard-types-chart-wrap-compact">
+                            <canvas id="dashPriorityChart" class="dashboard-types-chart dashboard-types-chart-compact" aria-label="Grafico de prioridades das tarefas"></canvas>
+                            <div id="dashPriorityLegend" class="dashboard-types-legend"></div>
+                        </div>
+                    </section>
+
+                    <section class="dashboard-panel">
+                        <h3>Tipos de Tarefas</h3>
+                        <div class="dashboard-types-chart-wrap dashboard-types-chart-wrap-compact">
+                            <canvas id="dashTypeChart" class="dashboard-types-chart dashboard-types-chart-compact" aria-label="Grafico de tipos de tarefas"></canvas>
+                            <div id="dashTypeLegend" class="dashboard-types-legend"></div>
+                        </div>
                     </section>
                 </div>
 

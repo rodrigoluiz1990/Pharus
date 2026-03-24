@@ -283,7 +283,7 @@ const BoardModule = (() => {
         const safeTitle = escapeHtml(task.title || "Sem t?tulo");
         const pinActiveClass = task.is_pinned ? 'active' : '';
         const pinTitle = task.is_pinned ? 'Remover do post-it' : 'Destacar no post-it';
-        const safeAssigneeName = escapeHtml(assignee ? assignee.name : "N?o atribu?do");
+        const safeAssigneeName = escapeHtml(assignee ? assignee.name : "Não atribuído");
         const safeClient = escapeHtml(getClientLabelForTask(task.client) || "Sem cliente");
 
         taskElement.innerHTML = `
@@ -330,7 +330,7 @@ const BoardModule = (() => {
         const safeTitle = escapeHtml(task.title || "Sem t?tulo");
         const pinActiveClass = task.is_pinned ? 'active' : '';
         const pinTitle = task.is_pinned ? 'Remover do post-it' : 'Destacar no post-it';
-        const safeAssigneeName = escapeHtml(assignee ? assignee.name : "N?o atribu?do");
+        const safeAssigneeName = escapeHtml(assignee ? assignee.name : "Não atribuído");
         const safeClient = escapeHtml(getClientLabelForTask(task.client));
 
         const cellByKey = {

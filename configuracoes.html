@@ -169,31 +169,45 @@
         .table-columns-order-list {
             list-style: none;
             margin: 0;
-            padding: 0;
-            display: grid;
+            padding: 0 0 4px;
+            display: flex;
+            flex-wrap: nowrap;
             gap: 8px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: thin;
         }
 
         .table-columns-order-item {
             border: 1px solid #d6e1ec;
             background: #f8fbff;
             border-radius: 8px;
-            padding: 10px 12px;
-            display: flex;
+            padding: 8px 10px;
+            display: inline-flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            cursor: grab;
+            justify-content: flex-start;
+            gap: 8px;
+            flex: 0 0 auto;
         }
 
-        .table-columns-order-item.dragging {
-            opacity: 0.6;
-        }
-
-        .table-columns-order-item .drag-hint {
-            color: #4f6680;
-            font-size: 12px;
+        .table-columns-order-item .order-label {
+            color: #2b435c;
+            font-size: 13px;
+            font-weight: 600;
             white-space: nowrap;
+        }
+
+        .table-columns-order-item .order-actions {
+            display: inline-flex;
+            gap: 6px;
+        }
+
+        .table-columns-order-item .order-actions .btn {
+            min-width: 32px;
+            min-height: 28px;
+            padding: 4px 8px;
+            font-size: 12px;
+            line-height: 1.1;
         }
 
         .table-columns-width-grid {
@@ -539,24 +553,25 @@
                                 <button class="settings-card-toggle" type="button" data-card-toggle="card-extension" aria-expanded="true">Esconder</button>
                             </div>
                             <div class="settings-card-body" id="card-extension">
-                                <p>Instalação manual assistida para usar o Pharus na barra lateral do navegador.</p>
+                                <p>Instalação assistida para usar o Pharus na barra lateral do navegador.</p>
 
                                 <ol class="extension-steps">
                                     <li>Abra <strong>chrome://extensions</strong> no Google Chrome.</li>
-                                    <li>Ative o botao <strong>Modo do desenvolvedor</strong> no canto superior direito.</li>
+                                    <li>Ative o botão <strong>Modo do desenvolvedor</strong> no canto superior direito.</li>
+                                    <li>Baixe o pacote da extensão e extraia o arquivo <strong>.zip</strong> no computador.</li>
                                     <li>Clique em <strong>Carregar sem compactação</strong>.</li>
-                                    <li>Selecione a pasta <strong>chrome-extension</strong> do projeto Pharus.</li>
+                                    <li>Selecione a pasta <strong>chrome-extension</strong> extraída.</li>
                                     <li>Clique no ícone da extensão para abrir o painel lateral.</li>
                                 </ol>
 
                                 <div class="path-box" id="extensionFolderPath">Pharus\chrome-extension</div>
 
                                 <div class="settings-actions">
+                                    <a class="btn btn-primary" id="downloadExtensionPackageBtn" href="assets/downloads/pharus-extensao.zip?v=20260324" download>
+                                        <i class="fas fa-download"></i> Baixar pacote da extensão (.zip)
+                                    </a>
                                     <button class="btn btn-primary" id="openExtensionsBtn">
-                                        <i class="fas fa-puzzle-piece"></i> Abrir chrome://extensions
-                                    </button>
-                                    <button class="btn btn-secondary" id="copyExtensionsUrlBtn">
-                                        <i class="fas fa-copy"></i> Copiar link chrome://extensions
+                                        <i class="fas fa-puzzle-piece"></i> Copiar chrome://extensions
                                     </button>
                                     <button class="btn btn-secondary" id="copyFolderHintBtn">
                                         <i class="fas fa-copy"></i> Copiar nome da pasta
@@ -564,7 +579,7 @@
                                 </div>
 
                                 <p class="status-hint" id="extensionInstallHint">
-                                    Dica: se o Chrome bloquear o botão de abertura, copie o link e cole na barra de endereço.
+                                    Dica: o Chrome não instala extensão direto do .zip. É necessário extrair e usar "Carregar sem compactação".
                                 </p>
                             </div>
                         </section>
@@ -577,7 +592,7 @@
                                 <button class="settings-card-toggle" type="button" data-card-toggle="card-table-order" aria-expanded="true">Esconder</button>
                             </div>
                             <div class="settings-card-body" id="card-table-order">
-                                <p>Defina a ordem das colunas da tabela de tarefas. Arraste para cima/baixo e salve.</p>
+                                <p>Defina a ordem das colunas da tabela de tarefas. Use as setas para mover à esquerda/direita e salve.</p>
 
                                 <ul id="tableColumnsOrderList" class="table-columns-order-list"></ul>
 

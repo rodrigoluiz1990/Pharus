@@ -4,8 +4,12 @@ const DashboardModule = (() => {
         overdueTasks: document.getElementById('dashOverdueTasks'),
         dueSoonTasks: document.getElementById('dashDueSoonTasks'),
         completedTasks: document.getElementById('dashCompletedTasks'),
-        statusBreakdown: document.getElementById('dashStatusBreakdown'),
-        priorityBreakdown: document.getElementById('dashPriorityBreakdown'),
+        statusChart: document.getElementById('dashStatusChart'),
+        statusLegend: document.getElementById('dashStatusLegend'),
+        priorityChart: document.getElementById('dashPriorityChart'),
+        priorityLegend: document.getElementById('dashPriorityLegend'),
+        typeChart: document.getElementById('dashTypeChart'),
+        typeLegend: document.getElementById('dashTypeLegend'),
         topAssignees: document.getElementById('dashTopAssignees'),
         topClients: document.getElementById('dashTopClients'),
         upcomingList: document.getElementById('dashUpcomingList'),
@@ -25,6 +29,21 @@ const DashboardModule = (() => {
         medium: 'Média',
         low: 'Baixa',
     };
+
+    const TYPE_LABELS = {
+        task: 'Novo',
+        bug: 'Erro',
+        improvement: 'Melhoria',
+        feature: 'Funcionalidade',
+        documentacao: 'Documentacao',
+        user: 'Usuário',
+        manager: 'Gerente',
+        admin: 'Administrador',
+    };
+
+    const TYPE_COLORS = ['#2f8ee5', '#1f9d57', '#e67e22', '#8e44ad', '#16a085', '#f39c12', '#7f8c8d', '#d35454'];
+    const STATUS_COLORS = ['#f39c12', '#2f8ee5', '#8e44ad', '#1f9d57', '#7f8c8d'];
+    const PRIORITY_COLORS = ['#d9534f', '#f0ad4e', '#5cb85c', '#7f8c8d'];
 
     const init = async () => {
         await loadAndRender();
@@ -58,21 +77,38 @@ const DashboardModule = (() => {
         setText(elements.dueSoonTasks, dueSoonTasks.length);
         setText(elements.completedTasks, completedTasks.length);
 
-        renderBreakdown(
-            elements.statusBreakdown,
+        renderDonutChart(
+            elements.statusChart,
+            elements.statusLegend,
             countBy(normalizedTasks, (task) => STATUS_LABELS[task.status] || 'Sem status')
+            ,
+            STATUS_COLORS
         );
 
-        renderBreakdown(
-            elements.priorityBreakdown,
+        renderDonutChart(
+            elements.priorityChart,
+            elements.priorityLegend,
             countBy(normalizedTasks, (task) => PRIORITY_LABELS[task.priority] || 'Sem prioridade')
+            ,
+            PRIORITY_COLORS
+        );
+
+        renderDonutChart(
+            elements.typeChart,
+            elements.typeLegend,
+            countBy(normalizedTasks, (task) => {
+                const key = String(task.type || '').trim().toLowerCase();
+                if (!key) return 'Sem tipo';
+                return TYPE_LABELS[key] || key;
+            }),
+            TYPE_COLORS
         );
 
         renderRankedList(
             elements.topAssignees,
             countBy(openTasks, (task) => {
                 const assignee = task.assignee_user?.name || task.assignee || '';
-                return String(assignee || '').trim() || 'Não atribuído';
+                return String(assignee || '').trim() || 'Não atribuido';
             }),
             6
         );
@@ -91,34 +127,6 @@ const DashboardModule = (() => {
                 .slice(0, 8),
             now
         );
-    };
-
-    const renderBreakdown = (container, dataMap) => {
-        if (!container) return;
-        const entries = sortEntries(dataMap);
-
-        if (!entries.length) {
-            container.innerHTML = '<div class="dashboard-empty">Sem dados.</div>';
-            return;
-        }
-
-        const total = entries.reduce((sum, [, value]) => sum + value, 0) || 1;
-        container.innerHTML = entries
-            .map(([label, value]) => {
-                const pct = Math.round((value / total) * 100);
-                return `
-                    <div>
-                        <div class="dashboard-row">
-                            <span class="dashboard-row-label">${escapeHtml(label)}</span>
-                            <span class="dashboard-row-value">${value} (${pct}%)</span>
-                        </div>
-                        <div class="dashboard-bar-track">
-                            <div class="dashboard-bar-fill" style="width:${pct}%;"></div>
-                        </div>
-                    </div>
-                `;
-            })
-            .join('');
     };
 
     const renderRankedList = (container, dataMap, limit = 6) => {
@@ -140,6 +148,87 @@ const DashboardModule = (() => {
             .join('');
     };
 
+    const renderDonutChart = (canvas, legendContainer, dataMap, colors) => {
+        if (!canvas || !legendContainer) return;
+        const entries = sortEntries(dataMap);
+
+        if (!entries.length) {
+            clearCanvas(canvas);
+            legendContainer.innerHTML = '<div class="dashboard-empty">Sem dados.</div>';
+            return;
+        }
+
+        const total = entries.reduce((sum, [, value]) => sum + value, 0) || 1;
+        drawDonut(canvas, entries, total, colors);
+
+        legendContainer.innerHTML = entries
+            .map(([label, value], index) => {
+                const pct = Math.round((value / total) * 100);
+                const color = colors[index % colors.length];
+                return `
+                    <div class="dashboard-legend-row">
+                        <span class="dashboard-legend-swatch" style="background:${color};"></span>
+                        <span class="dashboard-legend-label">${escapeHtml(label)}</span>
+                        <span class="dashboard-legend-value">${value} (${pct}%)</span>
+                    </div>
+                `;
+            })
+            .join('');
+    };
+
+    const clearCanvas = (canvas) => {
+        const context = canvas.getContext('2d');
+        if (!context) return;
+        const size = 220;
+        canvas.width = size;
+        canvas.height = size;
+        context.clearRect(0, 0, size, size);
+    };
+
+    const drawDonut = (canvas, entries, total, colors) => {
+        const context = canvas.getContext('2d');
+        if (!context) return;
+
+        const displaySize = Math.max(140, Math.round(canvas.clientWidth || 220));
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(displaySize * dpr);
+        canvas.height = Math.round(displaySize * dpr);
+        canvas.style.width = `${displaySize}px`;
+        canvas.style.height = `${displaySize}px`;
+
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.scale(dpr, dpr);
+
+        const centerX = displaySize / 2;
+        const centerY = displaySize / 2;
+        const radius = Math.round(displaySize * 0.39);
+        const lineWidth = Math.max(20, Math.round(displaySize * 0.16));
+        let currentAngle = -Math.PI / 2;
+
+        entries.forEach(([, value], index) => {
+            const sliceAngle = (value / total) * Math.PI * 2;
+            context.beginPath();
+            context.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+            context.strokeStyle = colors[index % colors.length];
+            context.lineWidth = lineWidth;
+            context.lineCap = 'butt';
+            context.stroke();
+            currentAngle += sliceAngle;
+        });
+
+        context.beginPath();
+        context.arc(centerX, centerY, radius - lineWidth / 2, 0, Math.PI * 2);
+        context.fillStyle = '#ffffff';
+        context.fill();
+
+        context.fillStyle = '#2c3f53';
+        context.font = '600 14px Arial, sans-serif';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(`${total} tarefas`, centerX, centerY);
+    };
+
     const renderUpcoming = (container, tasks, today) => {
         if (!container) return;
 
@@ -157,7 +246,7 @@ const DashboardModule = (() => {
                 const clientLabel = String(task.client || '').trim() || 'Sem cliente';
                 return `
                     <div class="dashboard-upcoming-item ${overdue ? 'overdue' : ''}">
-                        <div class="dashboard-upcoming-title">${escapeHtml(task.title || 'Sem título')}</div>
+                        <div class="dashboard-upcoming-title">${escapeHtml(task.title || 'Sem titulo')}</div>
                         <div class="dashboard-upcoming-meta">Prazo: ${escapeHtml(dueLabel)} | Status: ${escapeHtml(statusLabel)} | Cliente: ${escapeHtml(clientLabel)}</div>
                     </div>
                 `;

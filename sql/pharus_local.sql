@@ -182,10 +182,35 @@ CREATE TABLE IF NOT EXISTS notice_board_posts (
   priority TEXT NOT NULL DEFAULT 'medium',
   status TEXT NOT NULL DEFAULT 'active',
   visible_until DATE NULL,
+  permission_group_id UUID NULL REFERENCES permission_groups(id) ON DELETE SET NULL,
   created_by UUID NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS task_report_definitions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT NULL,
+  owner_user_id UUID NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+  visibility TEXT NOT NULL DEFAULT 'private',
+  definition_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS task_report_group_shares (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_id UUID NOT NULL REFERENCES task_report_definitions(id) ON DELETE CASCADE,
+  group_id UUID NOT NULL REFERENCES permission_groups(id) ON DELETE CASCADE,
+  created_by UUID NULL REFERENCES app_users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT uq_task_report_group_share UNIQUE (report_id, group_id)
+);
+
+ALTER TABLE IF EXISTS notice_board_posts
+  ADD COLUMN IF NOT EXISTS permission_group_id UUID NULL REFERENCES permission_groups(id) ON DELETE SET NULL;
 
 ALTER TABLE IF EXISTS app_users
   ADD COLUMN IF NOT EXISTS permission_group_id UUID NULL REFERENCES permission_groups(id) ON DELETE SET NULL;
@@ -273,6 +298,13 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_notice_board_posts_updated_at') THEN
     CREATE TRIGGER trg_notice_board_posts_updated_at
     BEFORE UPDATE ON notice_board_posts
+    FOR EACH ROW
+    EXECUTE PROCEDURE set_updated_at();
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_task_report_definitions_updated_at') THEN
+    CREATE TRIGGER trg_task_report_definitions_updated_at
+    BEFORE UPDATE ON task_report_definitions
     FOR EACH ROW
     EXECUTE PROCEDURE set_updated_at();
   END IF;

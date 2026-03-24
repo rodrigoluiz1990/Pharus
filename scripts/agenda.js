@@ -13,6 +13,7 @@
     const newEventBtn = document.getElementById('newAgendaEventBtn');
 
     const modalEl = document.getElementById('agendaEventModal');
+    const modalContentEl = modalEl ? modalEl.querySelector('.modal') : null;
     const modalTitleEl = document.getElementById('agendaEventModalTitle');
     const closeModalBtn = document.getElementById('closeAgendaEventModal');
     const cancelBtn = document.getElementById('cancelAgendaEventBtn');
@@ -398,7 +399,7 @@
         upcomingListEl.innerHTML = sorted.map((event) => {
             const typeText = event.event_type === 'task' ? 'Tarefa' : 'Evento';
             const statusText = event.status === 'done'
-                ? 'Concluido'
+                ? 'Concluído'
                 : event.status === 'cancelled'
                     ? 'Cancelado'
                     : 'Pendente';
@@ -831,7 +832,6 @@
 
         if (newEventBtn) newEventBtn.addEventListener('click', () => openModal(null, currentCursor));
 
-        if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
         if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
         if (deleteBtn) deleteBtn.addEventListener('click', () => void deleteEvent());
 
@@ -846,9 +846,13 @@
         }
 
         if (modalEl) {
-            modalEl.addEventListener('click', (event) => {
-                if (event.target === modalEl) closeModal();
-            });
+            if (modalContentEl) {
+                ['mousedown', 'mouseup', 'click'].forEach((eventName) => {
+                    modalContentEl.addEventListener(eventName, (event) => {
+                        event.stopPropagation();
+                    });
+                });
+            }
         }
     };
 

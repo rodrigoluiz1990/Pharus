@@ -401,26 +401,66 @@
 
         <!-- Modal de Importacao -->
         <div class="modal-overlay" id="importTasksModal" style="display: none;">
-            <div class="modal" style="max-width: 560px;">
+            <div class="modal" style="max-width: 1080px;">
                 <div class="modal-header">
                     <h3>Importar Tarefas em Lote</h3>
                     <button class="modal-close" id="closeImportTasksModal">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <div class="form-group">
-                        <p>Use uma planilha CSV, XLSX ou XLS para cadastrar varias tarefas de uma vez.</p>
-                        <ul style="margin: 8px 0 0 18px; color: #4b6078;">
-                            <li>A primeira linha deve conter os cabecalhos das colunas.</li>
-                            <li>Campo obrigatorio: <strong>titulo</strong>.</li>
-                            <li>Campos aceitos: titulo, descricao, status, prioridade, responsavel, data_solicitacao, data_entrega, observacao, jira, cliente, tipo, postit, ordem_postit.</li>
-                            <li>Status aceitos: pendente, em andamento, em teste, concluido.</li>
-                        </ul>
+                    <div id="importIntroStep">
+                        <div class="form-group">
+                            <p>Use uma planilha CSV, XLSX ou XLS para cadastrar varias tarefas de uma vez.</p>
+                            <ul style="margin: 8px 0 0 18px; color: #4b6078;">
+                                <li>A primeira linha deve conter os cabecalhos das colunas.</li>
+                                <li>Campo obrigatorio: <strong>titulo</strong>.</li>
+                                <li>Campos aceitos: titulo, descrição, status, prioridade, responsavel, data_solicitacao, data_entrega, observação, jira, cliente, tipo, postit, ordem_postit.</li>
+                                <li>Status aceitos: pendente, em andamento, em teste, concluido.</li>
+                            </ul>
+                        </div>
+                        <div class="form-actions" style="justify-content:flex-start;">
+                            <a class="btn btn-secondary" href="assets/downloads/pharus-import-modelo.csv?v=20260324" download>
+                                <i class="fas fa-file-download"></i> Baixar planilha de exemplo
+                            </a>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-primary" id="startImportTasksBtn">
+                                <i class="fas fa-play"></i> Selecionar arquivo
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="cancelImportTasksBtn">Cancelar</button>
+                        </div>
                     </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-primary" id="startImportTasksBtn">
-                            <i class="fas fa-play"></i> Iniciar importacao
-                        </button>
-                        <button type="button" class="btn btn-secondary" id="cancelImportTasksBtn">Cancelar</button>
+
+                    <div id="importPreviewStep" style="display:none;">
+                        <p id="importPreviewSummary" style="margin:0 0 10px; color:#3f5872;"></p>
+                        <div class="import-preview-table-wrap">
+                            <table class="import-preview-table">
+                                <thead>
+                                    <tr>
+                                        <th>Linha</th>
+                                        <th>Título *</th>
+                                        <th>Status</th>
+                                        <th>Prioridade</th>
+                                        <th>Responsável</th>
+                                        <th>Cliente</th>
+                                        <th>Solicitação</th>
+                                        <th>Entrega</th>
+                                        <th>Tipo</th>
+                                        <th>Post-it</th>
+                                        <th>Ordem</th>
+                                        <th>Ação</th>
+                                        <th>Erro</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="importPreviewTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="backImportPreviewBtn">Voltar</button>
+                            <button type="button" class="btn btn-primary" id="confirmImportTasksBtn">
+                                <i class="fas fa-save"></i> Confirmar importacao
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="cancelImportPreviewBtn">Cancelar</button>
+                        </div>
                     </div>
                 </div>
             </div>

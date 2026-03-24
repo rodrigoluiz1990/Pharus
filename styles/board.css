@@ -564,7 +564,7 @@
 
 /* Indicador visual para datas vencidas */
 .socious-table td[data-vencida="true"]::before {
-    content: "??";
+    content: "!";
     margin-right: 4px;
     font-size: 14px;
 }
@@ -1018,4 +1018,72 @@
 
 .socious-view.title-only-mode .title-pin-toggle-btn {
     display: inline-flex;
+}
+
+/* Importacao em lote - pre-visualizacao */
+.import-preview-table-wrap {
+    border: 1px solid #d6e2ef;
+    border-radius: 10px;
+    overflow: auto;
+    max-height: 430px;
+}
+
+.import-preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1080px;
+}
+
+.import-preview-table th,
+.import-preview-table td {
+    border-bottom: 1px solid #e6edf6;
+    padding: 6px;
+    vertical-align: middle;
+    font-size: 12px;
+}
+
+.import-preview-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f7fbff;
+    color: #2d4862;
+    font-weight: 700;
+}
+
+.import-preview-table .form-control {
+    width: 100%;
+    min-width: 88px;
+    padding: 6px 7px;
+    font-size: 12px;
+}
+
+.import-preview-line {
+    color: #5d7690;
+    text-align: center;
+    min-width: 54px;
+}
+
+.import-preview-error {
+    min-width: 180px;
+    color: #b32942;
+    font-weight: 600;
+}
+
+.import-preview-table th:nth-child(11),
+.import-preview-table td:nth-child(11) {
+    width: 74px;
+    min-width: 74px;
+}
+
+.import-preview-table td:nth-child(11) .form-control {
+    min-width: 60px;
+    text-align: center;
+}
+
+.import-preview-remove-btn {
+    min-height: 26px;
+    padding: 4px 8px;
+    font-size: 11px;
+    line-height: 1.1;
 }

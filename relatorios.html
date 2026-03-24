@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/sidebar.css">
+    <link rel="stylesheet" href="styles/relatorios.css">
 </head>
 <body>
     <div class="container">
@@ -19,23 +20,234 @@
                 <div class="project-title">
                     <h2>Relatórios</h2>
                 </div>
+                <div class="project-actions">
+                    <button class="action-btn" id="newReportBtn" type="button">
+                        <i class="fas fa-plus"></i>
+                        <span class="btn-label">Novo relatorio</span>
+                    </button>
+                </div>
             </div>
-            <div class="users-view" style="padding: 24px;">
-                <h3>Em desenvolvimento</h3>
-                <p>Esta página será implementada na próxima etapa.</p>
+
+            <div class="reports-page">
+                <div class="reports-topbar">
+                    <div class="reports-tabs" role="tablist" aria-label="Visualização de relatorios">
+                        <button class="reports-tab-btn active" data-tab="list" type="button">Relatórios</button>
+                        <button class="reports-tab-btn" data-tab="builder" type="button">Construtor</button>
+                    </div>
+                    <div class="reports-filters">
+                        <input type="text" id="reportSearchInput" class="form-control" placeholder="Buscar relatorio...">
+                        <select id="reportScopeFilter" class="form-control">
+                            <option value="all">Todos</option>
+                            <option value="mine">Meus</option>
+                            <option value="shared">Compartilhados comigo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <section class="reports-panel active" data-panel="list">
+                    <div class="reports-list-wrap">
+                        <table class="reports-list-table">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Descrição</th>
+                                    <th>Escopo</th>
+                                    <th>Criado por</th>
+                                    <th>Atualizado em</th>
+                                    <th>Exportar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportsListBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="reports-panel" data-panel="builder">
+                    <div class="report-card">
+                        <h3>Relatórios cadastrados</h3>
+                        <div class="reports-list-wrap">
+                            <table class="reports-list-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Descrição</th>
+                                        <th>Escopo</th>
+                                        <th>Atualizado em</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportsBuilderListBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="report-results-panel">
+                        <div class="report-results-header">
+                            <h3 id="reportResultsTitle">Preview do relatorio</h3>
+                            <span id="reportResultsMeta" class="report-results-meta">Selecione um relatorio para visualizar ate 5 registros.</span>
+                        </div>
+                        <div class="report-results-table-wrap">
+                            <table class="report-results-table">
+                                <thead id="reportResultsHead"></thead>
+                                <tbody id="reportResultsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="reportEditorModal" style="display:none;">
+        <div class="modal" style="max-width: 980px;">
+            <div class="modal-header">
+                <h3 id="reportEditorTitle">Novo relatorio</h3>
+                <button class="modal-close" id="closeReportEditorModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="reportBuilderForm" class="report-builder-form">
+                    <input type="hidden" id="reportIdInput">
+
+                    <div class="report-card report-card-basic">
+                        <h3>Dados basicos</h3>
+                        <div class="form-row report-basic-row">
+                            <div class="form-group">
+                                <label for="reportNameInput">Nome do relatorio *</label>
+                                <input type="text" id="reportNameInput" class="form-control" maxlength="120" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="reportVisibilityInput">Disponibilidade</label>
+                                <select id="reportVisibilityInput" class="form-control">
+                                    <option value="private">Somente eu</option>
+                                    <option value="groups">Grupos selecionados</option>
+                                    <option value="public">Todos os operadores</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="reportDescriptionInput">Descrição</label>
+                            <input type="text" id="reportDescriptionInput" class="form-control" maxlength="220">
+                        </div>
+                    </div>
+
+                    <div class="report-card" id="reportGroupsCard" style="display:none;">
+                        <h3>Grupos com acesso</h3>
+                        <div id="reportGroupsGrid" class="report-groups-grid"></div>
+                    </div>
+
+                    <div class="report-card">
+                        <h3>Filtros do relatorio</h3>
+                        <div class="form-row report-filters-row">
+                            <div class="form-group">
+                                <label for="reportFilterStatus">Status</label>
+                                <select id="reportFilterStatus" class="form-control">
+                                    <option value="">Todos</option>
+                                    <option value="pending">Pendente</option>
+                                    <option value="in_progress">Em andamento</option>
+                                    <option value="review">Em teste</option>
+                                    <option value="completed">Concluído</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="reportFilterPriority">Prioridade</label>
+                                <select id="reportFilterPriority" class="form-control">
+                                    <option value="">Todas</option>
+                                    <option value="low">Baixa</option>
+                                    <option value="medium">Média</option>
+                                    <option value="high">Alta</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="reportFilterType">Tipo</label>
+                                <select id="reportFilterType" class="form-control">
+                                    <option value="">Todos</option>
+                                    <option value="task">Novo</option>
+                                    <option value="bug">Erro</option>
+                                    <option value="improvement">Melhoria</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row report-filters-row">
+                            <div class="form-group">
+                                <label for="reportFilterClient">Cliente</label>
+                                <input type="text" id="reportFilterClient" class="form-control" placeholder="Ex: ACME">
+                            </div>
+                            <div class="form-group">
+                                <label for="reportFilterAssignee">Responsável</label>
+                                <input type="text" id="reportFilterAssignee" class="form-control" placeholder="Nome ou email">
+                            </div>
+                            <div class="form-group">
+                                <label for="reportFilterText">Texto livre</label>
+                                <input type="text" id="reportFilterText" class="form-control" placeholder="Busca em titulo, descrição, observação, cliente e Jira">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="report-card">
+                        <h3>Colunas exibidas</h3>
+                        <div class="report-columns-order-wrap">
+                            <p class="report-inline-hint">Ordem das colunas selecionadas</p>
+                            <div id="reportSelectedColumnsOrder" class="report-selected-columns-order"></div>
+                        </div>
+                        <div id="reportColumnsGrid" class="report-columns-grid"></div>
+                    </div>
+
+                    <div class="report-card">
+                        <h3>Ordenação dos dados</h3>
+                        <div class="form-row report-basic-row">
+                            <div class="form-group">
+                                <label for="reportSortColumn">Ordenar por</label>
+                                <select id="reportSortColumn" class="form-control">
+                                    <option value="">Sem ordenacao</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="reportSortDirection">Tipo de ordenacao</label>
+                                <select id="reportSortDirection" class="form-control">
+                                    <option value="asc">Crescente (A-Z / menor-maior)</option>
+                                    <option value="desc">Decrescente (Z-A / maior-menor)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="saveReportBtn">
+                            <i class="fas fa-save"></i> Salvar relatorio
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="cancelReportEditorBtn">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="reportViewModal" style="display:none;">
+        <div class="modal" style="max-width: 1100px;">
+            <div class="modal-header">
+                <h3 id="reportViewTitle">Relatório</h3>
+                <button class="modal-close" id="closeReportViewModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="reportViewMeta" class="report-results-meta" style="margin-bottom:8px;"></p>
+                <div class="report-results-table-wrap">
+                    <table class="report-results-table">
+                        <thead id="reportViewHead"></thead>
+                        <tbody id="reportViewBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
     <script src="scripts/local-supabase-client.js"></script>
     <script src="scripts/supabase-config.js"></script>
+    <script src="scripts/auth.js"></script>
     <script src="scripts/component-loader.js"></script>
+    <script src="scripts/utils.js"></script>
+    <script src="scripts/storage.js"></script>
     <script src="scripts/profile-modal.js"></script>
+    <script src="scripts/relatorios.js"></script>
     <script src="scripts/chat.js"></script>
 </body>
 </html>
-
-
-
-
-

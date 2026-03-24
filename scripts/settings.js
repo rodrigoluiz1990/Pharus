@@ -5,7 +5,6 @@ const SettingsModule = (() => {
     const resetProjectDisplayNameBtn = document.getElementById('resetProjectDisplayNameBtn');
     const projectDisplayNameStatus = document.getElementById('projectDisplayNameStatus');
     const openExtensionsBtn = document.getElementById('openExtensionsBtn');
-    const copyExtensionsUrlBtn = document.getElementById('copyExtensionsUrlBtn');
     const copyFolderHintBtn = document.getElementById('copyFolderHintBtn');
     const extensionFolderPath = document.getElementById('extensionFolderPath');
     const extensionInstallHint = document.getElementById('extensionInstallHint');
@@ -46,8 +45,8 @@ const SettingsModule = (() => {
     const TABLE_COLUMNS_LABELS = {
         pin: 'Pin',
         title: 'Tarefa',
-        assignee: 'Responsavel',
-        request_date: 'Data Solicitacao',
+        assignee: 'Responsável',
+        request_date: 'Data Solicitação',
         due_date: 'Data Entrega',
         status: 'Status',
         priority: 'Prioridade',
@@ -58,7 +57,6 @@ const SettingsModule = (() => {
 
     let tableColumnsOrder = [...DEFAULT_TABLE_COLUMNS_ORDER];
     let tableColumnsWidths = { ...DEFAULT_TABLE_COLUMNS_WIDTHS };
-    let draggingKey = null;
 
     const hideStatusHint = (element) => {
         if (!element) return;
@@ -170,18 +168,15 @@ const SettingsModule = (() => {
         }
     };
 
-    const tryOpenExtensionsPage = async () => {
-        const popup = window.open(EXTENSIONS_URL, '_blank');
-
-        if (popup) {
-            notify('Tentando abrir chrome://extensions...', 'info');
-            return;
-        }
-
-        const copied = await copyText(EXTENSIONS_URL, 'Link copiado: cole na barra de endereco do Chrome.');
+    const openExtensionsManualFlow = async () => {
+        const copied = await copyText(
+            EXTENSIONS_URL,
+            'Link copiado. No Chrome pressione Ctrl+L, Ctrl+V e Enter.'
+        );
         if (!copied) {
-            notify('Abra manualmente: chrome://extensions', 'warning');
+            notify('Não foi possível copiar. Digite manualmente: chrome://extensions', 'warning');
         }
+        return copied;
     };
 
     const init = () => {
@@ -226,19 +221,12 @@ const SettingsModule = (() => {
         }
 
         if (openExtensionsBtn) {
-            openExtensionsBtn.addEventListener('click', (event) => {
+            openExtensionsBtn.addEventListener('click', async (event) => {
                 event.preventDefault();
-                tryOpenExtensionsPage();
-            });
-        }
-
-        if (copyExtensionsUrlBtn) {
-            copyExtensionsUrlBtn.addEventListener('click', async (event) => {
-                event.preventDefault();
-                const originalHtml = copyExtensionsUrlBtn.innerHTML;
-                const copied = await copyText(EXTENSIONS_URL, 'Link chrome://extensions copiado com sucesso.');
+                const originalHtml = openExtensionsBtn.innerHTML;
+                const copied = await openExtensionsManualFlow();
                 if (copied) {
-                    showCopiedFeedback(copyExtensionsUrlBtn, originalHtml);
+                    showCopiedFeedback(openExtensionsBtn, originalHtml);
                 }
             });
         }
@@ -432,42 +420,31 @@ const SettingsModule = (() => {
         tableColumnsOrder.forEach((key, index) => {
             const item = document.createElement('li');
             item.className = 'table-columns-order-item';
-            item.draggable = true;
             item.dataset.colKey = key;
             item.innerHTML = `
-                <span>${index + 1}. ${TABLE_COLUMNS_LABELS[key] || key}</span>
-                <span class="drag-hint"><i class="fas fa-grip-vertical"></i> Arraste</span>
+                <span class="order-label">${index + 1}. ${TABLE_COLUMNS_LABELS[key] || key}</span>
+                <div class="order-actions">
+                    <button type="button" class="btn btn-secondary" data-move="left" ${index === 0 ? 'disabled' : ''}>&larr;</button>
+                    <button type="button" class="btn btn-secondary" data-move="right" ${index === tableColumnsOrder.length - 1 ? 'disabled' : ''}>&rarr;</button>
+                </div>
             `;
 
-            item.addEventListener('dragstart', () => {
-                draggingKey = key;
-                item.classList.add('dragging');
-            });
+            item.querySelectorAll('button[data-move]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const direction = button.dataset.move;
+                    const currentIndex = tableColumnsOrder.indexOf(key);
+                    if (currentIndex < 0) return;
 
-            item.addEventListener('dragend', () => {
-                draggingKey = null;
-                item.classList.remove('dragging');
-            });
+                    if (direction === 'left' && currentIndex > 0) {
+                        [tableColumnsOrder[currentIndex - 1], tableColumnsOrder[currentIndex]] = [tableColumnsOrder[currentIndex], tableColumnsOrder[currentIndex - 1]];
+                    }
+                    if (direction === 'right' && currentIndex < tableColumnsOrder.length - 1) {
+                        [tableColumnsOrder[currentIndex], tableColumnsOrder[currentIndex + 1]] = [tableColumnsOrder[currentIndex + 1], tableColumnsOrder[currentIndex]];
+                    }
 
-            item.addEventListener('dragover', (event) => {
-                event.preventDefault();
-            });
-
-            item.addEventListener('drop', (event) => {
-                event.preventDefault();
-                const targetKey = item.dataset.colKey;
-                if (!draggingKey || !targetKey || draggingKey === targetKey) return;
-
-                const fromIndex = tableColumnsOrder.indexOf(draggingKey);
-                const toIndex = tableColumnsOrder.indexOf(targetKey);
-                if (fromIndex < 0 || toIndex < 0) return;
-
-                const nextOrder = [...tableColumnsOrder];
-                const [moved] = nextOrder.splice(fromIndex, 1);
-                nextOrder.splice(toIndex, 0, moved);
-                tableColumnsOrder = nextOrder;
-                renderTableColumnsOrderList();
-                renderTableColumnsWidthGrid();
+                    renderTableColumnsOrderList();
+                    renderTableColumnsWidthGrid();
+                });
             });
 
             tableColumnsOrderList.appendChild(item);

@@ -126,7 +126,7 @@ function isNoticeVisible(notice) {
 
 function getNoticePriorityLabel(priority) {
   if (priority === 'high') return 'Alta';
-  if (priority === 'medium') return 'Media';
+  if (priority === 'medium') return 'Média';
   if (priority === 'low') return 'Baixa';
   return String(priority || '-');
 }
@@ -415,9 +415,9 @@ function setMode(mode, options = {}) {
     if (modeValue === 'detached') {
       updateDetachedStatus();
     } else if (modeValue === 'notices') {
-      setNoticesStatus('Visualizacao de avisos ativa.');
+      setNoticesStatus('Visualização de avisos ativa.');
     } else {
-      setStatus('Visualizacao de tarefas ativa.');
+      setStatus('Visualização de tarefas ativa.');
     }
   }
 }
@@ -463,7 +463,7 @@ async function fetchNotices(settings) {
     body: JSON.stringify({
       table: 'notice_board_posts',
       action: 'select',
-      select: 'id,title,content,priority,status,visible_until,created_at',
+      select: 'id,title,content,priority,status,visible_until,permission_group_id,created_at',
       order: { column: 'created_at', ascending: false },
     }),
   });
@@ -474,6 +474,39 @@ async function fetchNotices(settings) {
   return Array.isArray(payload.data) ? payload.data : [];
 }
 
+async function fetchUserPermissionGroupId(settings) {
+  const email = String(settings?.email || '').trim().toLowerCase();
+  if (!email) return '';
+
+  const response = await fetch(`${settings.apiBase}/api/db/query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      table: 'app_users',
+      action: 'select',
+      select: 'id,email,permission_group_id',
+      filters: [{ column: 'email', op: 'eq', value: email }],
+    }),
+  });
+
+  const payload = await response.json();
+  if (!response.ok || payload.error) {
+    throw new Error(payload?.error?.message || `Erro HTTP ${response.status}`);
+  }
+
+  const firstUser = Array.isArray(payload.data) ? payload.data[0] : null;
+  return String(firstUser?.permission_group_id || '');
+}
+
+function filterNoticesByUserGroup(notices, userPermissionGroupId) {
+  const groupId = String(userPermissionGroupId || '').trim();
+  return (Array.isArray(notices) ? notices : []).filter((notice) => {
+    const noticeGroupId = String(notice?.permission_group_id || '').trim();
+    if (!noticeGroupId) return true;
+    return groupId && noticeGroupId === groupId;
+  });
+}
+
 async function refreshNotices(options = {}) {
   const { force = false } = options;
   if (!force && currentMode !== 'notices') return;
@@ -482,9 +515,13 @@ async function refreshNotices(options = {}) {
   setNoticesStatus('Atualizando avisos...');
 
   try {
-    const notices = await fetchNotices(settings);
-    const activeCount = notices.filter(isNoticeVisible).length;
-    renderNotices(notices);
+    const [notices, userPermissionGroupId] = await Promise.all([
+      fetchNotices(settings),
+      fetchUserPermissionGroupId(settings).catch(() => ''),
+    ]);
+    const scopedNotices = filterNoticesByUserGroup(notices, userPermissionGroupId);
+    const activeCount = scopedNotices.filter(isNoticeVisible).length;
+    renderNotices(scopedNotices);
     setNoticesStatus(`${activeCount} aviso(s) ativo(s) carregado(s)`);
   } catch (error) {
     renderNotices([]);
@@ -521,7 +558,7 @@ async function init() {
     els.saveSettingsBtn.addEventListener('click', async () => {
       const nextSettings = getFormSettings();
       await saveSettings(nextSettings);
-      setStatus('Configuracao salva.');
+      setStatus('Configuração salva.');
       await refreshTasks({ force: true });
     });
   }

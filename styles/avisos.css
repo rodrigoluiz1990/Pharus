@@ -117,6 +117,10 @@
     gap: 10px;
 }
 
+#noticeForm .form-group.full-row {
+    grid-column: 1 / -1;
+}
+
 @media (max-width: 820px) {
     .notices-filters {
         grid-template-columns: 1fr;

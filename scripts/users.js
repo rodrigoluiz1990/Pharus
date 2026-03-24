@@ -378,36 +378,26 @@ const UsersModule = (() => {
     const createUser = async (userData) => {
         try {
             UtilsModule.showLoading('Criando usuário...');
+            const metadata = {
+                full_name: userData.name,
+                role: userData.role,
+                avatar_color: userData.avatar_color,
+                avatar_icon: userData.avatar_icon,
+            };
 
-            const { data, error } = await window.supabaseClient.auth.signUp({
-                email: userData.email,
-                password: userData.password,
-                options: {
-                    data: {
-                        full_name: userData.name,
-                        role: userData.role,
-                        avatar_color: userData.avatar_color,
-                        avatar_icon: userData.avatar_icon,
-                    }
-                }
-            });
+            const { error } = await window.supabaseClient
+                .from('app_users')
+                .insert([{
+                    email: String(userData.email || '').trim().toLowerCase(),
+                    password: String(userData.password || ''),
+                    raw_user_meta_data: metadata,
+                    role: userData.role,
+                    status: userData.status,
+                    permission_group_id: userData.permission_group_id || null,
+                    last_sign_in_at: null,
+                }]);
 
             if (error) throw error;
-
-            const createdUserId = data?.user?.id || null;
-            if (createdUserId) {
-                const { error: updateError } = await window.supabaseClient
-                    .from('app_users')
-                    .update({
-                        role: userData.role,
-                        status: userData.status,
-                        permission_group_id: userData.permission_group_id || null,
-                    })
-                    .eq('id', createdUserId);
-                if (updateError) {
-                    console.warn('Usuário criado, mas não foi possível aplicar grupo/status:', updateError);
-                }
-            }
 
             UtilsModule.hideLoading();
             UtilsModule.showNotification('Usuário criado com sucesso!', 'success');

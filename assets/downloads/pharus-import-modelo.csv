@@ -1,0 +1,4 @@
+titulo,descricao,status,prioridade,responsavel,data_solicitacao,data_entrega,observacao,jira,cliente,tipo,postit,ordem_postit
+Implementar validacao de login,Validar e-mail e senha na tela de login,pendente,alta,admin@pharus.local,2026-03-24,2026-03-28,Prioridade para sprint atual,JIRA-123,ACME,novo,sim,1
+Ajustar layout do menu,Alinhar icones no modo reduzido,em andamento,media,,2026-03-24,2026-03-30,,JIRA-124,ACME,melhoria,nao,
+Corrigir notificacao do chat,Exibir bolha em novas mensagens,em teste,alta,admin@pharus.local,2026-03-24,2026-03-26,Revisar com equipe de suporte,,BETA,erro,sim,2

@@ -18,12 +18,15 @@
     const priorityEl = document.getElementById('noticePriority');
     const statusEl = document.getElementById('noticeStatus');
     const visibleUntilEl = document.getElementById('noticeVisibleUntil');
+    const permissionGroupEl = document.getElementById('noticePermissionGroup');
     const contentEl = document.getElementById('noticeContent');
 
     const priorityWeight = { urgent: 0, high: 1, medium: 2, low: 3 };
 
     let notices = [];
     let filteredNotices = [];
+    let permissionGroups = [];
+    let currentUserPermissionGroupId = null;
     let useLocalFallback = false;
     let fallbackNotified = false;
     let initialized = false;
@@ -75,7 +78,8 @@
         return raw.includes('column') && (
             raw.includes('created_by') ||
             raw.includes('updated_at') ||
-            raw.includes('visible_until')
+            raw.includes('visible_until') ||
+            raw.includes('permission_group_id')
         );
     };
 
@@ -100,9 +104,75 @@
         priority: ['low', 'medium', 'high', 'urgent'].includes(item?.priority) ? item.priority : 'medium',
         status: item?.status === 'archived' ? 'archived' : 'active',
         visible_until: item?.visible_until || null,
+        permission_group_id: item?.permission_group_id || null,
         created_at: item?.created_at || null,
         updated_at: item?.updated_at || null,
     });
+
+    const getPermissionGroupName = (groupId) => {
+        const id = String(groupId || '').trim();
+        if (!id) return 'Todos os grupos';
+        const found = permissionGroups.find((group) => String(group.id) === id);
+        return found ? String(found.name || 'Grupo') : 'Grupo especifico';
+    };
+
+    const canCurrentUserSeeNotice = (notice) => {
+        const targetGroupId = String(notice?.permission_group_id || '').trim();
+        if (!targetGroupId) return true;
+        return targetGroupId === String(currentUserPermissionGroupId || '').trim();
+    };
+
+    const renderPermissionGroupOptions = (selectedId = '') => {
+        if (!permissionGroupEl) return;
+        permissionGroupEl.innerHTML = '<option value="">Todos os grupos</option>';
+        permissionGroups.forEach((group) => {
+            const option = document.createElement('option');
+            option.value = String(group.id);
+            option.textContent = String(group.name || 'Grupo');
+            if (selectedId && String(selectedId) === String(group.id)) {
+                option.selected = true;
+            }
+            permissionGroupEl.appendChild(option);
+        });
+    };
+
+    const loadPermissionGroups = async () => {
+        if (!window.supabaseClient) return;
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('permission_groups')
+                .select('id, name, status')
+                .order('name', { ascending: true });
+            if (error) throw error;
+            permissionGroups = (data || []).filter((item) => String(item.status || 'active') === 'active');
+        } catch (error) {
+            permissionGroups = [];
+            console.warn('Não foi possível carregar grupos de permissao:', error);
+        }
+        renderPermissionGroupOptions();
+    };
+
+    const loadCurrentUserGroup = async () => {
+        currentUserPermissionGroupId = null;
+        if (!window.supabaseClient) return;
+        try {
+            const { data: sessionData, error: sessionError } = await window.supabaseClient.auth.getSession();
+            if (sessionError) throw sessionError;
+            const userId = sessionData?.session?.user?.id;
+            if (!userId) return;
+
+            const { data: userRow, error: userError } = await window.supabaseClient
+                .from('app_users')
+                .select('permission_group_id')
+                .eq('id', userId)
+                .single();
+            if (userError) throw userError;
+            currentUserPermissionGroupId = userRow?.permission_group_id || null;
+        } catch (error) {
+            currentUserPermissionGroupId = null;
+            console.warn('Não foi possível identificar grupo do usuario atual:', error);
+        }
+    };
 
     const formatDate = (value) => {
         if (!value) return '-';
@@ -164,6 +234,7 @@
 
         filteredNotices = notices
             .filter((notice) => {
+                if (!canCurrentUserSeeNotice(notice)) return false;
                 if (status !== 'all' && notice.status !== status) return false;
                 if (status === 'active' && isExpired(notice)) return false;
 
@@ -206,7 +277,7 @@
                     ? 'Alta'
                     : notice.priority === 'low'
                         ? 'Baixa'
-                        : 'Media';
+                        : 'Média';
 
             return `
                 <article class="notice-card priority-${escapeHtml(notice.priority)} status-${escapeHtml(notice.status)}" data-notice-id="${escapeHtml(notice.id)}">
@@ -217,6 +288,7 @@
                     <p class="notice-content">${escapeHtml(notice.content || '')}</p>
                     <div class="notice-meta">
                         <span>Status: ${statusText}</span>
+                        <span>Grupo: ${escapeHtml(getPermissionGroupName(notice.permission_group_id))}</span>
                         <span>Criado em: ${formatDate(notice.created_at)}</span>
                         <span>Visivel ate: ${formatDate(notice.visible_until)}</span>
                         ${expiredText}
@@ -250,6 +322,7 @@
         idEl.value = '';
         priorityEl.value = 'medium';
         statusEl.value = 'active';
+        if (permissionGroupEl) permissionGroupEl.value = '';
         deleteBtn.style.display = 'none';
     };
 
@@ -268,6 +341,7 @@
         priorityEl.value = notice.priority || 'medium';
         statusEl.value = notice.status || 'active';
         visibleUntilEl.value = formatDateForInput(notice.visible_until);
+        renderPermissionGroupOptions(notice.permission_group_id || '');
         contentEl.value = notice.content || '';
         deleteBtn.style.display = 'inline-flex';
         setModalVisible(true);
@@ -305,6 +379,7 @@
             priority: ['low', 'medium', 'high', 'urgent'].includes(priorityEl.value) ? priorityEl.value : 'medium',
             status: statusEl.value === 'archived' ? 'archived' : 'active',
             visible_until: visibleUntilEl.value || null,
+            permission_group_id: permissionGroupEl ? (permissionGroupEl.value || null) : null,
             created_by: userId,
             updated_at: new Date().toISOString(),
         };
@@ -316,6 +391,7 @@
         priority: payload.priority,
         status: payload.status,
         visible_until: payload.visible_until || null,
+        permission_group_id: payload.permission_group_id || null,
     });
 
     const insertLocal = (payload) => {
@@ -464,6 +540,8 @@
         initialized = true;
 
         attachEvents();
+        await loadPermissionGroups();
+        await loadCurrentUserGroup();
         await loadNotices();
         applyFilters();
     };

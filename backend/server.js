@@ -150,15 +150,35 @@ const TABLE_COLUMNS = {
     'priority',
     'status',
     'visible_until',
+    'permission_group_id',
     'created_by',
     'created_at',
     'updated_at',
+  ],
+  task_report_definitions: [
+    'id',
+    'name',
+    'description',
+    'owner_user_id',
+    'visibility',
+    'definition_json',
+    'status',
+    'created_at',
+    'updated_at',
+  ],
+  task_report_group_shares: [
+    'id',
+    'report_id',
+    'group_id',
+    'created_by',
+    'created_at',
   ],
 };
 
 const TABLE_JSON_COLUMNS = {
   app_users: new Set(['raw_user_meta_data']),
   clients: new Set(['remote_connections']),
+  task_report_definitions: new Set(['definition_json']),
 };
 
 const MUTABLE_TABLES = new Set([
@@ -171,6 +191,8 @@ const MUTABLE_TABLES = new Set([
   'permission_group_rules',
   'agenda_events',
   'notice_board_posts',
+  'task_report_definitions',
+  'task_report_group_shares',
 ]);
 
 function normalizeTable(table) {

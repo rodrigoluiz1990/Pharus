@@ -160,7 +160,7 @@ const ClientsModule = (() => {
             if (!response.ok) throw new Error('Falha na consulta de CEP');
             const data = await response.json();
             if (!data || data.erro) {
-                notify('CEP nao encontrado.', 'warning');
+                notify('CEP não encontrado.', 'warning');
                 return;
             }
 
@@ -305,7 +305,7 @@ const ClientsModule = (() => {
 
             const { data: sessionData, error: sessionError } = await window.supabaseClient.auth.getSession();
             if (sessionError || !sessionData?.session) {
-                throw new Error('Usuario nao autenticado. Faca login novamente.');
+                throw new Error('Usuário não autenticado. Faça login novamente.');
             }
 
             const { data, error } = await window.supabaseClient
