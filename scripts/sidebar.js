@@ -9,6 +9,8 @@ class SidebarManager {
         this.isNavigating = false;
         this.collapseStorageKey = 'pharus_sidebar_collapsed';
         this.projectTitleStorageKey = 'pharus_project_display_name';
+        this.customSidebarMenuStorageKey = 'pharus_custom_sidebar_menu';
+        this.defaultCustomSidebarIcon = 'fa-link';
         this.defaultProjectTitle = 'Pharus';
         this.sidebarUnreadInterval = null;
         this.init();
@@ -64,7 +66,9 @@ class SidebarManager {
         this.applyProjectDisplayName();
         this.applyPageHeaderProjectName();
         this.applyBrowserTabTitle();
+        this.applyCustomSidebarMenu();
         this.setupProjectNameListeners();
+        this.setupCustomSidebarMenuListeners();
         this.setupSidebarChatUnreadBadge();
         this.setupChatMenuItem(); // MOVER para depois do setupNavigation
 
@@ -252,6 +256,98 @@ class SidebarManager {
             this.applyProjectDisplayName(event.newValue);
             this.applyPageHeaderProjectName(event.newValue);
             this.applyBrowserTabTitle(event.newValue);
+        });
+    }
+
+    normalizeCustomMenuName(value) {
+        return String(value || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+    }
+
+    normalizeCustomMenuUrl(value) {
+        return String(value || '').trim().slice(0, 300);
+    }
+
+    normalizeCustomMenuIcon(value) {
+        const allowed = new Set(['fa-link', 'fa-globe', 'fa-briefcase', 'fa-chart-line', 'fa-file-alt', 'fa-building', 'fa-cogs', 'fa-book']);
+        const icon = String(value || '').trim();
+        return allowed.has(icon) ? icon : this.defaultCustomSidebarIcon;
+    }
+
+    loadCustomSidebarMenuConfig() {
+        try {
+            const raw = localStorage.getItem(this.customSidebarMenuStorageKey);
+            if (!raw) return { name: '', url: '', icon: this.defaultCustomSidebarIcon, enabled: false };
+            const parsed = JSON.parse(raw);
+            const normalizedName = this.normalizeCustomMenuName(parsed?.name || '');
+            const normalizedUrl = this.normalizeCustomMenuUrl(parsed?.url || '');
+            const parsedEnabled = typeof parsed?.enabled === 'boolean'
+                ? parsed.enabled
+                : Boolean(normalizedName && normalizedUrl);
+            return {
+                name: normalizedName,
+                url: normalizedUrl,
+                icon: this.normalizeCustomMenuIcon(parsed?.icon || this.defaultCustomSidebarIcon),
+                enabled: parsedEnabled
+            };
+        } catch (_error) {
+            return { name: '', url: '', icon: this.defaultCustomSidebarIcon, enabled: false };
+        }
+    }
+
+    applyCustomSidebarMenu(config) {
+        const menuItem = document.getElementById('customSidebarMenuItem');
+        const label = document.getElementById('customSidebarMenuLabel');
+        const iconEl = menuItem ? menuItem.querySelector('i') : null;
+        const settingsMenuItem = document.querySelector('.menu-item[data-page="configuracoes.html"]');
+        if (!menuItem || !label) return;
+
+        if (settingsMenuItem && settingsMenuItem.parentElement === menuItem.parentElement) {
+            settingsMenuItem.parentElement.insertBefore(menuItem, settingsMenuItem);
+        }
+
+        if (!menuItem.dataset.boundClick) {
+            menuItem.addEventListener('click', (event) => {
+                event.preventDefault();
+                const target = menuItem.getAttribute('data-page');
+                if (!target) return;
+                window.open(target, '_blank', 'noopener,noreferrer');
+            });
+            menuItem.dataset.boundClick = 'true';
+        }
+
+        const resolved = config && typeof config === 'object'
+            ? {
+                name: this.normalizeCustomMenuName(config.name),
+                url: this.normalizeCustomMenuUrl(config.url),
+                icon: this.normalizeCustomMenuIcon(config.icon || this.defaultCustomSidebarIcon),
+                enabled: typeof config.enabled === 'boolean'
+                    ? config.enabled
+                    : Boolean(this.normalizeCustomMenuName(config.name) && this.normalizeCustomMenuUrl(config.url))
+            }
+            : this.loadCustomSidebarMenuConfig();
+
+        if (!resolved.enabled || !resolved.name || !resolved.url) {
+            menuItem.style.display = 'none';
+            menuItem.removeAttribute('data-page');
+            menuItem.classList.remove('active');
+            return;
+        }
+
+        label.textContent = resolved.name;
+        if (iconEl) iconEl.className = `fas ${resolved.icon}`;
+        menuItem.setAttribute('data-page', resolved.url);
+        menuItem.style.display = '';
+        menuItem.classList.remove('active');
+    }
+
+    setupCustomSidebarMenuListeners() {
+        window.addEventListener('pharus:custom-sidebar-menu-updated', (event) => {
+            this.applyCustomSidebarMenu(event?.detail || {});
+        });
+
+        window.addEventListener('storage', (event) => {
+            if (event.key !== this.customSidebarMenuStorageKey) return;
+            this.applyCustomSidebarMenu();
         });
     }
 

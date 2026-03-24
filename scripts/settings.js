@@ -4,6 +4,14 @@ const SettingsModule = (() => {
     const saveProjectDisplayNameBtn = document.getElementById('saveProjectDisplayNameBtn');
     const resetProjectDisplayNameBtn = document.getElementById('resetProjectDisplayNameBtn');
     const projectDisplayNameStatus = document.getElementById('projectDisplayNameStatus');
+    const customSidebarMenuNameInput = document.getElementById('customSidebarMenuNameInput');
+    const customSidebarMenuUrlInput = document.getElementById('customSidebarMenuUrlInput');
+    const customSidebarMenuIconInput = document.getElementById('customSidebarMenuIconInput');
+    const customSidebarMenuIconPreview = document.getElementById('customSidebarMenuIconPreview');
+    const customSidebarMenuEnabledInput = document.getElementById('customSidebarMenuEnabledInput');
+    const saveCustomSidebarMenuBtn = document.getElementById('saveCustomSidebarMenuBtn');
+    const resetCustomSidebarMenuBtn = document.getElementById('resetCustomSidebarMenuBtn');
+    const customSidebarMenuStatus = document.getElementById('customSidebarMenuStatus');
     const openExtensionsBtn = document.getElementById('openExtensionsBtn');
     const copyFolderHintBtn = document.getElementById('copyFolderHintBtn');
     const extensionFolderPath = document.getElementById('extensionFolderPath');
@@ -26,6 +34,8 @@ const SettingsModule = (() => {
     const TABLE_COLUMN_MIN_WIDTH = 50;
     const PROJECT_DISPLAY_NAME_KEY = 'pharus_project_display_name';
     const DEFAULT_PROJECT_DISPLAY_NAME = 'Pharus';
+    const CUSTOM_SIDEBAR_MENU_KEY = 'pharus_custom_sidebar_menu';
+    const DEFAULT_CUSTOM_SIDEBAR_ICON = 'fa-link';
     const SETTINGS_ACTIVE_TAB_KEY = 'pharus_settings_active_tab';
     const SETTINGS_CARDS_STATE_KEY = 'pharus_settings_cards_state';
     const DEFAULT_TABLE_COLUMNS_ORDER = ['pin', 'title', 'assignee', 'request_date', 'due_date', 'status', 'priority', 'client', 'type', 'actions'];
@@ -74,6 +84,58 @@ const SettingsModule = (() => {
         if (!projectDisplayNameInput) return;
         const savedName = localStorage.getItem(PROJECT_DISPLAY_NAME_KEY);
         projectDisplayNameInput.value = normalizeProjectDisplayName(savedName || DEFAULT_PROJECT_DISPLAY_NAME);
+    };
+
+    const normalizeCustomMenuName = (value) => {
+        const cleaned = String(value || '').trim().replace(/\s+/g, ' ');
+        return cleaned.slice(0, 40);
+    };
+
+    const normalizeCustomMenuUrl = (value) => {
+        return String(value || '').trim().slice(0, 300);
+    };
+
+    const normalizeCustomMenuIcon = (value) => {
+        const allowed = new Set(['fa-link', 'fa-globe', 'fa-briefcase', 'fa-chart-line', 'fa-file-alt', 'fa-building', 'fa-cogs', 'fa-book']);
+        const icon = String(value || '').trim();
+        return allowed.has(icon) ? icon : DEFAULT_CUSTOM_SIDEBAR_ICON;
+    };
+
+    const loadCustomSidebarMenu = () => {
+        try {
+            const raw = localStorage.getItem(CUSTOM_SIDEBAR_MENU_KEY);
+            if (!raw) return { name: '', url: '', icon: DEFAULT_CUSTOM_SIDEBAR_ICON, enabled: false };
+            const parsed = JSON.parse(raw);
+            const normalizedName = normalizeCustomMenuName(parsed?.name || '');
+            const normalizedUrl = normalizeCustomMenuUrl(parsed?.url || '');
+            const parsedEnabled = typeof parsed?.enabled === 'boolean'
+                ? parsed.enabled
+                : Boolean(normalizedName && normalizedUrl);
+            return {
+                name: normalizedName,
+                url: normalizedUrl,
+                icon: normalizeCustomMenuIcon(parsed?.icon || DEFAULT_CUSTOM_SIDEBAR_ICON),
+                enabled: parsedEnabled
+            };
+        } catch (_error) {
+            return { name: '', url: '', icon: DEFAULT_CUSTOM_SIDEBAR_ICON, enabled: false };
+        }
+    };
+
+    const applyCustomSidebarMenuInputs = () => {
+        if (!customSidebarMenuNameInput || !customSidebarMenuUrlInput || !customSidebarMenuIconInput || !customSidebarMenuEnabledInput) return;
+        const saved = loadCustomSidebarMenu();
+        customSidebarMenuNameInput.value = saved.name;
+        customSidebarMenuUrlInput.value = saved.url;
+        customSidebarMenuIconInput.value = saved.icon || DEFAULT_CUSTOM_SIDEBAR_ICON;
+        customSidebarMenuEnabledInput.checked = Boolean(saved.enabled);
+        updateCustomSidebarMenuIconPreview(customSidebarMenuIconInput.value);
+    };
+
+    const updateCustomSidebarMenuIconPreview = (iconValue) => {
+        if (!customSidebarMenuIconPreview) return;
+        const icon = normalizeCustomMenuIcon(iconValue);
+        customSidebarMenuIconPreview.innerHTML = `<i class="fas ${icon}"></i>`;
     };
 
     const showCopiedFeedback = (button, originalHtml) => {
@@ -183,9 +245,12 @@ const SettingsModule = (() => {
         initTabs();
         initCardToggles();
         hideStatusHint(projectDisplayNameStatus);
+        hideStatusHint(customSidebarMenuStatus);
         hideStatusHint(tableColumnsOrderStatus);
         hideStatusHint(tableColumnsWidthStatus);
         applyProjectDisplayNameInput();
+        applyCustomSidebarMenuInputs();
+        updateCustomSidebarMenuIconPreview(customSidebarMenuIconInput?.value || DEFAULT_CUSTOM_SIDEBAR_ICON);
         loadTableColumnsOrder();
         loadTableColumnsWidths();
         renderTableColumnsOrderList();
@@ -228,6 +293,59 @@ const SettingsModule = (() => {
                 if (copied) {
                     showCopiedFeedback(openExtensionsBtn, originalHtml);
                 }
+            });
+        }
+
+        if (saveCustomSidebarMenuBtn && customSidebarMenuNameInput && customSidebarMenuUrlInput && customSidebarMenuIconInput && customSidebarMenuEnabledInput) {
+            saveCustomSidebarMenuBtn.addEventListener('click', (event) => {
+                event.preventDefault();
+                const originalHtml = saveCustomSidebarMenuBtn.innerHTML;
+                const name = normalizeCustomMenuName(customSidebarMenuNameInput.value);
+                const url = normalizeCustomMenuUrl(customSidebarMenuUrlInput.value);
+                const icon = normalizeCustomMenuIcon(customSidebarMenuIconInput.value);
+                const enabled = Boolean(customSidebarMenuEnabledInput.checked);
+                customSidebarMenuNameInput.value = name;
+                customSidebarMenuUrlInput.value = url;
+                customSidebarMenuIconInput.value = icon;
+                updateCustomSidebarMenuIconPreview(icon);
+
+                if (enabled && ((name && !url) || (!name && url))) {
+                    notify('Preencha nome e URL para habilitar o menu personalizado.', 'warning');
+                    showButtonActionFeedback(saveCustomSidebarMenuBtn, originalHtml, 'warning');
+                    return;
+                }
+
+                localStorage.setItem(CUSTOM_SIDEBAR_MENU_KEY, JSON.stringify({ name, url, icon, enabled }));
+                window.dispatchEvent(new CustomEvent('pharus:custom-sidebar-menu-updated', {
+                    detail: { name, url, icon, enabled }
+                }));
+                const hasData = Boolean(name && url);
+                notify(enabled && hasData ? 'Menu personalizado salvo com sucesso.' : 'Menu personalizado desativado.', 'success');
+                showButtonActionFeedback(saveCustomSidebarMenuBtn, originalHtml, 'success');
+            });
+        }
+
+        if (resetCustomSidebarMenuBtn && customSidebarMenuNameInput && customSidebarMenuUrlInput && customSidebarMenuIconInput && customSidebarMenuEnabledInput) {
+            resetCustomSidebarMenuBtn.addEventListener('click', (event) => {
+                event.preventDefault();
+                const originalHtml = resetCustomSidebarMenuBtn.innerHTML;
+                customSidebarMenuNameInput.value = '';
+                customSidebarMenuUrlInput.value = '';
+                customSidebarMenuIconInput.value = DEFAULT_CUSTOM_SIDEBAR_ICON;
+                customSidebarMenuEnabledInput.checked = false;
+                updateCustomSidebarMenuIconPreview(DEFAULT_CUSTOM_SIDEBAR_ICON);
+                localStorage.setItem(CUSTOM_SIDEBAR_MENU_KEY, JSON.stringify({ name: '', url: '', icon: DEFAULT_CUSTOM_SIDEBAR_ICON, enabled: false }));
+                window.dispatchEvent(new CustomEvent('pharus:custom-sidebar-menu-updated', {
+                    detail: { name: '', url: '', icon: DEFAULT_CUSTOM_SIDEBAR_ICON, enabled: false }
+                }));
+                notify('Menu personalizado removido.', 'success');
+                showButtonActionFeedback(resetCustomSidebarMenuBtn, originalHtml, 'success');
+            });
+        }
+
+        if (customSidebarMenuIconInput) {
+            customSidebarMenuIconInput.addEventListener('change', () => {
+                updateCustomSidebarMenuIconPreview(customSidebarMenuIconInput.value);
             });
         }
 

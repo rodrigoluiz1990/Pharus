@@ -225,18 +225,100 @@
             gap: 6px;
         }
 
-        .table-column-width-item label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #2b435c;
-        }
-
         .table-column-width-item input {
             width: 100%;
             border: 1px solid #cbd7e4;
             border-radius: 6px;
             padding: 7px 8px;
             font-size: 13px;
+            height: 35px;
+            min-height: 35px;
+            line-height: 1.2;
+            box-sizing: border-box;
+        }
+
+        .custom-menu-row {
+            display: grid;
+            grid-template-columns: minmax(220px, 1fr) auto;
+            gap: 10px;
+            align-items: stretch;
+        }
+
+        .custom-menu-icon-picker {
+            border: 1px solid #d6e1ec;
+            background: #f8fbff;
+            border-radius: 8px;
+            padding: 10px;
+            display: grid;
+            gap: 6px;
+            min-width: 220px;
+        }
+
+        .table-column-width-item label,
+        .custom-menu-icon-picker label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #2b435c;
+        }
+
+        .custom-menu-icon-config {
+            display: flex;
+            align-items: stretch;
+            gap: 10px;
+        }
+
+        .custom-menu-icon-preview {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #2f8ee5;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 4px 10px rgba(47, 142, 229, 0.28);
+            flex: 0 0 44px;
+        }
+
+        .custom-menu-icon-config select {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid #cbd7e4;
+            border-radius: 6px;
+            padding: 7px 8px;
+            font-size: 13px;
+            height: 35px;
+            min-height: 35px;
+            line-height: 1.2;
+            box-sizing: border-box;
+            margin-top: 4px;
+        }
+
+        .custom-menu-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #2b435c;
+            font-size: 13px;
+            font-weight: 600;
+            user-select: none;
+        }
+
+        .custom-menu-toggle input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #2f8ee5;
+        }
+
+        @media (max-width: 820px) {
+            .custom-menu-row {
+                grid-template-columns: 1fr;
+            }
+
+            .custom-menu-icon-picker {
+                min-width: 0;
+            }
         }
 
         .permission-groups-layout {
@@ -435,6 +517,56 @@
                                 </div>
 
                                 <p class="status-hint" id="projectDisplayNameStatus" aria-live="polite"></p>
+
+                                <hr style="border:none; border-top:1px solid #e3ebf5; margin: 2px 0;">
+
+                                <p>Configure um menu lateral personalizado para abrir uma página definida por URL.</p>
+
+                                <div class="custom-menu-row">
+                                    <div class="table-column-width-item">
+                                        <label for="customSidebarMenuNameInput">Nome do menu personalizado</label>
+                                        <input id="customSidebarMenuNameInput" type="text" maxlength="40" placeholder="Ex: Portal do Cliente">
+                                    </div>
+                                    <div class="custom-menu-icon-picker">
+                                        <label for="customSidebarMenuIconInput">Ícone do menu personalizado</label>
+                                        <div class="custom-menu-icon-config">
+                                            <div class="custom-menu-icon-preview" id="customSidebarMenuIconPreview" aria-hidden="true">
+                                                <i class="fas fa-link"></i>
+                                            </div>
+                                            <select id="customSidebarMenuIconInput" class="form-control">
+                                                <option value="fa-link">Link</option>
+                                                <option value="fa-globe">Globo</option>
+                                                <option value="fa-briefcase">Negócios</option>
+                                                <option value="fa-chart-line">Gráfico</option>
+                                                <option value="fa-file-alt">Documento</option>
+                                                <option value="fa-building">Empresa</option>
+                                                <option value="fa-cogs">Configurações</option>
+                                                <option value="fa-book">Manual</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="table-column-width-item">
+                                    <label for="customSidebarMenuUrlInput">URL de destino</label>
+                                    <input id="customSidebarMenuUrlInput" type="text" maxlength="300" placeholder="Ex: https://portal.exemplo.com">
+                                </div>
+
+                                <label class="custom-menu-toggle" for="customSidebarMenuEnabledInput">
+                                    <input id="customSidebarMenuEnabledInput" type="checkbox" checked>
+                                    Ativar menu personalizado no menu lateral
+                                </label>
+
+                                <div class="settings-actions">
+                                    <button class="btn btn-primary" id="saveCustomSidebarMenuBtn">
+                                        <i class="fas fa-save"></i> Salvar menu personalizado
+                                    </button>
+                                    <button class="btn btn-secondary" id="resetCustomSidebarMenuBtn">
+                                        <i class="fas fa-undo"></i> Limpar menu personalizado
+                                    </button>
+                                </div>
+
+                                <p class="status-hint" id="customSidebarMenuStatus" aria-live="polite"></p>
                             </div>
                         </section>
                     </section>
