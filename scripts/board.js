@@ -283,6 +283,7 @@ const BoardModule = (() => {
         const priorityClass = `tag-priority-${priorityInfo.class}`;
         const typeClass = `tag-type-${typeInfo.class}`;
         const safeTitle = escapeHtml(task.title || "Sem t?tulo");
+        const hasAttachment = Boolean(task.attachment_name);
         const pinActiveClass = task.is_pinned ? 'active' : '';
         const pinTitle = task.is_pinned ? 'Remover do post-it' : 'Destacar no post-it';
         const safeAssigneeName = escapeHtml(assignee ? assignee.name : "Não atribuído");
@@ -293,7 +294,7 @@ const BoardModule = (() => {
                 <button class="board-pin-toggle-btn ${pinActiveClass}" data-task-id="${task.id}" title="${pinTitle}" aria-label="${pinTitle}">
                     <i class="fas fa-thumbtack"></i>
                 </button>
-                <div class="task-title">${safeTitle}</div>
+                <div class="task-title">${safeTitle}${hasAttachment ? ' <i class="fas fa-paperclip" title="Tarefa com anexo"></i>' : ''}</div>
             </div>
             <div class="task-tags">
                 <span class="task-tag tag-status">${statusInfo.text}</span>
@@ -330,6 +331,7 @@ const BoardModule = (() => {
         const row = document.createElement("tr");
         const dataAttribute = getDateAttribute(task.due_date);
         const safeTitle = escapeHtml(task.title || "Sem t?tulo");
+        const hasAttachment = Boolean(task.attachment_name);
         const pinActiveClass = task.is_pinned ? 'active' : '';
         const pinTitle = task.is_pinned ? 'Remover do post-it' : 'Destacar no post-it';
         const safeAssigneeName = escapeHtml(assignee ? assignee.name : "Não atribuído");
@@ -349,7 +351,7 @@ const BoardModule = (() => {
                         <button class="title-pin-toggle-btn ${pinActiveClass}" data-task-id="${task.id}" title="${pinTitle}" aria-label="${pinTitle}">
                             <i class="fas fa-thumbtack"></i>
                         </button>
-                        <span class="table-title-text">${safeTitle}</span>
+                        <span class="table-title-text">${safeTitle}${hasAttachment ? ' <i class="fas fa-paperclip" title="Tarefa com anexo"></i>' : ''}</span>
                     </div>
                 </td>
             `,

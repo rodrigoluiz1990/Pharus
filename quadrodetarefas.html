@@ -164,6 +164,19 @@
                             <textarea id="taskDescription" class="form-control" rows="3"></textarea>
                             <label for="taskObservation">Observação</label>
                             <textarea id="taskObservation" class="form-control" rows="3"></textarea>
+                            <label for="taskAttachment">Anexo</label>
+                            <input type="file" id="taskAttachment" class="form-control" />
+                            <div id="taskAttachmentInfo" class="task-attachment-info" style="display:none;">
+                                <span id="taskAttachmentName" class="task-attachment-name"></span>
+                                <div class="task-attachment-actions">
+                                    <button type="button" class="btn btn-secondary" id="taskAttachmentDownloadBtn">
+                                        <i class="fas fa-download"></i> Baixar
+                                    </button>
+                                    <button type="button" class="btn btn-danger" id="taskAttachmentRemoveBtn">
+                                        <i class="fas fa-trash"></i> Remover
+                                    </button>
+                                </div>
+                            </div>
                             <input type="checkbox" id="taskIsPinned" hidden>
                         </div>
                         <div class="form-actions">

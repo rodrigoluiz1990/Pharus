@@ -37,6 +37,10 @@ CREATE TABLE IF NOT EXISTS tasks (
   observation TEXT NULL,
   jira TEXT NULL,
   client TEXT NULL,
+  attachment_name TEXT NULL,
+  attachment_type TEXT NULL,
+  attachment_size INTEGER NULL,
+  attachment_data TEXT NULL,
   is_pinned BOOLEAN NOT NULL DEFAULT FALSE,
   focus_order INTEGER NULL,
   type TEXT NOT NULL DEFAULT 'task',
@@ -51,6 +55,18 @@ ALTER TABLE IF EXISTS tasks
 
 ALTER TABLE IF EXISTS tasks
   ADD COLUMN IF NOT EXISTS focus_order INTEGER NULL;
+
+ALTER TABLE IF EXISTS tasks
+  ADD COLUMN IF NOT EXISTS attachment_name TEXT NULL;
+
+ALTER TABLE IF EXISTS tasks
+  ADD COLUMN IF NOT EXISTS attachment_type TEXT NULL;
+
+ALTER TABLE IF EXISTS tasks
+  ADD COLUMN IF NOT EXISTS attachment_size INTEGER NULL;
+
+ALTER TABLE IF EXISTS tasks
+  ADD COLUMN IF NOT EXISTS attachment_data TEXT NULL;
 
 ALTER TABLE IF EXISTS clients
   ADD COLUMN IF NOT EXISTS acronym TEXT NULL;

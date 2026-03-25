@@ -10,8 +10,15 @@ const ModalModule = (() => {
     const taskIsPinned = document.getElementById('taskIsPinned');
     const taskPinToggleBtn = document.getElementById('taskPinToggleBtn');
     const taskFocusOrder = document.getElementById('taskFocusOrder');
+    const taskAttachmentInput = document.getElementById('taskAttachment');
+    const taskAttachmentInfo = document.getElementById('taskAttachmentInfo');
+    const taskAttachmentName = document.getElementById('taskAttachmentName');
+    const taskAttachmentDownloadBtn = document.getElementById('taskAttachmentDownloadBtn');
+    const taskAttachmentRemoveBtn = document.getElementById('taskAttachmentRemoveBtn');
     let isInitialized = false;
     let startedOutsideModal = false;
+    let currentTaskAttachment = null;
+    const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
 
     // Mostrar modal
     const showModal = async (columnId, taskId = null) => {
@@ -20,6 +27,9 @@ const ModalModule = (() => {
         // Limpar formulário
         taskForm.reset();
         syncPinToggleUI();
+        currentTaskAttachment = null;
+        if (taskAttachmentInput) taskAttachmentInput.value = '';
+        updateAttachmentInfo();
 
         // Esconder botão de excluir inicialmente
         if (deleteTaskBtn) {
@@ -47,6 +57,15 @@ const ModalModule = (() => {
                     document.getElementById('taskDueDate').value = task.due_date ? UtilsModule.formatDateForInput(task.due_date) : '';
                     document.getElementById('taskObservation').value = task.observation || '';
                     document.getElementById('taskJira').value = task.jira || '';
+                    currentTaskAttachment = (task.attachment_data && task.attachment_name)
+                        ? {
+                            name: task.attachment_name,
+                            type: task.attachment_type || '',
+                            size: Number(task.attachment_size || 0) || 0,
+                            data: task.attachment_data
+                        }
+                        : null;
+                    updateAttachmentInfo();
                     if (taskIsPinned) taskIsPinned.checked = Boolean(task.is_pinned);
                     syncPinToggleUI();
                     if (taskFocusOrder) taskFocusOrder.value = task.focus_order || '';
@@ -100,6 +119,8 @@ const ModalModule = (() => {
             if (taskIsPinned) taskIsPinned.checked = false;
             syncPinToggleUI();
             if (taskFocusOrder) taskFocusOrder.value = '';
+            currentTaskAttachment = null;
+            updateAttachmentInfo();
         }
 
         modalOverlay.classList.add('visible');
@@ -196,6 +217,32 @@ const ModalModule = (() => {
                 : null,
             type: document.getElementById('taskType').value
         };
+
+        const selectedAttachment = taskAttachmentInput && taskAttachmentInput.files && taskAttachmentInput.files[0]
+            ? taskAttachmentInput.files[0]
+            : null;
+
+        if (selectedAttachment) {
+            if (selectedAttachment.size > MAX_ATTACHMENT_SIZE_BYTES) {
+                UtilsModule.showNotification('O anexo deve ter no mÃ¡ximo 5 MB.', 'error');
+                return;
+            }
+            const attachmentData = await readFileAsDataUrl(selectedAttachment);
+            taskData.attachment_name = selectedAttachment.name;
+            taskData.attachment_type = selectedAttachment.type || 'application/octet-stream';
+            taskData.attachment_size = selectedAttachment.size || 0;
+            taskData.attachment_data = attachmentData;
+        } else if (currentTaskAttachment && currentTaskAttachment.data) {
+            taskData.attachment_name = currentTaskAttachment.name || null;
+            taskData.attachment_type = currentTaskAttachment.type || null;
+            taskData.attachment_size = currentTaskAttachment.size || null;
+            taskData.attachment_data = currentTaskAttachment.data || null;
+        } else {
+            taskData.attachment_name = null;
+            taskData.attachment_type = null;
+            taskData.attachment_size = null;
+            taskData.attachment_data = null;
+        }
 
         // Mostrar loading
         const submitBtn = taskForm.querySelector('button[type="submit"]');
@@ -320,6 +367,40 @@ const ModalModule = (() => {
             });
         }
 
+        if (taskAttachmentInput) {
+            taskAttachmentInput.addEventListener('change', () => {
+                const file = taskAttachmentInput.files && taskAttachmentInput.files[0]
+                    ? taskAttachmentInput.files[0]
+                    : null;
+                if (!file) {
+                    updateAttachmentInfo();
+                    return;
+                }
+                currentTaskAttachment = {
+                    name: file.name,
+                    type: file.type || 'application/octet-stream',
+                    size: file.size || 0,
+                    data: null
+                };
+                updateAttachmentInfo();
+            });
+        }
+
+        if (taskAttachmentDownloadBtn) {
+            taskAttachmentDownloadBtn.addEventListener('click', () => {
+                if (!currentTaskAttachment || !currentTaskAttachment.data) return;
+                downloadAttachment(currentTaskAttachment);
+            });
+        }
+
+        if (taskAttachmentRemoveBtn) {
+            taskAttachmentRemoveBtn.addEventListener('click', () => {
+                currentTaskAttachment = null;
+                if (taskAttachmentInput) taskAttachmentInput.value = '';
+                updateAttachmentInfo();
+            });
+        }
+
         const modal = modalOverlay.querySelector('.modal');
 
         // Só fecha quando o clique começa E termina fora do modal.
@@ -389,6 +470,43 @@ const ModalModule = (() => {
         } catch (error) {
             console.error('Erro ao carregar clientes:', error);
         }
+    };
+
+    const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('NÃ£o foi possÃ­vel ler o anexo.'));
+        reader.readAsDataURL(file);
+    });
+
+    const updateAttachmentInfo = () => {
+        if (!taskAttachmentInfo || !taskAttachmentName) return;
+
+        if (!currentTaskAttachment || !currentTaskAttachment.name) {
+            taskAttachmentInfo.style.display = 'none';
+            taskAttachmentName.textContent = '';
+            if (taskAttachmentDownloadBtn) taskAttachmentDownloadBtn.disabled = true;
+            return;
+        }
+
+        const sizeLabel = currentTaskAttachment.size
+            ? ` (${Math.max(1, Math.round(currentTaskAttachment.size / 1024))} KB)`
+            : '';
+        taskAttachmentName.textContent = `${currentTaskAttachment.name}${sizeLabel}`;
+        taskAttachmentInfo.style.display = 'flex';
+        if (taskAttachmentDownloadBtn) {
+            taskAttachmentDownloadBtn.disabled = !Boolean(currentTaskAttachment.data);
+        }
+    };
+
+    const downloadAttachment = (attachment) => {
+        if (!attachment || !attachment.data) return;
+        const link = document.createElement('a');
+        link.href = attachment.data;
+        link.download = attachment.name || 'anexo';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     return {

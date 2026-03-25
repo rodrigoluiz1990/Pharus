@@ -477,6 +477,31 @@ textarea.form-control {
     grid-column: span 3;
 }
 
+.task-attachment-info {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid #d7e1eb;
+    border-radius: 8px;
+    background: #f7fbff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.task-attachment-name {
+    color: #2f4257;
+    font-size: 13px;
+    word-break: break-word;
+}
+
+.task-attachment-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .focus-settings {
     margin-top: 10px;
     display: grid;
