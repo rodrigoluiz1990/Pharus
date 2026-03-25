@@ -29,6 +29,16 @@
     border-bottom: 2px solid var(--border-color);
 }
 
+.login-logo-image {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 14px;
+    margin: 0 auto 10px;
+    display: block;
+    box-shadow: 0 6px 16px rgba(34, 59, 84, 0.18);
+}
+
 .login-box .logo h1 {
     font-size: 32px;
     margin-bottom: 8px;
