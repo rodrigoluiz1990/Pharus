@@ -1,4 +1,4 @@
-:root {
+﻿:root {
     --app-min-width: 420px;
     --primary-color: #4262ff;
     --primary-hover: #2a4fd8;
@@ -156,7 +156,7 @@ body.page-leaving .content {
     color: white;
 }
 
-/* ?rea de Conte?do Melhorada */
+/* Área de Conteúdo Melhorada */
 .content {
     flex: 1;
     padding: 20px;
@@ -455,21 +455,21 @@ textarea.form-control {
     justify-content: flex-end;
 }
 
-/* === Layout em colunas para o formul?rio do modal === */
+/* === Layout em colunas para o formulário do modal === */
 #taskForm {
     display: grid;
     grid-template-columns: repeat(3, 1fr);    /* 3 colunas (ajuste se quiser 2) */
-    column-gap: 20px;    /* espa?o horizontal entre colunas */
-    row-gap: 0px;    /* espa?o vertical entre linhas */
-    align-items: start;    /* <--- for?a cada c?lula a alinhar pelo topo */
-    grid-auto-rows: min-content;    /* evita que linhas "cres?am" por causa de textareas */
+    column-gap: 20px;    /* espaço horizontal entre colunas */
+    row-gap: 0px;    /* espaço vertical entre linhas */
+    align-items: start;    /* <--- força cada célula a alinhar pelo topo */
+    grid-auto-rows: min-content;    /* evita que linhas "cresçam" por causa de textareas */
 }
 
 #taskForm .form-group {
     display: flex;
     flex-direction: column;
-    align-self: start;    /* refor?a o alinhamento no n?vel do item */
-    margin-bottom: 0;    /* o espa?o vertical agora ? controlado por row-gap */
+    align-self: start;    /* reforça o alinhamento no nível do item */
+    margin-bottom: 0;    /* o espaço vertical agora ? controlado por row-gap */
 }
 
 /* Campos que devem ocupar as duas colunas */
@@ -561,7 +561,7 @@ textarea.form-control {
     box-shadow: var(--shadow);
 }
 
-/* Utilit?rios */
+/* Utilitários */
 .hidden {
     display: none !important;
 }
@@ -681,7 +681,7 @@ textarea.form-control {
     }
 }
 
-/* Anima??es suaves */
+/* Animações suaves */
 * {
     transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
 }
@@ -745,7 +745,7 @@ textarea:disabled {
     }
 }
 
-/* ===== ESTILOS ESPEC?FICOS PARA A VISUALIZA??O EM TABELA ===== */
+/* ===== ESTILOS ESPECÍFICOS PARA A VISUALIZAÇÃO EM TABELA ===== */
 
 .socious-view {
     background: white;
@@ -815,7 +815,7 @@ textarea:disabled {
     border-bottom: none;
 }
 
-/* Coluna de a??es */
+/* Coluna de ações */
 .socious-table td:last-child {
     text-align: center;
 }
@@ -955,7 +955,7 @@ textarea:disabled {
     border: 1px solid #ffeaa7;
 }
 
-/* ===== ESTILOS PARA C?LULAS ESPEC?FICAS ===== */
+/* ===== ESTILOS PARA CÉLULAS ESPECÍFICAS ===== */
 .socious-table td:nth-child(6), /* Coluna Status */
 .socious-table td:nth-child(7), /* Coluna Prioridade */
 .socious-table td:nth-child(9) { /* Coluna Tipo */
@@ -1005,7 +1005,7 @@ textarea:disabled {
     background-color: #721c24;
 }
 
-/* Hover effects para c?lulas coloridas */
+/* Hover effects para células coloridas */
 .status-cell:hover,
 .prioridade-cell:hover,
 .tipo-cell:hover {
@@ -1079,7 +1079,7 @@ textarea:disabled {
     }
 
     /* Ocultar colunas menos importantes em mobile */
-    .socious-table th:nth-child(4), /* Data Solicita??o */
+    .socious-table th:nth-child(4), /* Data Solicitação */
     .socious-table td:nth-child(4),
     .socious-table th:nth-child(8), /* Cliente */
     .socious-table td:nth-child(8) {
@@ -1087,7 +1087,7 @@ textarea:disabled {
     }
 }
 
-/* Anima??es de entrada para as c?lulas */
+/* Animações de entrada para as células */
 @keyframes fadeInCell {
     from {
         opacity: 0;
@@ -1123,7 +1123,7 @@ tr.vencida .status-cell {
     color: #721c24;
 }
 
-/* Tooltip para c?lulas truncadas */
+/* Tooltip para células truncadas */
 .socious-table td {
     position: relative;
 }
@@ -1162,3 +1162,6 @@ tr.vencida .status-cell {
         background-color: #4a5568;
     }
 }
+
+
+

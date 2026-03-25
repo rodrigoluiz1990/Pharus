@@ -1,4 +1,4 @@
-
+﻿
 // scripts/relatorios.js
 const RelatoriosModule = (() => {
     const tabs = Array.from(document.querySelectorAll('.reports-tab-btn[data-tab]'));
@@ -1082,6 +1082,7 @@ if (document.readyState === 'loading') {
 } else {
     void RelatoriosModule.init();
 }
+
 
 
 

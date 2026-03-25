@@ -1,4 +1,4 @@
-/* ================================================== */
+﻿/* ================================================== */
 /* === ESTRUTURA PRINCIPAL === */
 /* ================================================== */
 
@@ -31,7 +31,7 @@
     gap: 15px;
 }
 
-/* T?TULO DO PROJETO */
+/* TÍTULO DO PROJETO */
 .project-title {
     display: flex;
     align-items: center;
@@ -46,7 +46,7 @@
     font-weight: 600;
 }
 
-/* BOT?ES DE A??O */
+/* BOTÕES DE AÇÃO */
 .project-actions {
     display: flex;
     gap: 6px;
@@ -325,7 +325,7 @@
     color: #383d41;
 }
 
-/* Ajustes para o layout da meta informa??o */
+/* Ajustes para o layout da meta informação */
 .task-meta {
     display: flex;
     justify-content: space-between;
@@ -363,7 +363,7 @@
 }
 
 /* ================================================== */
-/* === VISUALIZA??O SOC?US (TABELA) === */
+/* === VISUALIZAÇÃO SOCIUS (TABELA) === */
 /* ================================================== */
 
 .socious-view {
@@ -518,7 +518,7 @@
     font-size: 14px;
 }
 
-/* Coluna de tarefa com mais espa?o */
+/* Coluna de tarefa com mais espaço */
 .socious-table td[data-col="title"] {
     text-align: left;
     min-width: 250px;
@@ -567,7 +567,7 @@
     color: #4338ca;
 }
 
-/* Coluna de respons?vel */
+/* Coluna de responsável */
 .socious-table td[data-col="assignee"] {
     text-align: center;
     min-width: 200px;
@@ -833,7 +833,7 @@
 }
 
 /* ================================================== */
-/* === BOT?O DE EDI??O NAS TAREFAS === */
+/* === BOTÃO DE EDI??O NAS TAREFAS === */
 /* ================================================== */
 
 .task-edit-btn {
@@ -933,7 +933,7 @@
     font-weight: 500;
 }
 
-/* Loading states para elementos espec?ficos */
+/* Loading states para elementos específicos */
 .loading {
     opacity: 0.7;
     pointer-events: none;
@@ -1227,3 +1227,6 @@
 .login-notices-actions {
     margin-top: 12px;
 }
+
+
+

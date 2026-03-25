@@ -1,4 +1,4 @@
-const DashboardModule = (() => {
+﻿const DashboardModule = (() => {
     const elements = {
         totalTasks: document.getElementById('dashTotalTasks'),
         overdueTasks: document.getElementById('dashOverdueTasks'),
@@ -315,3 +315,4 @@ if (document.readyState === 'loading') {
 } else {
     DashboardModule.init();
 }
+

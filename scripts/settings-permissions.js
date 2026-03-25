@@ -1,4 +1,4 @@
-// scripts/settings-permissions.js
+﻿// scripts/settings-permissions.js
 const SettingsPermissionsModule = (() => {
     const groupsListEl = document.getElementById('permissionGroupsList');
     const groupsStatusEl = document.getElementById('permissionGroupsStatus');
@@ -327,4 +327,5 @@ if (document.readyState === 'loading') {
 } else {
     void SettingsPermissionsModule.init();
 }
+
 

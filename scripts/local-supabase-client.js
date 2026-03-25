@@ -1,4 +1,4 @@
-// Local Supabase-compatible client shim for PostgreSQL backend.
+﻿// Local Supabase-compatible client shim for PostgreSQL backend.
 (function () {
   const STORAGE_KEY = 'pharus_local_session';
   const authListeners = new Set();
@@ -244,4 +244,5 @@
     createClient,
   };
 })();
+
 

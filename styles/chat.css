@@ -213,7 +213,7 @@
     margin-left: 10px;
 }
 
-/* Ãrea de conversaÃ§Ã£o */
+/* Área de conversação */
 .chat-messages-container {
     display: none;
     flex-direction: column;
@@ -292,7 +292,7 @@
 }
 
 
-/* Ãrea de mensagens */
+/* Área de mensagens */
 .chat-messages {
     flex: 1;
     padding: 15px;
@@ -628,7 +628,7 @@
     cursor: not-allowed;
 }
 
-/* BotÃ£o de toggle do chat */
+/* Botão de toggle do chat */
 .chat-toggle {
     position: fixed;
     bottom: 20px;
@@ -751,7 +751,7 @@
     transform: translateY(0);
 }
 
-/* AnimaÃ§Ãµes */
+/* Animações */
 @keyframes pulse {
     0% { transform: scale(1); }
     50% { transform: scale(1.05); }
@@ -767,5 +767,6 @@
 .new-message {
     animation: pulse 0.5s ease;
 }
+
 
 

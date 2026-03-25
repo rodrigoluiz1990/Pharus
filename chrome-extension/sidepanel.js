@@ -1,4 +1,4 @@
-const DEFAULT_SETTINGS = {
+﻿const DEFAULT_SETTINGS = {
   apiBase: 'http://localhost:3000',
   email: '',
   onlyAssigned: true,
@@ -10,6 +10,7 @@ const DEFAULT_SETTINGS = {
 const DETACHED_NOTES_KEY = 'pharus_detached_notes';
 const PROJECT_DISPLAY_NAME_KEY = 'pharus_project_display_name';
 const DEFAULT_PROJECT_DISPLAY_NAME = 'Projeto';
+const PARTY_EMOJI = '\uD83E\uDD73';
 
 const els = {
   apiBaseInput: document.getElementById('apiBaseInput'),
@@ -133,7 +134,7 @@ function renderTasks(tasks, settings) {
   if (!Array.isArray(tasks) || tasks.length === 0) {
     const li = document.createElement('li');
     li.className = 'empty';
-    li.textContent = '🥳 Nenhuma tarefa foco encontrada.';
+    li.textContent = `${PARTY_EMOJI} Nenhuma tarefa foco encontrada.`;
     els.tasksList.appendChild(li);
     return;
   }
@@ -239,7 +240,7 @@ function renderAgenda(events, settings) {
   if (safeEvents.length === 0) {
     const li = document.createElement('li');
     li.className = 'empty';
-    li.textContent = '🥳 Nenhum evento para hoje.';
+    li.textContent = `${PARTY_EMOJI} Nenhum evento para hoje.`;
     els.agendaList.appendChild(li);
     return;
   }
@@ -271,7 +272,9 @@ function renderAgenda(events, settings) {
 
 function updateDetachedStatus() {
   if (!els.detachedStatusText) return;
-  els.detachedStatusText.textContent = `${detachedNotes.length} post-it(s) avulso(s)`;
+  els.detachedStatusText.textContent = detachedNotes.length
+    ? `${detachedNotes.length} tarefa(s) avulsa(s)`
+    : `${PARTY_EMOJI} Nenhuma tarefa avulsa.`;
 }
 
 function saveDetachedNotes() {
@@ -303,7 +306,7 @@ function renderDetachedNotes() {
   if (!detachedNotes.length) {
     const li = document.createElement('li');
     li.className = 'empty';
-    li.textContent = 'Nenhum post-it avulso.';
+    li.textContent = `${PARTY_EMOJI} Nenhuma tarefa avulsa.`;
     els.detachedList.appendChild(li);
     updateDetachedStatus();
     return;
@@ -818,3 +821,5 @@ async function init() {
 }
 
 init();
+
+

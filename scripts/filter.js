@@ -23,7 +23,7 @@ const FilterModule = (() => {
     const filterBadge = document.getElementById('filterBadge');
     const filterAssignee = document.getElementById('filterAssignee');
 
-    // InicializaÃ§Ã£o do mÃ³dulo
+    // Inicialização do módulo
     const init = () => {
         if (isInitialized) return;
 
@@ -75,7 +75,7 @@ const FilterModule = (() => {
             const users = await StorageModule.getUsers();
             const currentAssignee = filterAssignee.value;
 
-            // Manter opÃ§Ã£o "Todos" e limpar outras
+            // Manter opção "Todos" e limpar outras
             filterAssignee.innerHTML = '<option value="">Todos os responsáveis</option>';
 
             users.forEach(user => {
@@ -85,7 +85,7 @@ const FilterModule = (() => {
                 filterAssignee.appendChild(option);
             });
 
-            // Restaurar seleÃ§Ã£o anterior
+            // Restaurar seleção anterior
             if (currentAssignee) {
                 filterAssignee.value = currentAssignee;
             }
@@ -122,7 +122,7 @@ const FilterModule = (() => {
             });
         }
 
-        // ResponsÃ¡vel
+        // Responsável
         if (filterAssignee) {
             filterAssignee.value = currentFilters.assignee;
         }
@@ -301,7 +301,7 @@ const FilterModule = (() => {
         return { ...currentFilters };
     };
 
-    // Verificar se hÃ¡ filtros ativos
+    // Verificar se há filtros ativos
     const hasActiveFilters = () => {
         return Object.values(currentFilters).some(value =>
             Array.isArray(value) ? value.length > 0 : value !== ''
@@ -323,6 +323,9 @@ if (document.readyState === 'loading') {
 } else {
     FilterModule.init();
 }
+
+
+
 
 
 

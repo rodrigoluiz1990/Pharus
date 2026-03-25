@@ -1,4 +1,4 @@
-const LoginNoticesModalModule = (() => {
+﻿const LoginNoticesModalModule = (() => {
     const TRIGGER_KEY = 'pharus_open_notices_after_login';
     const modalEl = document.getElementById('loginNoticesModal');
     const closeBtn = document.getElementById('closeLoginNoticesModal');
@@ -142,3 +142,4 @@ const LoginNoticesModalModule = (() => {
 
     return { init };
 })();
+

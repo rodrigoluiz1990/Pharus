@@ -63,9 +63,9 @@ const ChatModule = (() => {
             isInitialized = true;
             maybeAutoOpenChatFromUrl();
             
-            console.log('MÃ³dulo de chat inicializado com sucesso');
+            console.log('Módulo de chat inicializado com sucesso');
         } catch (error) {
-            console.error('Erro ao inicializar mÃ³dulo de chat:', error);
+            console.error('Erro ao inicializar módulo de chat:', error);
         } finally {
             isInitializing = false;
         }
@@ -127,7 +127,7 @@ const ChatModule = (() => {
             elements.emojiBtn = document.getElementById('emojiBtn');
             elements.emojiPicker = document.getElementById('emojiPicker');
             
-            // Aplicar estilos se nÃ£o estiverem carregados
+            // Aplicar estilos se não estiverem carregados
             if (!document.querySelector('link[href="styles/chat.css"]')) {
                 const link = document.createElement('link');
                 link.rel = 'stylesheet';
@@ -136,13 +136,13 @@ const ChatModule = (() => {
             }
         } catch (error) {
             console.error('Erro ao carregar interface do chat:', error);
-            // Criar interface bÃ¡sica se o arquivo nÃ£o existir
+            // Criar interface básica se o arquivo não existir
             createFallbackInterface();
         }
     };
 
     const createFallbackInterface = () => {
-        // ImplementaÃ§Ã£o de fallback caso o chat.html nÃ£o exista
+        // Implementação de fallback caso o chat.html não exista
         const chatHTML = `
             <div id="chatContainer" class="chat-hidden">
                 <div class="chat-header">
@@ -204,36 +204,36 @@ const ChatModule = (() => {
 
     const loadCurrentUser = async () => {
         try {
-            // Verificar se o Supabase Client estÃ¡ disponÃ­vel
+            // Verificar se o Supabase Client está disponível
             if (!window.supabaseClient) {
-                console.warn('Supabase Client nÃ£o disponÃ­vel');
-                throw new Error('Supabase Client nÃ£o estÃ¡ disponÃ­vel');
+                console.warn('Supabase Client não disponível');
+                throw new Error('Supabase Client não está disponível');
             }
             
-            // Verificar se o mÃ©todo auth.getUser existe
+            // Verificar se o método auth.getUser existe
             if (!window.supabaseClient.auth || typeof window.supabaseClient.auth.getUser !== 'function') {
-                console.warn('MÃ©todo auth.getUser nÃ£o disponÃ­vel');
-                throw new Error('AutenticaÃ§Ã£o nÃ£o disponÃ­vel');
+                console.warn('Método auth.getUser não disponível');
+                throw new Error('Autenticação não disponível');
             }
             
             const { data, error } = await window.supabaseClient.auth.getUser();
             
             if (error) {
-                console.error('Erro ao obter usuÃ¡rio:', error);
+                console.error('Erro ao obter usuário:', error);
                 throw error;
             }
             
             if (!data || !data.user) {
-                console.warn('Nenhum usuÃ¡rio autenticado encontrado');
-                throw new Error('UsuÃ¡rio nÃ£o autenticado');
+                console.warn('Nenhum usuário autenticado encontrado');
+                throw new Error('Usuário não autenticado');
             }
             
             currentUser = data.user;
-            console.log('UsuÃ¡rio carregado:', currentUser.id);
+            console.log('Usuário carregado:', currentUser.id);
             
         } catch (error) {
-            console.error('Erro ao carregar usuÃ¡rio atual:', error);
-            // Tentar obter o usuÃ¡rio da sessÃ£o como fallback
+            console.error('Erro ao carregar usuário atual:', error);
+            // Tentar obter o usuário da sessão como fallback
             await tryGetUserFromSession();
         }
     };
@@ -244,11 +244,11 @@ const ChatModule = (() => {
                 const { data: sessionData } = await window.supabaseClient.auth.getSession();
                 if (sessionData && sessionData.session && sessionData.session.user) {
                     currentUser = sessionData.session.user;
-                    console.log('UsuÃ¡rio obtido da sessÃ£o:', currentUser.id);
+                    console.log('Usuário obtido da sessão:', currentUser.id);
                 }
             }
         } catch (sessionError) {
-            console.error('Erro ao obter usuÃ¡rio da sessÃ£o:', sessionError);
+            console.error('Erro ao obter usuário da sessão:', sessionError);
         }
     };
 
@@ -345,7 +345,7 @@ const ChatModule = (() => {
     const toggleChat = () => {
         if (!elements.chatContainer) return;
         
-        // Se o usuÃ¡rio nÃ£o estiver carregado, tentar carregar novamente
+        // Se o usuário não estiver carregado, tentar carregar novamente
         if (!currentUser) {
             loadCurrentUser().then(() => {
                 if (currentUser) {
@@ -358,8 +358,8 @@ const ChatModule = (() => {
                         stopConversationPolling();
                     }
                 } else {
-                    console.error('NÃ£o foi possÃ­vel carregar o usuÃ¡rio para o chat');
-                    UtilsModule.showNotification('Erro ao abrir o chat. FaÃ§a login novamente.', 'error');
+                    console.error('Não foi possível carregar o usuário para o chat');
+                    UtilsModule.showNotification('Erro ao abrir o chat. Faça login novamente.', 'error');
                 }
             });
             return;
@@ -542,7 +542,7 @@ const ChatModule = (() => {
     };
     const openChat = async (contact) => {
         if (!currentUser) {
-            console.error('UsuÃ¡rio nÃ£o autenticado, nÃ£o Ã© possÃ­vel abrir chat');
+            console.error('Usuário não autenticado, não ? possível abrir chat');
             return;
         }
         
@@ -559,7 +559,7 @@ const ChatModule = (() => {
                 : contact.email.charAt(0).toUpperCase();
         }
         
-        // Mostrar Ã¡rea de mensagens
+        // Mostrar Área de mensagens
         if (document.querySelector('.chat-contacts')) {
             document.querySelector('.chat-contacts').style.display = 'none';
         }
@@ -570,7 +570,7 @@ const ChatModule = (() => {
         // Carregar mensagens
         await loadMessages(contact.id, { silent: false, forceRender: true, autoScroll: true });
         
-        // Limpar contador de nÃ£o lidas
+        // Limpar contador de não lidas
         unreadMessages.set(contact.id, 0);
         updateUnreadBadge();
         
@@ -799,7 +799,7 @@ const ChatModule = (() => {
         }
         
         try {
-            // Desabilitar botÃ£o durante o envio
+            // Desabilitar botão durante o envio
             if (elements.sendButton) {
                 elements.sendButton.disabled = true;
             }
@@ -839,7 +839,7 @@ const ChatModule = (() => {
 
     const setupRealtimeSubscription = () => {
         if (!currentUser) {
-            console.warn('NÃ£o Ã© possÃ­vel configurar subscription: usuÃ¡rio nÃ£o autenticado');
+            console.warn('Não ? possível configurar subscription: usuário não autenticado');
             return;
         }
         
@@ -884,13 +884,13 @@ const ChatModule = (() => {
             await markMessageAsRead(message.id);
             flashChatContainer();
         } else {
-            // Mostrar notificaÃ§Ã£o
+            // Mostrar notificação
             const senderName = await getSenderName(message.sender_id);
             if (window.UtilsModule && window.UtilsModule.showNotification) {
                 window.UtilsModule.showNotification(`Nova mensagem de ${senderName}: ${message.message.substring(0, 50)}${message.message.length > 50 ? '...' : ''}`, 'info');
             }
             
-            // Atualizar contador de nÃ£o lidas
+            // Atualizar contador de não lidas
             showInChatNewMessageToast(senderName, message.message);
             updateUnreadCount(message.sender_id);
         }
@@ -909,7 +909,7 @@ const ChatModule = (() => {
             return data.full_name || data.email;
         } catch (error) {
             console.error('Erro ao obter nome do remetente:', error);
-            return 'AlguÃ©m';
+            return 'Alguém';
         }
     };
 
@@ -918,7 +918,7 @@ const ChatModule = (() => {
         unreadMessages.set(senderId, currentCount + 1);
         updateUnreadBadge();
         
-        // Atualizar na lista de contatos se visÃ­vel
+        // Atualizar na lista de contatos se visível
         if (elements.contactsList) {
             const contactElement = elements.contactsList.querySelector(`[data-user-id="${senderId}"]`);
             if (contactElement) {
@@ -960,7 +960,7 @@ const ChatModule = (() => {
             void elements.unreadBadge.offsetWidth;
             elements.unreadBadge.classList.add('new-unread');
             
-            // Adicionar animaÃ§Ã£o de pulsaÃ§Ã£o
+            // Adicionar animação de pulsação
             if (elements.chatToggle) {
                 elements.chatToggle.classList.add('pulse');
                 setTimeout(() => {
@@ -1022,7 +1022,7 @@ const ChatModule = (() => {
             
             if (error) throw error;
             
-            // Atualizar contador de nÃ£o lidas
+            // Atualizar contador de não lidas
             unreadMessages.set(contactId, 0);
             updateUnreadBadge();
             
@@ -1131,7 +1131,7 @@ const ChatModule = (() => {
         if (!isAllowedAttachmentExtension(extension)) {
             const allowedList = '.pdf, .jpg, .jpeg, .png, .webp, .txt, .zip, .patch, .diff, .doc, .docx, .xls, .xlsx, .log, .json, .csv, .xml, .sql, .ps1, .sh, .md';
             if (window.UtilsModule && window.UtilsModule.showNotification) {
-                window.UtilsModule.showNotification(`Tipo de arquivo nÃ£o permitido (${extension || 'sem extensÃ£o'}). Permitidos: ${allowedList}`, 'error');
+                window.UtilsModule.showNotification(`Tipo de arquivo não permitido (${extension || 'sem extensão'}). Permitidos: ${allowedList}`, 'error');
             }
             event.target.value = '';
             return;
@@ -1513,7 +1513,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkAuth = setInterval(() => {
         if (window.supabaseClient) {
             clearInterval(checkAuth);
-            // Verificar se hÃ¡ um usuÃ¡rio autenticado
+            // Verificar se há um usuário autenticado
             window.supabaseClient.auth.getUser()
                 .then(({ data: { user } }) => {
                     if (user) {
@@ -1521,10 +1521,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 })
                 .catch(error => {
-                    console.error('Erro ao verificar autenticaÃ§Ã£o:', error);
+                    console.error('Erro ao verificar autenticação:', error);
                 });
         }
     }, 100);
 });
+
+
+
+
 
 

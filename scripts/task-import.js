@@ -1,4 +1,4 @@
-// scripts/task-import.js
+﻿// scripts/task-import.js
 const TaskImportModule = (() => {
     const importBtn = document.getElementById('importTasksBtn');
     const fileInput = document.getElementById('tasksImportInput');
@@ -900,3 +900,4 @@ const TaskImportModule = (() => {
 
     return { init };
 })();
+

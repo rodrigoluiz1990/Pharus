@@ -12,6 +12,15 @@ class SidebarManager {
         this.customSidebarMenuStorageKey = 'pharus_custom_sidebar_menu';
         this.defaultCustomSidebarIcon = 'fa-link';
         this.defaultProjectTitle = 'Pharus';
+        this.defaultAvatarColor = '#3498db';
+        this.avatarEmojiMap = {
+            party: '\uD83E\uDD73',
+            rocket: '\uD83D\uDE80',
+            gear: '\u2699\uFE0F',
+            chart: '\uD83D\uDCC8',
+            light: '\uD83D\uDCA1',
+            check: '\u2705'
+        };
         this.sidebarUnreadInterval = null;
         this.init();
     }
@@ -589,14 +598,18 @@ class SidebarManager {
                     const name = metadata.full_name || session.user.email;
                     const avatarColor = /^#[0-9a-fA-F]{6}$/.test(String(metadata.avatar_color || '').trim())
                         ? String(metadata.avatar_color).trim()
-                        : '#3498db';
+                        : this.defaultAvatarColor;
                     const allowedIcons = new Set(['user', 'user-tie', 'headset', 'code', 'wrench', 'briefcase', 'star', 'bolt']);
                     const avatarIcon = allowedIcons.has(String(metadata.avatar_icon || '').trim())
                         ? String(metadata.avatar_icon).trim()
                         : '';
+                    const emojiCode = String(metadata.avatar_emoji_code || '').trim();
+                    const avatarEmoji = this.avatarEmojiMap[emojiCode] || '';
 
                     userAvatarElement.style.background = avatarColor;
-                    if (avatarIcon) {
+                    if (avatarEmoji) {
+                        userAvatarElement.textContent = avatarEmoji;
+                    } else if (avatarIcon) {
                         userAvatarElement.innerHTML = `<i class="fas fa-${avatarIcon}"></i>`;
                     } else {
                         userAvatarElement.textContent = this.getInitials(name);
@@ -625,9 +638,6 @@ class SidebarManager {
                 if (window.ProfileModule && window.ProfileModule.showProfileModal) {
                     window.ProfileModule.showProfileModal();
                 }
-                break;
-            case 'settings':
-                alert('Configurações - Em desenvolvimento');
                 break;
             case 'logout':
                 this.logoutUser();
@@ -696,4 +706,5 @@ if (document.readyState === 'loading') {
 } else {
     initSidebar();
 }
+
 

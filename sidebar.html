@@ -12,9 +12,6 @@
                     <div class="dropdown-item" data-action="profile">
                         <i class="fas fa-user"></i> Meu Perfil
                     </div>
-                    <div class="dropdown-item" data-action="settings">
-                        <i class="fas fa-cog"></i> Configurações
-                    </div>
                     <div class="dropdown-item" data-action="logout">
                         <i class="fas fa-sign-out-alt"></i> Sair
                     </div>
@@ -30,30 +27,93 @@
                 <button class="modal-close" id="closeProfileModal">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="profileForm">
-                    <div class="form-group">
-                        <label for="profileName">Nome Completo *</label>
-                        <input type="text" id="profileName" class="form-control" required>
+                <form id="profileForm" class="user-form">
+                    <div class="form-row">
+                        <div class="form-group avatar-form-group">
+                            <label>Avatar</label>
+                            <div class="user-avatar-config">
+                                <div class="user-avatar-preview" id="profileAvatarPreview">U</div>
+                                <div class="user-avatar-controls">
+                                    <div class="user-avatar-control-row">
+                                        <label for="profileAvatarColor">Cor</label>
+                                        <select id="profileAvatarColor" class="form-control">
+                                            <option value="#3498db">Azul</option>
+                                            <option value="#4f46e5">Índigo</option>
+                                            <option value="#16a34a">Verde</option>
+                                            <option value="#f59e0b">Laranja</option>
+                                            <option value="#ef4444">Vermelho</option>
+                                            <option value="#0ea5e9">Ciano</option>
+                                            <option value="#a855f7">Roxo</option>
+                                            <option value="#334155">Grafite</option>
+                                        </select>
+                                    </div>
+                                <div class="user-avatar-control-row">
+                                    <label for="profileAvatarIcon">Ícone</label>
+                                    <select id="profileAvatarIcon" class="form-control">
+                                        <option value="">Iniciais do nome</option>
+                                        <option value="user">Usuário</option>
+                                        <option value="user-tie">Executivo</option>
+                                        <option value="headset">Suporte</option>
+                                        <option value="code">Dev</option>
+                                        <option value="wrench">Técnico</option>
+                                        <option value="briefcase">Negócios</option>
+                                        <option value="star">Estrela</option>
+                                        <option value="bolt">Raio</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="profileEmail">E-mail *</label>
-                        <input type="email" id="profileEmail" class="form-control" required>
                     </div>
-                    <div class="form-group">
-                        <label for="profileCurrentPassword">Senha Atual (para alterar senha)</label>
-                        <input type="password" id="profileCurrentPassword" class="form-control">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="profileName">Nome Completo *</label>
+                            <input type="text" id="profileName" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profileEmail">E-mail *</label>
+                            <input type="email" id="profileEmail" class="form-control" required>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="profileNewPassword">Nova Senha</label>
-                        <input type="password" id="profileNewPassword" class="form-control" minlength="6">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="profilePermissionGroup">Grupo de permissão</label>
+                            <select id="profilePermissionGroup" class="form-control" disabled>
+                                <option value="">Sem grupo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="profileStatus">Status</label>
+                            <select id="profileStatus" class="form-control" disabled>
+                                <option value="active">Ativo</option>
+                                <option value="inactive">Inativo</option>
+                                <option value="pending">Pendente</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="profileConfirmPassword">Confirmar Nova Senha</label>
-                        <input type="password" id="profileConfirmPassword" class="form-control">
+
+                    <div class="form-row">
+                        <div class="form-group profile-full-row">
+                            <label for="profileCurrentPassword">Senha Atual (para alterar senha)</label>
+                            <input type="password" id="profileCurrentPassword" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="profileNewPassword">Nova Senha</label>
+                            <input type="password" id="profileNewPassword" class="form-control" minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="profileConfirmPassword">Confirmar Nova Senha</label>
+                            <input type="password" id="profileConfirmPassword" class="form-control">
+                        </div>
                     </div>
                     <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" id="cancelProfile">Cancelar</button>
                         <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                        <button type="button" class="btn btn-secondary" id="cancelProfile">Cancelar</button>
                     </div>
                 </form>
             </div>
@@ -122,5 +182,6 @@
         </div>
     </div>
 </div>
+
 
 

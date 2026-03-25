@@ -267,6 +267,83 @@
     color: #3498db;
 }
 
+/* Modal Meu Perfil: 2 campos por linha */
+#profileModal .modal {
+    width: 760px;
+    max-width: calc(100vw - 32px);
+}
+
+#profileForm.user-form .form-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+#profileForm.user-form .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+#profileForm.user-form .profile-full-row {
+    flex: 1 1 100%;
+}
+
+#profileForm .avatar-form-group > label {
+    margin-bottom: 5px;
+}
+
+#profileForm .user-avatar-config {
+    border: 1px solid #dbe4ee;
+    border-radius: 6px;
+    background: #f8fbff;
+    padding: 6px 8px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+    align-items: center;
+}
+
+#profileForm .user-avatar-preview {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#profileForm .user-avatar-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+}
+
+#profileForm .user-avatar-control-row {
+    display: grid;
+    gap: 2px;
+}
+
+#profileForm .user-avatar-control-row label {
+    margin: 0;
+    font-size: 10px;
+    color: #475b70;
+    line-height: 1.1;
+}
+
+#profileAvatarColor.form-control,
+#profileAvatarIcon.form-control {
+    padding: 4px 8px;
+    font-size: 12px;
+    min-height: 30px;
+}
+
+#profileForm .form-actions {
+    margin-top: 18px;
+}
+
 /* Collapsed mode: icons only */
 .sidebar.sidebar-collapsed {
     width: 84px;
@@ -487,5 +564,14 @@ body.sidebar-collapsed .content {
     .sidebar .toggle-btn i {
         margin: 0;
         font-size: 14px;
+    }
+
+    #profileForm.user-form .form-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    #profileForm .user-avatar-controls {
+        grid-template-columns: 1fr;
     }
 }

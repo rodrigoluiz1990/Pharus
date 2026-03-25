@@ -14,6 +14,7 @@ const els = {
   statusText: document.getElementById('statusText'),
   tasksList: document.getElementById('tasksList'),
 };
+const PARTY_EMOJI = '\uD83E\uDD73';
 
 const normalizeBase = (value) => String(value || '').trim().replace(/\/+$/, '');
 
@@ -51,7 +52,7 @@ function renderTasks(tasks, settings) {
   if (!Array.isArray(tasks) || tasks.length === 0) {
     const li = document.createElement('li');
     li.className = 'empty';
-    li.textContent = '🥳 Nenhuma tarefa foco encontrada.';
+    li.textContent = `${PARTY_EMOJI} Nenhuma tarefa foco encontrada.`;
     els.tasksList.appendChild(li);
     return;
   }

@@ -1,4 +1,4 @@
-// Módulo de gerenciamento de modais
+﻿// Módulo de gerenciamento de modais
 const ModalModule = (() => {
     const modalOverlay = document.getElementById('taskModal');
     const taskForm = document.getElementById('taskForm');
@@ -224,7 +224,7 @@ const ModalModule = (() => {
 
         if (selectedAttachment) {
             if (selectedAttachment.size > MAX_ATTACHMENT_SIZE_BYTES) {
-                UtilsModule.showNotification('O anexo deve ter no mÃ¡ximo 5 MB.', 'error');
+                UtilsModule.showNotification('O anexo deve ter no máximo 5 MB.', 'error');
                 return;
             }
             const attachmentData = await readFileAsDataUrl(selectedAttachment);
@@ -475,7 +475,7 @@ const ModalModule = (() => {
     const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result || ''));
-        reader.onerror = () => reject(new Error('NÃ£o foi possÃ­vel ler o anexo.'));
+        reader.onerror = () => reject(new Error('Não foi possável ler o anexo.'));
         reader.readAsDataURL(file);
     });
 
@@ -522,5 +522,9 @@ if (document.readyState === 'loading') {
 } else {
     ModalModule.initModal();
 }
+
+
+
+
 
 

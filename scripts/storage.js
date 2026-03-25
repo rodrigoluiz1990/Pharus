@@ -1,10 +1,10 @@
-const StorageModule = (() => {
+﻿const StorageModule = (() => {
     const LS_KEYS = {
         CURRENT_USER: 'pharus_currentUser'
     };
     const TASK_AGENDA_MARKER_PREFIX = '[PHARUS_TASK_ID:';
 
-    // --------- Sess?o ----------
+    // --------- Sessão ----------
     const getCurrentUser = () => {
         const raw = localStorage.getItem(LS_KEYS.CURRENT_USER);
         return raw ? JSON.parse(raw) : null;
@@ -153,14 +153,14 @@ const StorageModule = (() => {
                 email: user.email
             }));
         } catch (error) {
-            console.error('Erro ao buscar usu?rios:', error);
+            console.error('Erro ao buscar usuários:', error);
             return [];
         }
     };
 
     // REMOVER ESTA FUN??O - usar auth do Supabase em vez disso
     const findUserByCredentials = async (email, password) => {
-        console.warn('findUserByCredentials est? obsoleta - use AuthModule.login');
+        console.warn('findUserByCredentials está obsoleta - use AuthModule.login');
         return null;
     };
 
@@ -180,7 +180,7 @@ const StorageModule = (() => {
             if (error) throw error;
             return data.user;
         } catch (error) {
-            console.error('Erro ao criar usu?rio:', error);
+            console.error('Erro ao criar usuário:', error);
             return null;
         }
     };
@@ -206,7 +206,7 @@ const StorageModule = (() => {
             { title: 'Pendente', type: 'pending', position: 0 },
             { title: 'Em Andamento', type: 'in_progress', position: 1 },
             { title: 'Em Teste', type: 'review', position: 2 },
-            { title: 'Conclu?do', type: 'completed', position: 3 }
+            { title: 'Concluído', type: 'completed', position: 3 }
         ];
 
         try {
@@ -218,7 +218,7 @@ const StorageModule = (() => {
             if (error) throw error;
             return data;
         } catch (error) {
-            console.error('Erro ao criar colunas padr?o:', error);
+            console.error('Erro ao criar colunas padrão:', error);
             return [];
         }
     };
@@ -255,13 +255,13 @@ const StorageModule = (() => {
                 throw tasksError;
             }
 
-            // Buscar usu?rios separadamente
+            // Buscar usuários separadamente
             const { data: usersData, error: usersError } = await supabaseClient
                 .from('app_users')
                 .select('id, email, raw_user_meta_data');
 
             if (usersError) {
-                console.error('Erro ao buscar usu?rios:', usersError);
+                console.error('Erro ao buscar usuários:', usersError);
                 throw usersError;
             }
 
@@ -365,7 +365,7 @@ const StorageModule = (() => {
         }
     };
 
-    // Nova fun??o para logout
+    // Nova função para logout
     const logout = async () => {
         try {
             const { error } = await supabaseClient.auth.signOut();
@@ -379,7 +379,7 @@ const StorageModule = (() => {
     };
 
     return {
-        // sess?o
+        // sessão
         getCurrentUser,
         saveCurrentUser,
         removeCurrentUser,
@@ -404,3 +404,5 @@ const StorageModule = (() => {
         logout
     };
 })();
+
+

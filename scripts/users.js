@@ -40,20 +40,20 @@ const UsersModule = (() => {
             const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
 
             if (sessionError || !session) {
-                throw new Error('UsuÃƒÂ¡rio nÃƒÂ£o autenticado. FaÃƒÂ§a login primeiro.');
+                throw new Error('Usuário não autenticado. Faáa login primeiro.');
             }
 
-            // Obter usuÃƒÂ¡rio atual
+            // Obter usuário atual
             const { data: { user } } = await window.supabaseClient.auth.getUser();
             currentUser = user;
             await loadCurrentUserPermissions();
 
-            // Buscar usuÃƒÂ¡rios - tentar view primeiro
+            // Buscar usuários - tentar view primeiro
             try {
                 await loadUsersFromView();
             } catch (viewError) {
                 console.warn('Falha na view, tentando abordagem alternativa:', viewError);
-                // Fallback: usar apenas o usuÃƒÂ¡rio atual
+                // Fallback: usar apenas o usuário atual
                 users = [{
                     id: currentUser.id,
                     email: currentUser.email,
@@ -70,7 +70,7 @@ const UsersModule = (() => {
             }
 
         } catch (error) {
-            console.error('Erro ao carregar usuÃƒÂ¡rios:', error);
+            console.error('Erro ao carregar usuários:', error);
             showError(error.message);
         }
     };
@@ -118,7 +118,7 @@ const UsersModule = (() => {
             canEditOtherUsers = Array.isArray(ruleRows) && ruleRows.some((row) => row.allowed !== false);
         } catch (error) {
             canEditOtherUsers = false;
-            console.warn('NÃƒÂ£o foi possÃƒÂ­vel carregar permissÃƒÂµes do usuÃƒÂ¡rio atual:', error);
+            console.warn('Não foi possável carregar permissáes do usuário atual:', error);
         }
     };
 
@@ -133,7 +133,7 @@ const UsersModule = (() => {
             permissionGroups = (data || []).filter((item) => String(item.status || 'active') === 'active');
         } catch (error) {
             permissionGroups = [];
-            console.warn('NÃƒÂ£o foi possÃƒÂ­vel carregar grupos de permissÃƒÂ£o:', error);
+            console.warn('Não foi possável carregar grupos de permissáo:', error);
         }
         renderPermissionGroupOptions();
     };
@@ -208,8 +208,8 @@ const UsersModule = (() => {
 
             users = (usersData || []).map(user => ({
                 id: user.id,
-                email: user.email || 'NÃƒÂ£o informado',
-                name: user.raw_user_meta_data?.full_name || user.email?.split('@')[0] || 'UsuÃƒÂ¡rio',
+                email: user.email || 'Não informado',
+                name: user.raw_user_meta_data?.full_name || user.email?.split('@')[0] || 'Usuário',
                 role: user.role || 'user',
                 status: user.status || 'active',
                 permission_group_id: user.permission_group_id || null,
@@ -221,7 +221,7 @@ const UsersModule = (() => {
 
             renderUsersTable();
         } catch (error) {
-            throw new Error('NÃƒÂ£o foi possÃƒÂ­vel carregar os usuÃƒÂ¡rios: ' + error.message);
+            throw new Error('Não foi possável carregar os usuários: ' + error.message);
         }
     };
 
@@ -233,7 +233,7 @@ const UsersModule = (() => {
                 <tr>
                     <td colspan="7" class="empty-users">
                         <i class="fas fa-users"></i>
-                        <div>Nenhum usuÃƒÂ¡rio encontrado</div>
+                        <div>Nenhum usuário encontrado</div>
                     </td>
                 </tr>
             `;
@@ -377,7 +377,7 @@ const UsersModule = (() => {
 
     const createUser = async (userData) => {
         try {
-            UtilsModule.showLoading('Criando usuÃƒÂ¡rio...');
+            UtilsModule.showLoading('Criando usuário...');
             const metadata = {
                 full_name: userData.name,
                 role: userData.role,
@@ -400,46 +400,46 @@ const UsersModule = (() => {
             if (error) throw error;
 
             UtilsModule.hideLoading();
-            UtilsModule.showNotification('UsuÃƒÂ¡rio criado com sucesso!', 'success');
+            UtilsModule.showNotification('Usuário criado com sucesso!', 'success');
 
             loadUsers();
             closeModal();
 
         } catch (error) {
             UtilsModule.hideLoading();
-            console.error('Erro ao criar usuÃƒÂ¡rio:', error);
+            console.error('Erro ao criar usuário:', error);
             
             let errorMessage = error.message;
             if (error.message.includes('User already registered')) {
-                errorMessage = 'Este e-mail jÃƒÂ¡ estÃƒÂ¡ cadastrado.';
+                errorMessage = 'Este e-mail já está cadastrado.';
             } else if (error.message.includes('Invalid email')) {
-                errorMessage = 'E-mail invÃƒÂ¡lido.';
+                errorMessage = 'E-mail inválido.';
             } else if (error.message.includes('Password should be at least 6 characters')) {
                 errorMessage = 'A senha deve ter pelo menos 6 caracteres.';
             }
             
-            UtilsModule.showNotification(`Erro ao criar usuÃƒÂ¡rio: ${errorMessage}`, 'error');
+            UtilsModule.showNotification(`Erro ao criar usuário: ${errorMessage}`, 'error');
         }
     };
 
     const updateUser = async (userId, userData) => {
         try {
-            UtilsModule.showLoading('Atualizando usuÃƒÂ¡rio...');
+            UtilsModule.showLoading('Atualizando usuário...');
             
             const isCurrentUser = Boolean(currentUser && currentUser.id === userId);
             const canEditTarget = isCurrentUser || canEditOtherUsers;
             if (!canEditTarget) {
                 UtilsModule.hideLoading();
                 if (typeof UtilsModule.showPermissionDeniedModal === 'function') {
-                    UtilsModule.showPermissionDeniedModal('VocÃƒÂª nÃƒÂ£o tem permissÃƒÂ£o para editar outros usuÃƒÂ¡rios.');
+                    UtilsModule.showPermissionDeniedModal('Vocá não tem permissáo para editar outros usuários.');
                 } else {
-                    UtilsModule.showNotification('VocÃƒÂª nÃƒÂ£o tem permissÃƒÂ£o para editar outros usuÃƒÂ¡rios.', 'warning');
+                    UtilsModule.showNotification('Vocá não tem permissáo para editar outros usuários.', 'warning');
                 }
                 return;
             }
 
             if (isCurrentUser) {
-                // Atualizar usuÃƒÂ¡rio atual via auth API
+                // Atualizar usuário atual via auth API
                 const updatePayload = {
                     email: userData.email,
                     data: {
@@ -499,7 +499,7 @@ const UsersModule = (() => {
                 if (updateError) throw updateError;
 
                 UtilsModule.hideLoading();
-                UtilsModule.showNotification('UsuÃƒÂ¡rio atualizado com sucesso!', 'success');
+                UtilsModule.showNotification('Usuário atualizado com sucesso!', 'success');
             }
 
             loadUsers();
@@ -507,13 +507,13 @@ const UsersModule = (() => {
 
         } catch (error) {
             UtilsModule.hideLoading();
-            console.error('Erro ao atualizar usuÃƒÂ¡rio:', error);
+            console.error('Erro ao atualizar usuário:', error);
             
-            let errorMessage = 'Erro ao atualizar usuÃƒÂ¡rio';
+            let errorMessage = 'Erro ao atualizar usuário';
             if (error.message.includes('Email rate limit exceeded')) {
-                errorMessage = 'Muitas tentativas de alteraÃƒÂ§ÃƒÂ£o. Tente novamente mais tarde.';
+                errorMessage = 'Muitas tentativas de alteraááo. Tente novamente mais tarde.';
             } else if (error.message.includes('Invalid login credentials')) {
-                errorMessage = 'Credenciais invÃƒÂ¡lidas.';
+                errorMessage = 'Credenciais inválidas.';
             }
             
             UtilsModule.showNotification(errorMessage, 'error');
@@ -524,7 +524,7 @@ const UsersModule = (() => {
         const user = users.find(u => u.id === userId);
         if (!user) return;
 
-        userModalTitle.textContent = 'Editar UsuÃƒÂ¡rio';
+        userModalTitle.textContent = 'Editar Usuário';
         userIdField.value = user.id;
         
         // Resetar todos os campos primeiro
@@ -548,20 +548,20 @@ const UsersModule = (() => {
         if (userAvatarIcon) userAvatarIcon.value = sanitizeAvatarIcon(user.avatar_icon);
         updateAvatarPreview();
 
-        // Verificar se ÃƒÂ© o usuÃƒÂ¡rio atual
+        // Verificar se á o usuário atual
         const isCurrentUser = currentUser && currentUser.id === userId;
         const canEditTarget = Boolean(isCurrentUser || canEditOtherUsers);
 
         if (!canEditTarget) {
             if (typeof UtilsModule.showPermissionDeniedModal === 'function') {
-                UtilsModule.showPermissionDeniedModal('Apenas usuÃƒÂ¡rios com permissÃƒÂ£o de editar usuÃƒÂ¡rios podem alterar outros perfis.');
+                UtilsModule.showPermissionDeniedModal('Apenas usuários com permissáo de editar usuários podem alterar outros perfis.');
             } else {
-                UtilsModule.showNotification('Apenas usuÃƒÂ¡rios com permissÃƒÂ£o de editar usuÃƒÂ¡rios podem alterar outros perfis.', 'warning');
+                UtilsModule.showNotification('Apenas usuários com permissáo de editar usuários podem alterar outros perfis.', 'warning');
             }
             return;
         }
 
-        // Limpar e tornar opcionais os campos de senha na ediÃƒÂ§ÃƒÂ£o
+        // Limpar e tornar opcionais os campos de senha na ediááo
         document.getElementById('userPassword').value = '';
         document.getElementById('userConfirmPassword').value = '';
         document.getElementById('userPassword').required = false;
@@ -583,7 +583,7 @@ const UsersModule = (() => {
     };
 
     const openAddUserModal = () => {
-        userModalTitle.textContent = 'Novo UsuÃƒÂ¡rio';
+        userModalTitle.textContent = 'Novo Usuário';
         userIdField.value = '';
         userForm.reset();
         
@@ -601,7 +601,7 @@ const UsersModule = (() => {
         document.getElementById('userPassword').value = '';
         document.getElementById('userConfirmPassword').value = '';
         
-        // Mostrar campos de senha como obrigatÃƒÂ³rios para novo usuÃƒÂ¡rio
+        // Mostrar campos de senha como obrigatários para novo usuário
         document.getElementById('userPassword').required = true;
         document.getElementById('userConfirmPassword').required = true;
         if (userAvatarColor) userAvatarColor.value = DEFAULT_AVATAR_COLOR;
@@ -637,22 +637,22 @@ const UsersModule = (() => {
 
         const confirmPassword = document.getElementById('userConfirmPassword').value;
 
-        // ValidaÃƒÂ§ÃƒÂµes
+        // Validaááes
         if (!formData.name || !formData.email) {
-            UtilsModule.showNotification('Nome e e-mail sÃƒÂ£o obrigatÃƒÂ³rios', 'error');
+            UtilsModule.showNotification('Nome e e-mail sáo obrigatários', 'error');
             return;
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(formData.email)) {
-            UtilsModule.showNotification('Por favor, insira um e-mail vÃƒÂ¡lido', 'error');
+            UtilsModule.showNotification('Por favor, insira um e-mail válido', 'error');
             return;
         }
 
         const isNewUser = !userIdField.value;
 
         if (isNewUser && !formData.password) {
-            UtilsModule.showNotification('Senha ÃƒÂ© obrigatÃƒÂ³ria para novo usuÃƒÂ¡rio', 'error');
+            UtilsModule.showNotification('Senha á obrigatária para novo usuário', 'error');
             return;
         }
 
@@ -662,7 +662,7 @@ const UsersModule = (() => {
         }
 
         if (formData.password && formData.password !== confirmPassword) {
-            UtilsModule.showNotification('As senhas nÃƒÂ£o coincidem. Por favor, digite a mesma senha nos dois campos.', 'error');
+            UtilsModule.showNotification('As senhas não coincidem. Por favor, digite a mesma senha nos dois campos.', 'error');
             return;
         }
 
@@ -673,7 +673,7 @@ const UsersModule = (() => {
                 await createUser(formData);
             }
         } catch (error) {
-            console.error('Erro ao processar formulÃƒÂ¡rio:', error);
+            console.error('Erro ao processar formulário:', error);
         }
     };
 
@@ -682,7 +682,7 @@ const UsersModule = (() => {
             usersTableBody.innerHTML = `
                 <tr>
                     <td colspan="7" class="loading-users">
-                        <i class="fas fa-spinner fa-spin"></i> Carregando usuÃƒÂ¡rios...
+                        <i class="fas fa-spinner fa-spin"></i> Carregando usuários...
                     </td>
                 </tr>
             `;
@@ -691,7 +691,7 @@ const UsersModule = (() => {
 
     const showError = (message) => {
         if (usersTableBody) {
-            const safeMessage = escapeHtml(message || 'Erro ao carregar usuÃƒÂ¡rios');
+            const safeMessage = escapeHtml(message || 'Erro ao carregar usuários');
             usersTableBody.innerHTML = `
                 <tr>
                     <td colspan="7" style="text-align: center; color: #dc3545; padding: 30px;">
@@ -718,7 +718,7 @@ const UsersModule = (() => {
 
     const getRoleText = (role) => {
         const roleMap = {
-            'user': 'UsuÃƒÂ¡rio',
+            'user': 'Usuário',
             'manager': 'Gerente',
             'admin': 'Administrador'
         };
@@ -761,7 +761,7 @@ const UsersModule = (() => {
         setupUsersTableSorting();
         isInitialized = true;
 
-        console.log('MÃƒÂ³dulo de usuÃƒÂ¡rios inicializado');
+        console.log('Mádulo de usuários inicializado');
         loadUsers();
     };
 
@@ -777,6 +777,8 @@ if (document.readyState === 'loading') {
 } else {
     UsersModule.initUsersModule();
 }
+
+
 
 
 

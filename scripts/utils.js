@@ -42,7 +42,7 @@ const UtilsModule = (() => {
           }
       }, true);
   }
-  // Formatar data - Corrigindo problema de fuso horÃ¡rio
+  // Formatar data - Corrigindo problema de fuso horário
   const formatDate = (dateString) => {
       if (!dateString) return "-";
       try {
@@ -52,14 +52,14 @@ const UtilsModule = (() => {
               return isNaN(date.getTime()) ? "-" : date.toLocaleDateString("pt-BR");
           }
           
-          // Dividir a data em partes para evitar problemas de fuso horÃ¡rio
+          // Dividir a data em partes para evitar problemas de fuso horário
           const [year, month, day] = dateString.split("-");
           if (year && month && day) {
-              const date = new Date(year, month - 1, day); // MÃªs Ã© 0-indexed no JavaScript
+              const date = new Date(year, month - 1, day); // Màs ? 0-indexed no JavaScript
               return isNaN(date.getTime()) ? "-" : date.toLocaleDateString("pt-BR");
           }
           
-          // Tentar o mÃ©todo original como fallback
+          // Tentar o método original como fallback
           const date = new Date(dateString);
           return isNaN(date.getTime()) ? "-" : date.toLocaleDateString("pt-BR");
       } catch (e) {
@@ -74,7 +74,7 @@ const UtilsModule = (() => {
           pending: { text: "Pendente", class: "pending" },
           in_progress: { text: "Em Andamento", class: "in_progress" },
           review: { text: "Em Teste", class: "review" },
-          completed: { text: "ConcluÃ­do", class: "completed" },
+          completed: { text: "Concluído", class: "completed" },
           active: { text: "Ativo", class: "active" },
           inactive: { text: "Inativo", class: "inactive" }
       };
@@ -85,7 +85,7 @@ const UtilsModule = (() => {
   const getPriorityText = (priority) => {
       const priorityMap = {
           low: { text: "Baixa", class: "baixa" },
-          medium: { text: "MÃ©dia", class: "media" },
+          medium: { text: "Média", class: "media" },
           high: { text: "Alta", class: "alta" },
       };
       return priorityMap[priority] || { text: priority, class: "desconhecida" };
@@ -97,7 +97,7 @@ const UtilsModule = (() => {
           task: { text: "Novo", class: "task" },
           bug: { text: "Erro", class: "bug" },
           improvement: { text: "Melhoria", class: "improvement" },
-          user: { text: "UsuÃ¡rio", class: "user" },
+          user: { text: "Usuário", class: "user" },
           manager: { text: "Gerente", class: "manager" },
           admin: { text: "Administrador", class: "admin" }
       };
@@ -123,7 +123,7 @@ const UtilsModule = (() => {
       }
   };
 
-  // Gerar ID Ãºnico
+  // Gerar ID ?nico
   const generateId = (items) => {
       if (!items || items.length === 0) return 1;
       return Math.max(0, ...items.map((item) => item.id || 0)) + 1;
@@ -136,9 +136,9 @@ const UtilsModule = (() => {
       return re.test(email);
   };
 
-  // Mostrar notificaÃ§Ã£o
+  // Mostrar notificação
   const showNotification = (message, type = "info") => {
-      // Verificar se existe um sistema de notificaÃ§Ã£o na pÃ¡gina
+      // Verificar se existe um sistema de notificação na página
       const notificationEl = document.getElementById('notification');
       const messageEl = document.getElementById('notificationMessage');
       
@@ -152,15 +152,15 @@ const UtilsModule = (() => {
           // Definir mensagem
           messageEl.textContent = message;
           
-          // Mostrar notificaÃ§Ã£o
+          // Mostrar notificação
           notificationEl.style.display = 'block';
           
-          // Ocultar apÃ³s 5 segundos
+          // Ocultar apàs 5 segundos
           setTimeout(() => {
               notificationEl.style.display = 'none';
           }, 5000);
       } else {
-          // Fallback para alerta bÃ¡sico
+          // Fallback para alerta básico
           console.log(`${type.toUpperCase()}: ${message}`);
       }
 
@@ -244,7 +244,7 @@ const UtilsModule = (() => {
   };
 
   // Tratamento de erros de API
-  const handleApiError = (error, context = 'operaÃ§Ã£o') => {
+  const handleApiError = (error, context = 'operação') => {
       console.error(`Erro em ${context}:`, error);
 
       let message = 'Erro inesperado';
@@ -265,7 +265,7 @@ const UtilsModule = (() => {
           const date = new Date(dateString);
           if (isNaN(date.getTime())) return '';
 
-          // Ajustar para o fuso horÃ¡rio local
+          // Ajustar para o fuso horário local
           const offset = date.getTimezoneOffset();
           const adjustedDate = new Date(date.getTime() - (offset * 60 * 1000));
           return adjustedDate.toISOString().split('T')[0];
@@ -278,9 +278,9 @@ const UtilsModule = (() => {
   // Obter status da coluna do Supabase
   const getColumnStatusFromSupabase = async (columnId) => {
       try {
-          // Verificar se supabaseClient estÃ¡ disponÃ­vel
+          // Verificar se supabaseClient está disponível
           if (typeof window.supabaseClient === 'undefined') {
-              console.warn('Supabase client nÃ£o disponÃ­vel');
+              console.warn('Supabase client não disponível');
               return 'pending';
           }
           
@@ -310,7 +310,7 @@ const UtilsModule = (() => {
       return div.innerHTML;
   };
 
-  // Verificar se um objeto estÃ¡ vazio
+  // Verificar se um objeto está vazio
   const isEmptyObject = (obj) => {
       return !obj || Object.keys(obj).length === 0;
   };
@@ -349,6 +349,9 @@ const UtilsModule = (() => {
       showPermissionDeniedModal
   };
 })();
+
+
+
 
 
 

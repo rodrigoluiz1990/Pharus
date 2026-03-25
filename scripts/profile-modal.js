@@ -1,6 +1,91 @@
 // Módulo do modal de perfil - Supabase (usando apenas auth)
 const ProfileModule = (() => {
     let supabase = null;
+    const DEFAULT_AVATAR_COLOR = '#3498db';
+    const ALLOWED_AVATAR_COLORS = new Set(['#3498db', '#4f46e5', '#16a34a', '#f59e0b', '#ef4444', '#0ea5e9', '#a855f7', '#334155']);
+    const ALLOWED_AVATAR_ICONS = new Set(['', 'user', 'user-tie', 'headset', 'code', 'wrench', 'briefcase', 'star', 'bolt']);
+
+    const normalizeAvatarColor = (value) => {
+        const color = String(value || '').trim().toLowerCase();
+        return ALLOWED_AVATAR_COLORS.has(color) ? color : DEFAULT_AVATAR_COLOR;
+    };
+
+    const normalizeAvatarIcon = (value) => {
+        const icon = String(value || '').trim();
+        return ALLOWED_AVATAR_ICONS.has(icon) ? icon : '';
+    };
+
+    const getProfileInitials = (name, email) => {
+        const base = String(name || email || 'U').trim();
+        if (!base) return 'U';
+        return base
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part.charAt(0).toUpperCase())
+            .join('') || 'U';
+    };
+
+    const updateProfileAvatarPreview = () => {
+        const preview = document.getElementById('profileAvatarPreview');
+        if (!preview) return;
+
+        const name = document.getElementById('profileName')?.value || '';
+        const email = document.getElementById('profileEmail')?.value || '';
+        const avatarColor = normalizeAvatarColor(document.getElementById('profileAvatarColor')?.value);
+        const avatarIcon = normalizeAvatarIcon(document.getElementById('profileAvatarIcon')?.value);
+
+        preview.style.background = avatarColor;
+        if (avatarIcon) {
+            preview.innerHTML = `<i class="fas fa-${avatarIcon}"></i>`;
+            return;
+        }
+
+        preview.textContent = getProfileInitials(name, email);
+    };
+
+    const fillProfileAccessFields = async (userId) => {
+        const permissionSelect = document.getElementById('profilePermissionGroup');
+        const statusSelect = document.getElementById('profileStatus');
+        if (!permissionSelect || !statusSelect || !userId || !supabase) return;
+
+        permissionSelect.innerHTML = '<option value="">Sem grupo</option>';
+        statusSelect.value = 'active';
+
+        try {
+            const { data: appUser, error: appUserError } = await supabase
+                .from('app_users')
+                .select('permission_group_id,status')
+                .eq('id', userId)
+                .single();
+
+            if (appUserError || !appUser) return;
+
+            const statusValue = String(appUser.status || 'active');
+            const allowedStatuses = new Set(['active', 'inactive', 'pending']);
+            statusSelect.value = allowedStatuses.has(statusValue) ? statusValue : 'active';
+
+            const groupId = String(appUser.permission_group_id || '').trim();
+            if (!groupId) return;
+
+            const { data: groupData, error: groupError } = await supabase
+                .from('permission_groups')
+                .select('id,name')
+                .eq('id', groupId)
+                .single();
+
+            if (groupError || !groupData) return;
+
+            permissionSelect.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = String(groupData.id || '');
+            option.textContent = String(groupData.name || 'Grupo');
+            option.selected = true;
+            permissionSelect.appendChild(option);
+        } catch (error) {
+            console.warn('Não foi possível carregar grupo de permissão do perfil:', error);
+        }
+    };
 
     // Função para aguardar o supabaseClient estar disponível
     const waitForSupabaseClient = () => {
@@ -47,6 +132,10 @@ const ProfileModule = (() => {
             document.getElementById('profileCurrentPassword').value = '';
             document.getElementById('profileNewPassword').value = '';
             document.getElementById('profileConfirmPassword').value = '';
+            document.getElementById('profileAvatarColor').value = normalizeAvatarColor(user.user_metadata?.avatar_color);
+            document.getElementById('profileAvatarIcon').value = normalizeAvatarIcon(user.user_metadata?.avatar_icon);
+            await fillProfileAccessFields(user.id);
+            updateProfileAvatarPreview();
 
             profileModal.style.display = 'flex';
             
@@ -89,6 +178,8 @@ const ProfileModule = (() => {
             const currentPassword = document.getElementById('profileCurrentPassword').value;
             const newPassword = document.getElementById('profileNewPassword').value;
             const confirmPassword = document.getElementById('profileConfirmPassword').value;
+            const avatarColor = normalizeAvatarColor(document.getElementById('profileAvatarColor').value);
+            const avatarIcon = normalizeAvatarIcon(document.getElementById('profileAvatarIcon').value);
 
             // Validações
             if (!name) {
@@ -131,10 +222,19 @@ const ProfileModule = (() => {
 
             // Atualizar metadata (nome) - igual ao users.js
             const currentName = user.user_metadata?.full_name || '';
-            if (name !== currentName) {
+            const currentAvatarColor = normalizeAvatarColor(user.user_metadata?.avatar_color);
+            const currentAvatarIcon = normalizeAvatarIcon(user.user_metadata?.avatar_icon);
+            const shouldUpdateProfileMetadata =
+                name !== currentName ||
+                avatarColor !== currentAvatarColor ||
+                avatarIcon !== currentAvatarIcon;
+            if (shouldUpdateProfileMetadata) {
                 updateData.data = { 
                     ...user.user_metadata, 
-                    full_name: name 
+                    full_name: name,
+                    avatar_color: avatarColor,
+                    avatar_icon: avatarIcon,
+                    avatar_emoji_code: ''
                 };
             }
 
@@ -149,7 +249,7 @@ const ProfileModule = (() => {
             alert('Perfil atualizado com sucesso!');
             
             // Atualizar informações no sidebar
-            updateSidebarUserInfo(name, email);
+            updateSidebarUserInfo(name, email, avatarColor, avatarIcon);
             
             hideProfileModal();
 
@@ -175,7 +275,7 @@ const ProfileModule = (() => {
     };
 
     // Atualizar informações do usuário no sidebar
-    const updateSidebarUserInfo = (name, email) => {
+    const updateSidebarUserInfo = (name, email, avatarColor, avatarIcon) => {
         const userNameElement = document.getElementById('sidebarUserName');
         const userEmailElement = document.getElementById('sidebarUserEmail');
         const userAvatarElement = document.getElementById('sidebarUserAvatar');
@@ -183,6 +283,14 @@ const ProfileModule = (() => {
         if (userNameElement) userNameElement.textContent = name;
         if (userEmailElement) userEmailElement.textContent = email;
         if (userAvatarElement) {
+            const normalizedColor = normalizeAvatarColor(avatarColor);
+            const normalizedIcon = normalizeAvatarIcon(avatarIcon);
+            userAvatarElement.style.background = normalizedColor;
+            if (normalizedIcon) {
+                userAvatarElement.innerHTML = `<i class="fas fa-${normalizedIcon}"></i>`;
+                return;
+            }
+
             userAvatarElement.textContent = name.split(' ')
                 .map(part => part.charAt(0))
                 .join('')
@@ -229,6 +337,16 @@ const ProfileModule = (() => {
                 profileModal.addEventListener('click', (e) => {
                     if (e.target === profileModal) hideProfileModal();
                 });
+
+                const profileName = document.getElementById('profileName');
+                const profileEmail = document.getElementById('profileEmail');
+                const profileAvatarColor = document.getElementById('profileAvatarColor');
+                const profileAvatarIcon = document.getElementById('profileAvatarIcon');
+
+                profileName?.addEventListener('input', updateProfileAvatarPreview);
+                profileEmail?.addEventListener('input', updateProfileAvatarPreview);
+                profileAvatarColor?.addEventListener('change', updateProfileAvatarPreview);
+                profileAvatarIcon?.addEventListener('change', updateProfileAvatarPreview);
                 
                 console.log('Módulo de perfil inicializado com sucesso (apenas auth)');
             }

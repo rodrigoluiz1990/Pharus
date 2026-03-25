@@ -1,4 +1,4 @@
-const ChatPageModule = (() => {
+﻿const ChatPageModule = (() => {
     const state = {
         currentUser: null,
         contacts: [],
@@ -30,7 +30,12 @@ const ChatPageModule = (() => {
         emojiBtn: document.getElementById('chatConversationEmojiBtn'),
         emojiPicker: document.getElementById('chatConversationEmojiPicker'),
     };
-    const EMOJI_OPTIONS = ['😀', '😁', '😂', '😊', '😉', '😍', '😎', '🤔', '👍', '👏', '🙏', '🎯', '🔥', '✅', '⚠️', '❗', '💡', '📌', '🚀', '💬'];
+    const EMOJI_OPTIONS = [
+        '\u{1F600}', '\u{1F601}', '\u{1F602}', '\u{1F60A}', '\u{1F609}',
+        '\u{1F60D}', '\u{1F60E}', '\u{1F914}', '\u{1F44D}', '\u{1F44F}',
+        '\u{1F64F}', '\u{1F3AF}', '\u{1F525}', '\u{2705}', '\u{26A0}\u{FE0F}',
+        '\u{2757}', '\u{1F4A1}', '\u{1F4CC}', '\u{1F680}', '\u{1F4AC}',
+    ];
 
     const init = async () => {
         await loadCurrentUser();
@@ -725,3 +730,5 @@ if (document.readyState === 'loading') {
 } else {
     ChatPageModule.init();
 }
+
+

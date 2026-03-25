@@ -1,6 +1,6 @@
 ﻿// scripts/auth.js
 document.addEventListener("DOMContentLoaded", () => {
-  // SÃ³ executa se estiver na pÃ¡gina de login
+  // Só executa se estiver na página de login
   if (!window.location.pathname.includes('login.html')) {
       return;
   }
@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("loginForm");
   const loginBtn = document.getElementById("loginBtn");
 
-  // Verificar se jÃ¡ estÃ¡ logado (redirecionamento serÃ¡ tratado pelo supabase-config)
+  // Verificar se já está logado (redirecionamento será tratado pelo supabase-config)
   checkIfAlreadyLoggedIn();
 
   if (loginForm) {
@@ -20,11 +20,11 @@ async function checkIfAlreadyLoggedIn() {
   try {
       const { data: { session } } = await window.supabaseClient.auth.getSession();
       if (session) {
-          // JÃ¡ estÃ¡ logado, mostrar mensagem e redirecionar
-          console.log("UsuÃ¡rio jÃ¡ autenticado, redirecionando...");
+          // Já está logado, mostrar mensagem e redirecionar
+          console.log("Usuário já autenticado, redirecionando...");
       }
   } catch (error) {
-      console.error("Erro ao verificar sessÃ£o:", error);
+      console.error("Erro ao verificar sessão:", error);
   }
 }
 
@@ -40,7 +40,7 @@ async function handleLogin(e) {
   const passwordInput = document.getElementById("password");
 
   if (!emailInput || !passwordInput) {
-      console.error("Campos de login nÃ£o encontrados no DOM.");
+      console.error("Campos de login não encontrados no DOM.");
       resetLoginButton(loginBtn, originalText);
       return;
   }
@@ -76,7 +76,7 @@ async function handleLogin(e) {
 
       sessionStorage.setItem('pharus_open_notices_after_login', '1');
       console.log("Login realizado com sucesso, redirecionando...");
-      // O redirecionamento serÃ¡ tratado pelo onAuthStateChange no supabase-config
+      // O redirecionamento será tratado pelo onAuthStateChange no supabase-config
       
   } catch (err) {
       console.error("Erro no login:", err);
@@ -90,6 +90,7 @@ function resetLoginButton(button, originalText) {
   button.innerHTML = originalText;
   button.disabled = false;
 }
+
 
 
 
