@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS app_users (
   role TEXT NOT NULL DEFAULT 'user',
   status TEXT NOT NULL DEFAULT 'active',
   last_sign_in_at TIMESTAMPTZ NULL,
+  last_seen_at TIMESTAMPTZ NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -24,6 +25,9 @@ CREATE TABLE IF NOT EXISTS columns (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE IF EXISTS app_users
+  ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ NULL;
 
 CREATE TABLE IF NOT EXISTS tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -258,6 +262,7 @@ SELECT
   u.role,
   u.status,
   u.last_sign_in_at,
+  u.last_seen_at,
   u.created_at,
   u.updated_at
 FROM app_users u;

@@ -8,12 +8,15 @@ const ChatModule = (() => {
     let isInitializing = false;
     let conversationRefreshInterval = null;
     let contactsRefreshInterval = null;
+    let presencePingInterval = null;
     let lastMessagesSnapshot = new Map();
     let selectedAttachment = null;
     let isSendingAttachment = false;
     let editingMessageId = null;
     let autoOpenHandled = false;
     let newMessageToastTimer = null;
+    const ONLINE_WINDOW_MS = 3 * 60 * 1000;
+    const PRESENCE_PING_INTERVAL_MS = 60 * 1000;
     const EMOJI_OPTIONS = [
         '\u{1F600}', '\u{1F601}', '\u{1F602}', '\u{1F60A}', '\u{1F609}',
         '\u{1F60D}', '\u{1F60E}', '\u{1F914}', '\u{1F44D}', '\u{1F44F}',
@@ -52,6 +55,7 @@ const ChatModule = (() => {
         try {
             await createChatInterface();
             await loadCurrentUser();
+            startPresencePing();
             setupEventListeners();
             setupRealtimeSubscription();
             await loadContacts();
@@ -319,6 +323,12 @@ const ChatModule = (() => {
             document.addEventListener('click', handleDocumentClickForEmojiPicker);
             document.body.dataset.chatEmojiBound = 'true';
         }
+        if (!document.body.dataset.chatPresenceUnloadBound) {
+            window.addEventListener('beforeunload', () => {
+                stopPresencePing();
+            });
+            document.body.dataset.chatPresenceUnloadBound = 'true';
+        }
 
         buildEmojiPicker();
 
@@ -455,12 +465,9 @@ const ChatModule = (() => {
 
             elements.contactsList.innerHTML = '<div class="loading-contacts">Carregando contatos...</div>';
 
+            const contactsPromise = fetchContactsWithPresence();
             const [contactsResult, unreadResult, messagesResult] = await Promise.all([
-                window.supabaseClient
-                    .from('user_profiles')
-                    .select('id, full_name, email, status, last_sign_in_at')
-                    .neq('id', currentUser.id)
-                    .order('full_name', { ascending: true }),
+                contactsPromise,
                 window.supabaseClient
                     .from('chat_messages')
                     .select('id, sender_id, receiver_id, is_read')
@@ -502,14 +509,9 @@ const ChatModule = (() => {
                 return aName.localeCompare(bName, 'pt-BR');
             });
 
-            const onlineCount = contacts.filter((contact) => contact.status === 'active').length;
-            if (elements.onlineCount) {
-                elements.onlineCount.textContent = `${onlineCount} online`;
-            }
-
             contacts.forEach((contact) => {
                 const contactElement = document.createElement('div');
-                const statusClass = getSafeStatusClass(contact.status);
+                const statusClass = isContactOnline(contact) ? 'active' : 'inactive';
                 contactElement.className = `contact-item ${statusClass}`;
                 contactElement.dataset.userId = contact.id;
 
@@ -523,7 +525,7 @@ const ChatModule = (() => {
                     <div class="contact-avatar">${escapeHtml(avatarText)}</div>
                     <div class="contact-info">
                         <div class="contact-name">${escapeHtml(contact.full_name || contact.email)}</div>
-                        <div class="contact-status">${statusClass === 'active' ? 'Online' : 'Offline'}</div>
+                        <div class="contact-status">${statusClass === 'active' ? 'Online' : formatLastSeen(contact)}</div>
                     </div>
                     ${unreadCount > 0 ? `<div class="unread-count">${unreadCount}</div>` : ''}
                 `;
@@ -551,7 +553,7 @@ const ChatModule = (() => {
         // Atualizar header do chat
         if (elements.currentChatName && elements.currentChatStatus && elements.currentChatAvatar) {
             elements.currentChatName.textContent = contact.full_name || contact.email;
-            elements.currentChatStatus.textContent = contact.status === 'active' ? 'Online' : 'Offline';
+            elements.currentChatStatus.textContent = isContactOnline(contact) ? 'Online' : formatLastSeen(contact);
             elements.currentChatAvatar.textContent = contact.full_name 
                 ? contact.full_name.charAt(0).toUpperCase() 
                 : contact.email.charAt(0).toUpperCase();
@@ -1388,6 +1390,77 @@ const ChatModule = (() => {
         if (contactsRefreshInterval) {
             clearInterval(contactsRefreshInterval);
             contactsRefreshInterval = null;
+        }
+    };
+
+    const parseDateSafe = (value) => {
+        const date = value ? new Date(value) : null;
+        if (!date || Number.isNaN(date.getTime())) return null;
+        return date;
+    };
+
+    const isContactOnline = (contact) => {
+        const lastSeen = parseDateSafe(contact?.last_seen_at);
+        if (!lastSeen) return false;
+        return Date.now() - lastSeen.getTime() <= ONLINE_WINDOW_MS;
+    };
+
+    const formatLastSeen = (contact) => {
+        const lastSeen = parseDateSafe(contact?.last_seen_at);
+        if (!lastSeen) return 'Offline';
+        if (isContactOnline(contact)) return 'Online';
+        return `Visto às ${lastSeen.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    };
+
+    const fetchContactsWithPresence = async () => {
+        let contactsResult = await window.supabaseClient
+            .from('user_profiles')
+            .select('id, full_name, email, status, last_sign_in_at, last_seen_at')
+            .neq('id', currentUser.id)
+            .order('full_name', { ascending: true });
+
+        if (!contactsResult.error) return contactsResult;
+
+        const message = String(contactsResult.error?.message || '').toLowerCase();
+        const fallbackNeeded = message.includes('last_seen_at') || message.includes('column');
+        if (!fallbackNeeded) return contactsResult;
+
+        contactsResult = await window.supabaseClient
+            .from('user_profiles')
+            .select('id, full_name, email, status, last_sign_in_at')
+            .neq('id', currentUser.id)
+            .order('full_name', { ascending: true });
+
+        if (!contactsResult.error && Array.isArray(contactsResult.data)) {
+            contactsResult.data = contactsResult.data.map((item) => ({ ...item, last_seen_at: null }));
+        }
+        return contactsResult;
+    };
+
+    const pingPresence = async () => {
+        if (!currentUser?.id || !window.supabaseClient) return;
+        try {
+            await window.supabaseClient
+                .from('app_users')
+                .update({ last_seen_at: new Date().toISOString(), status: 'active' })
+                .eq('id', currentUser.id);
+        } catch (error) {
+            console.warn('Falha ao atualizar presença do usuário:', error);
+        }
+    };
+
+    const startPresencePing = () => {
+        stopPresencePing();
+        void pingPresence();
+        presencePingInterval = setInterval(() => {
+            void pingPresence();
+        }, PRESENCE_PING_INTERVAL_MS);
+    };
+
+    const stopPresencePing = () => {
+        if (presencePingInterval) {
+            clearInterval(presencePingInterval);
+            presencePingInterval = null;
         }
     };
 

@@ -1,4 +1,4 @@
-/* styles/chat.css */
+﻿/* styles/chat.css */
 :root {
     --chat-primary: #4f46e5;
     --chat-primary-dark: #4338ca;
@@ -81,48 +81,12 @@
     box-shadow: 0 0 0 2px rgba(47, 142, 229, 0.45), 0 14px 28px rgba(0, 0, 0, 0.2);
 }
 
-/* Cabeçalho do chat */
-.chat-header {
-    background: var(--chat-primary);
-    color: white;
-    padding: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.chat-header-info h3 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-}
-
-#onlineCount {
-    font-size: 12px;
-    opacity: 0.8;
-}
-
-.close-chat {
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    font-size: 16px;
-    padding: 5px;
-    border-radius: 4px;
-    transition: background 0.2s;
-}
-
-.close-chat:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
 /* Lista de contatos */
 .chat-contacts {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-height: 0;
 }
 
 .chat-search {
@@ -155,8 +119,28 @@
 
 .contacts-list {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 5px 0;
+    scrollbar-gutter: stable;
+}
+
+.contacts-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.contacts-list::-webkit-scrollbar-track {
+    background: #eef3f8;
+}
+
+.contacts-list::-webkit-scrollbar-thumb {
+    background: #c2cfdd;
+    border-radius: 999px;
+}
+
+.contacts-list::-webkit-scrollbar-thumb:hover {
+    background: #aab9ca;
 }
 
 .contact-item {
@@ -229,7 +213,7 @@
     margin-left: 10px;
 }
 
-/* Área de conversação */
+/* Ãrea de conversaÃ§Ã£o */
 .chat-messages-container {
     display: none;
     flex-direction: column;
@@ -308,7 +292,7 @@
 }
 
 
-/* Área de mensagens */
+/* Ãrea de mensagens */
 .chat-messages {
     flex: 1;
     padding: 15px;
@@ -644,7 +628,7 @@
     cursor: not-allowed;
 }
 
-/* Botão de toggle do chat */
+/* BotÃ£o de toggle do chat */
 .chat-toggle {
     position: fixed;
     bottom: 20px;
@@ -767,7 +751,7 @@
     transform: translateY(0);
 }
 
-/* Animações */
+/* AnimaÃ§Ãµes */
 @keyframes pulse {
     0% { transform: scale(1); }
     50% { transform: scale(1.05); }
@@ -783,4 +767,5 @@
 .new-message {
     animation: pulse 0.5s ease;
 }
+
 
