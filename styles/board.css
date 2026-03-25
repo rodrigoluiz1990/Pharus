@@ -121,11 +121,27 @@
 /* === BOARD E COLUNAS === */
 /* ================================================== */
 
+/* Ajuste estrutural da página de quadro para a rolagem ficar dentro da área visível */
+.content {
+    height: 100vh;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 /* Container principal do board */
 .board {
     display: flex;
     gap: 10px;
-    overflow-x: auto;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    scrollbar-gutter: stable;
+    overscroll-behavior: contain;
     padding-bottom: 12px;
 }
 
@@ -135,6 +151,9 @@
     border-radius: 8px;
     min-width: 320px;
     max-width: 320px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
@@ -151,9 +170,11 @@
 
 .column-content {
     padding: 8px;
-    min-height: 360px;
-    max-height: 70vh;
+    flex: 1;
+    min-height: 0;
+    max-height: none;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* ================================================== */
@@ -168,6 +189,9 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     cursor: grab;
     transition: transform 0.2s, box-shadow 0.2s;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .task:hover {
@@ -187,6 +211,8 @@
     font-weight: 600;
     margin-bottom: 6px;
     font-size: 14px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .task-title-row {
@@ -346,8 +372,13 @@
     border-radius: 6px;
     padding: 10px;
     margin-top: 8px;
-    overflow-x: auto;
-    overflow-y: hidden;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    overflow: auto;
+    scrollbar-gutter: stable both-edges;
+    overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
@@ -363,6 +394,24 @@
 .socious-filters {
     display: flex;
     gap: 8px;
+    align-items: center;
+}
+
+.socious-title-search-input {
+    min-width: 220px;
+    height: 34px;
+    border: 1px solid #d0dae6;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    color: #2f465e;
+    background: #fff;
+}
+
+.socious-title-search-input:focus {
+    outline: none;
+    border-color: #2f8ee5;
+    box-shadow: 0 0 0 2px rgba(47, 142, 229, 0.15);
 }
 
 .socious-table {
@@ -680,8 +729,7 @@
     .socious-view {
         margin-top: 4px;
         padding: 8px;
-        overflow-x: auto !important;
-        overflow-y: hidden;
+        overflow: auto !important;
         -webkit-overflow-scrolling: touch;
     }
 
@@ -706,6 +754,14 @@
         flex-shrink: 0;
     }
 
+    .socious-title-search-input {
+        min-width: 150px;
+        width: 150px;
+        font-size: 12px;
+        height: 30px;
+        padding: 5px 8px;
+    }
+
     .socious-header h3 {
         min-width: 0;
         flex: 0 0 auto;
@@ -717,12 +773,19 @@
     }
 
     .board {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: scroll !important;
+        overflow-y: hidden;
+        flex: 1;
+        min-height: 0;
+        max-height: none;
     }
 
     .column {
-        min-width: 100%;
-        max-width: 100%;
+        min-width: 280px;
+        max-width: 280px;
+        height: 100%;
     }
 
     .socious-table {
@@ -1086,4 +1149,81 @@
     padding: 4px 8px;
     font-size: 11px;
     line-height: 1.1;
+}
+
+.login-notices-modal .modal {
+    width: 780px;
+    max-width: calc(100vw - 40px);
+}
+
+.login-notices-count {
+    margin: 8px 0 12px;
+    color: #3f5872;
+    font-size: 13px;
+}
+
+.login-notices-list {
+    max-height: 55vh;
+    overflow-y: auto;
+    display: grid;
+    gap: 10px;
+}
+
+.login-notice-card {
+    border: 1px solid #dbe5f0;
+    border-radius: 10px;
+    padding: 12px;
+    background: #fff;
+}
+
+.login-notice-card.priority-urgent {
+    border-color: #f3b4bf;
+}
+
+.login-notice-card.priority-high {
+    border-color: #f0c58d;
+}
+
+.login-notice-card.priority-low {
+    border-color: #bde4c5;
+}
+
+.login-notice-card-header {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.login-notice-card-header h4 {
+    margin: 0;
+    color: #243d56;
+    font-size: 16px;
+}
+
+.login-notice-card p {
+    margin: 8px 0 0;
+    color: #3d5872;
+    white-space: pre-wrap;
+}
+
+.login-notice-priority {
+    border-radius: 999px;
+    background: #edf3fa;
+    color: #36516a;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+}
+
+.login-notices-empty {
+    border: 1px dashed #c9d7e6;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    color: #5d7791;
+}
+
+.login-notices-actions {
+    margin-top: 12px;
 }

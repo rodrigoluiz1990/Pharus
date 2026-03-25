@@ -139,6 +139,7 @@ const TABLE_COLUMNS = {
     'start_at',
     'end_at',
     'is_all_day',
+    'event_color',
     'created_by',
     'created_at',
     'updated_at',

@@ -10,6 +10,7 @@ const BoardModule = (() => {
     const sociousViewBtn = document.getElementById("sociousViewBtn");
     const titleOnlyViewBtn = document.getElementById("titleOnlyViewBtn");
     const addTaskSocious = document.getElementById("addTaskSocious");
+    const titleQuickSearchInput = document.getElementById("titleQuickSearchInput");
     const VIEW_MODE_KEY = "pharus_board_view_mode";
     const TABLE_COLUMNS_ORDER_KEY = "pharus_table_columns_order";
     const TABLE_COLUMNS_WIDTHS_KEY = "pharus_table_columns_widths";
@@ -34,6 +35,7 @@ const BoardModule = (() => {
     let users = [];
     let clients = [];
     let filteredTasks = [];
+    let titleQuickSearchTerm = "";
     let isInitialized = false;
     let isInitializing = false;
     let autoRefreshInterval = null;
@@ -195,7 +197,7 @@ const BoardModule = (() => {
                 sociousTableBody.innerHTML = `
                     <tr>
                         <td colspan="${visibleColumnsCount}" style="text-align: center; padding: 30px; color: #6c757d;">
-                            Nenhuma tarefa encontrada.
+                            🥳 Nenhuma tarefa encontrada.
                         </td>
                     </tr>
                 `;
@@ -242,7 +244,7 @@ const BoardModule = (() => {
         if (columnTasks.length === 0) {
             columnContent.innerHTML = `
                 <div class="empty-column">
-                    <p>Nenhuma tarefa</p>
+                    <p>🥳 Nenhuma tarefa</p>
                 </div>
             `;
         } else {
@@ -397,6 +399,14 @@ const BoardModule = (() => {
 
         if (typeof SortModule !== 'undefined' && typeof SortModule.sortTasks === 'function') {
             filteredTasks = SortModule.sortTasks(filteredTasks);
+        }
+
+        if (titleQuickSearchTerm) {
+            const searchTerm = String(titleQuickSearchTerm).toLowerCase();
+            filteredTasks = filteredTasks.filter((task) => {
+                const taskTitle = String(task?.title || '').toLowerCase();
+                return taskTitle.includes(searchTerm);
+            });
         }
     };
 
@@ -605,7 +615,7 @@ const BoardModule = (() => {
         if (!sociousTableHeadRow) return;
         const headerByKey = {
             pin: "Pin",
-            title: "Tarefa",
+            title: "Título",
             assignee: "Responsável",
             request_date: "Data Solicitação",
             due_date: "Data Entrega",
@@ -865,6 +875,15 @@ const BoardModule = (() => {
                 ModalModule.showModal(pendingColumn ? pendingColumn.id : null);
             });
         }
+
+        if (titleQuickSearchInput) {
+            titleQuickSearchInput.addEventListener("input", () => {
+                titleQuickSearchTerm = String(titleQuickSearchInput.value || '').trim();
+                applyFiltersToTasks();
+                renderSociousView({ reloadData: false, showTableLoading: false });
+            });
+        }
+
         window.addEventListener("tasksUpdated", handleTasksUpdated);
     };
 

@@ -79,6 +79,7 @@ async function handleLogin(e) {
           return;
       }
 
+      sessionStorage.setItem('pharus_open_notices_after_login', '1');
       console.log("Login realizado com sucesso, redirecionando...");
       // O redirecionamento será tratado pelo onAuthStateChange no supabase-config
       

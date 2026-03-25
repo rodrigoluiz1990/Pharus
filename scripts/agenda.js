@@ -34,15 +34,19 @@
     const repeatTypeEl = document.getElementById('agendaEventRepeatType');
     const repeatCountEl = document.getElementById('agendaEventRepeatCount');
     const descriptionEl = document.getElementById('agendaEventDescription');
+    const colorEl = document.getElementById('agendaEventColor');
 
     const WEEKDAY_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
     const VIEW_DAY = 'day';
     const VIEW_WEEK = 'week';
     const VIEW_MONTH = 'month';
+    const HOLIDAY_MIN_YEAR = 1900;
+    const HOLIDAY_MAX_YEAR = 2100;
 
     let currentCursor = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
     let currentView = VIEW_MONTH;
     let agendaEvents = [];
+    let holidayEventsByDate = new Map();
     let isInitialized = false;
     let useLocalFallback = false;
     let fallbackNotified = false;
@@ -110,9 +114,15 @@
         start_at: item?.start_at || null,
         end_at: item?.end_at || null,
         is_all_day: Boolean(item?.is_all_day),
+        event_color: normalizeEventColor(item?.event_color),
         created_at: item?.created_at || null,
         updated_at: item?.updated_at || null,
     });
+
+    const normalizeEventColor = (value) => {
+        const raw = String(value || '').trim();
+        return /^#[0-9a-fA-F]{6}$/.test(raw) ? raw.toLowerCase() : '#2f8ee5';
+    };
 
     const parseDateSafe = (value) => {
         const date = new Date(value || '');
@@ -140,6 +150,100 @@
         return startOfDay(next);
     };
 
+    const toDateKey = (date) => {
+        if (!date) return '';
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
+    const getEasterDate = (year) => {
+        const a = year % 19;
+        const b = Math.floor(year / 100);
+        const c = year % 100;
+        const d = Math.floor(b / 4);
+        const e = b % 4;
+        const f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3);
+        const h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4);
+        const k = c % 4;
+        const l = (32 + 2 * e + 2 * i - h - k) % 7;
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const month = Math.floor((h + l - 7 * m + 114) / 31);
+        const day = ((h + l - 7 * m + 114) % 31) + 1;
+        return new Date(year, month - 1, day);
+    };
+
+    const buildHolidayEvent = (date, title) => {
+        const base = startOfDay(date);
+        const end = new Date(base);
+        end.setHours(23, 59, 59, 999);
+        const key = toDateKey(base);
+        return {
+            id: `holiday-${key}`,
+            title,
+            description: 'Feriado nacional',
+            event_type: 'holiday',
+            status: 'pending',
+            start_at: base.toISOString(),
+            end_at: end.toISOString(),
+            is_all_day: true,
+            created_at: null,
+            updated_at: null,
+        };
+    };
+
+    const buildHolidayEventsMap = (minYear, maxYear) => {
+        const map = new Map();
+        for (let year = minYear; year <= maxYear; year += 1) {
+            const fixedDates = [
+                [0, 1, 'Confraternização Universal'],
+                [3, 21, 'Tiradentes'],
+                [4, 1, 'Dia do Trabalho'],
+                [8, 7, 'Independência do Brasil'],
+                [9, 12, 'Nossa Senhora Aparecida'],
+                [10, 2, 'Finados'],
+                [10, 15, 'Proclamação da República'],
+                [11, 25, 'Natal'],
+            ];
+
+            if (year >= 2024) {
+                fixedDates.push([10, 20, 'Dia da Consciência Negra']);
+            }
+
+            const easter = getEasterDate(year);
+            const goodFriday = addDays(easter, -2);
+            const carnivalMonday = addDays(easter, -48);
+            const carnival = addDays(easter, -47);
+            const ashWednesday = addDays(easter, -46);
+            const corpusChristi = addDays(easter, 60);
+
+            const holidayDates = [
+                ...fixedDates.map(([month, day, title]) => ({
+                    date: new Date(year, month, day),
+                    title,
+                })),
+                { date: goodFriday, title: 'Paixão de Cristo' },
+                { date: carnivalMonday, title: 'Segunda de Carnaval' },
+                { date: carnival, title: 'Carnaval' },
+                { date: ashWednesday, title: 'Quarta-feira de Cinzas' },
+                { date: corpusChristi, title: 'Corpus Christi' },
+            ];
+
+            holidayDates.forEach(({ date, title }) => {
+                const key = toDateKey(date);
+                const event = buildHolidayEvent(date, title);
+                if (!map.has(key)) {
+                    map.set(key, []);
+                }
+                map.get(key).push(event);
+            });
+        }
+        return map;
+    };
+
     const isSameDay = (isoDate, dayDate) => {
         const dt = parseDateSafe(isoDate);
         if (!dt || !dayDate) return false;
@@ -163,14 +267,20 @@
     };
 
     const getEventsForDay = (dayDate) => {
-        return agendaEvents
+        const dateKey = toDateKey(dayDate);
+        const holidays = holidayEventsByDate.get(dateKey) || [];
+        const persisted = agendaEvents
             .filter((event) => isSameDay(event.start_at, dayDate))
-            .sort((a, b) => {
-                const aDate = parseDateSafe(a.start_at);
-                const bDate = parseDateSafe(b.start_at);
-                return (aDate?.getTime() || 0) - (bDate?.getTime() || 0);
-            });
+            ;
+
+        return [...holidays, ...persisted].sort((a, b) => {
+            const aDate = parseDateSafe(a.start_at);
+            const bDate = parseDateSafe(b.start_at);
+            return (aDate?.getTime() || 0) - (bDate?.getTime() || 0);
+        });
     };
+
+    const hasHolidayEvent = (events) => (Array.isArray(events) ? events : []).some((event) => String(event?.event_type || '') === 'holiday');
 
     const getPeriodLabel = () => {
         if (currentView === VIEW_DAY) {
@@ -215,11 +325,21 @@
     };
 
     const buildEventChip = (event) => {
-        const typeClass = event.event_type === 'task' ? 'chip-task' : 'chip-event';
+        const typeClass = event.event_type === 'task'
+            ? 'chip-task'
+            : event.event_type === 'holiday'
+                ? 'chip-holiday'
+                : 'chip-event';
         const statusClass = `chip-status-${event.status}`;
+        const chipTime = event.event_type === 'holiday'
+            ? ''
+            : `<span class="chip-time">${escapeHtml(formatDayTime(event.start_at, event.is_all_day))}</span>`;
+        const customColorStyle = event.event_type !== 'holiday' && event.event_color
+            ? ` style="--event-color:${escapeHtml(normalizeEventColor(event.event_color))};"`
+            : '';
         return `
-            <button type="button" class="agenda-event-chip ${typeClass} ${statusClass}" data-event-id="${escapeHtml(event.id)}">
-                <span class="chip-time">${escapeHtml(formatDayTime(event.start_at, event.is_all_day))}</span>
+            <button type="button" class="agenda-event-chip ${typeClass} ${statusClass}" data-event-id="${escapeHtml(event.id)}"${customColorStyle}>
+                ${chipTime}
                 <span class="chip-title">${escapeHtml(event.title || 'Sem titulo')}</span>
             </button>
         `;
@@ -230,6 +350,10 @@
         calendarGridEl.querySelectorAll('[data-event-id]').forEach((button) => {
             button.addEventListener('click', (event) => {
                 event.stopPropagation();
+                if (String(button.dataset.eventId || '').startsWith('holiday-')) {
+                    notify('Feriado nacional.', 'info');
+                    return;
+                }
                 const found = agendaEvents.find((item) => String(item.id) === String(button.dataset.eventId));
                 if (found) openModal(found);
             });
@@ -270,7 +394,8 @@
             const events = getEventsForDay(dayDate);
             const cell = document.createElement('button');
             cell.type = 'button';
-            cell.className = `agenda-day ${inCurrentMonth ? '' : 'is-outside-month'} ${isSameDay(today.toISOString(), dayDate) ? 'is-today' : ''}`.trim();
+            const holidayClass = hasHolidayEvent(events) ? 'has-holiday' : '';
+            cell.className = `agenda-day ${inCurrentMonth ? '' : 'is-outside-month'} ${isSameDay(today.toISOString(), dayDate) ? 'is-today' : ''} ${holidayClass}`.trim();
 
             const chips = events.slice(0, 3).map(buildEventChip).join('');
             const remaining = events.length > 3 ? `<div class="agenda-more">+${events.length - 3} item(ns)</div>` : '';
@@ -301,12 +426,13 @@
             const events = getEventsForDay(dayDate);
             const cell = document.createElement('button');
             cell.type = 'button';
-            cell.className = `agenda-week-day ${isSameDay(today.toISOString(), dayDate) ? 'is-today' : ''}`;
+            const holidayClass = hasHolidayEvent(events) ? 'has-holiday' : '';
+            cell.className = `agenda-week-day ${isSameDay(today.toISOString(), dayDate) ? 'is-today' : ''} ${holidayClass}`.trim();
 
             cell.innerHTML = `
                 <div class="agenda-week-day-header">${WEEKDAY_SHORT[dayDate.getDay()]} ${String(dayDate.getDate()).padStart(2, '0')}</div>
                 <div class="agenda-week-day-events">
-                    ${events.length ? events.map(buildEventChip).join('') : '<div class="agenda-week-empty">Sem eventos</div>'}
+                    ${events.length ? events.map(buildEventChip).join('') : '<div class="agenda-week-empty">🥳 Sem eventos</div>'}
                 </div>
             `;
 
@@ -321,16 +447,17 @@
         if (!calendarGridEl) return;
 
         const dayEvents = getEventsForDay(currentCursor);
+        const hasHoliday = hasHolidayEvent(dayEvents);
         const today = new Date();
 
         calendarGridEl.className = 'agenda-calendar-grid agenda-calendar-grid-day';
         calendarGridEl.innerHTML = `
-            <section class="agenda-day-panel ${isSameDay(today.toISOString(), currentCursor) ? 'is-today' : ''}">
+            <section class="agenda-day-panel ${isSameDay(today.toISOString(), currentCursor) ? 'is-today' : ''} ${hasHoliday ? 'has-holiday' : ''}">
                 <header class="agenda-day-panel-header">
                     ${currentCursor.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
                 </header>
                 <div class="agenda-day-panel-events">
-                    ${dayEvents.length ? dayEvents.map(buildEventChip).join('') : '<div class="agenda-day-empty">Nenhum evento para este dia.</div>'}
+                    ${dayEvents.length ? dayEvents.map(buildEventChip).join('') : '<div class="agenda-day-empty">🥳 Nenhum evento para este dia.</div>'}
                 </div>
             </section>
         `;
@@ -392,7 +519,7 @@
             .slice(0, 10);
 
         if (!sorted.length) {
-            upcomingListEl.innerHTML = '<div class="agenda-empty">Nenhum compromisso futuro cadastrado.</div>';
+            upcomingListEl.innerHTML = '<div class="agenda-empty">🥳 Nenhum compromisso futuro cadastrado.</div>';
             return;
         }
 
@@ -447,6 +574,7 @@
         allDayEl.checked = false;
         if (repeatTypeEl) repeatTypeEl.value = 'none';
         if (repeatCountEl) repeatCountEl.value = '2';
+        if (colorEl) colorEl.value = '#2f8ee5';
         syncRepeatFields();
         lastTimedStartValue = '';
         lastTimedEndValue = '';
@@ -552,6 +680,7 @@
             startAtEl.value = toInputDate(event.start_at);
         }
         descriptionEl.value = event.description || '';
+        if (colorEl) colorEl.value = normalizeEventColor(event.event_color);
         deleteBtn.style.display = 'inline-flex';
     };
 
@@ -619,6 +748,7 @@
             start_at: startIso,
             end_at: endIso,
             is_all_day: Boolean(allDayEl.checked),
+            event_color: normalizeEventColor(colorEl?.value),
             created_by: userId,
             updated_at: new Date().toISOString(),
             repeat_type: ['none', 'daily', 'weekly', 'monthly'].includes(repeatType) ? repeatType : 'none',
@@ -832,6 +962,7 @@
 
         if (newEventBtn) newEventBtn.addEventListener('click', () => openModal(null, currentCursor));
 
+        if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
         if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
         if (deleteBtn) deleteBtn.addEventListener('click', () => void deleteEvent());
 
@@ -888,6 +1019,7 @@
     const init = async () => {
         if (isInitialized) return;
         isInitialized = true;
+        holidayEventsByDate = buildHolidayEventsMap(HOLIDAY_MIN_YEAR, HOLIDAY_MAX_YEAR);
 
         attachEvents();
         syncRepeatFields();

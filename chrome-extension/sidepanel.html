@@ -13,6 +13,7 @@
         <h1 id="projectHeaderTitle">Pharus - Projeto</h1>
         <div class="mode-switch" role="tablist" aria-label="Modo de visualização">
           <button id="modeTasksBtn" class="mode-btn active" role="tab" aria-selected="true" title="Modo Tarefas">Tarefas</button>
+          <button id="modeAgendaBtn" class="mode-btn" role="tab" aria-selected="false" title="Modo Agenda">Agenda</button>
           <button id="modeNoticesBtn" class="mode-btn" role="tab" aria-selected="false" title="Modo Avisos">Avisos</button>
           <button id="modeDetachedBtn" class="mode-btn" role="tab" aria-selected="false" title="Post-it Avulso">Avulso</button>
           <button id="modeChatBtn" class="mode-btn" role="tab" aria-selected="false" title="Modo Chat">Chat</button>
@@ -28,8 +29,28 @@
       <label>Servidor
         <input id="apiBaseInput" type="text" placeholder="http://localhost:3000">
       </label>
-      <label>E-mail do responsavel
+      <label>E-mail do usuário
         <input id="emailInput" type="email" placeholder="admin@pharus.local">
+      </label>
+      <label class="settings-checkbox" for="onlyAssignedInput">
+        <input id="onlyAssignedInput" type="checkbox" checked>
+        Apenas tarefas vinculadas ao usuário
+      </label>
+      <label>Tipo da tarefa
+        <select id="taskTypeFilterInput">
+          <option value="all">Todos</option>
+          <option value="task">Novo</option>
+          <option value="bug">Erro</option>
+          <option value="improvement">Melhoria</option>
+        </select>
+      </label>
+      <label>Prioridade
+        <select id="taskPriorityFilterInput">
+          <option value="all">Todas</option>
+          <option value="high">Alta</option>
+          <option value="medium">Média</option>
+          <option value="low">Baixa</option>
+        </select>
       </label>
       <label>Limite
         <input id="limitInput" type="number" min="1" max="50" value="12">
@@ -48,6 +69,11 @@
     <section id="noticesSection" class="hidden">
       <div id="noticesStatusText" class="status">Carregando avisos...</div>
       <ul id="noticesList" class="tasks-list"></ul>
+    </section>
+
+    <section id="agendaSection" class="hidden">
+      <div id="agendaStatusText" class="status">Carregando agenda do dia...</div>
+      <ul id="agendaList" class="tasks-list"></ul>
     </section>
 
     <section id="detachedSection" class="hidden">

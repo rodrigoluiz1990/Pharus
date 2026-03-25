@@ -67,7 +67,7 @@
         <div class="modal">
             <div class="modal-header">
                 <h3 id="agendaEventModalTitle">Novo evento</h3>
-                <button class="modal-close" id="closeAgendaEventModal">&times;</button>
+                <button type="button" class="modal-close" id="closeAgendaEventModal">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="agendaEventForm">
@@ -109,12 +109,16 @@
                         </div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group full-row">
+                    <div class="form-row agenda-inline-row">
+                        <div class="form-group">
                             <label class="agenda-checkbox" for="agendaEventAllDay">
                                 <input type="checkbox" id="agendaEventAllDay">
                                 Dia inteiro
                             </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="agendaEventColor">Cor do evento</label>
+                            <input type="color" id="agendaEventColor" class="form-control agenda-event-color-input" value="#2f8ee5">
                         </div>
                     </div>
 

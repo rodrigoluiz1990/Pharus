@@ -1,6 +1,9 @@
 const DEFAULT_SETTINGS = {
   apiBase: 'http://localhost:3000',
   email: '',
+  onlyAssigned: true,
+  taskTypeFilter: 'all',
+  taskPriorityFilter: 'all',
   limit: 12,
   settingsOpen: false,
 };
@@ -11,6 +14,9 @@ const DEFAULT_PROJECT_DISPLAY_NAME = 'Projeto';
 const els = {
   apiBaseInput: document.getElementById('apiBaseInput'),
   emailInput: document.getElementById('emailInput'),
+  onlyAssignedInput: document.getElementById('onlyAssignedInput'),
+  taskTypeFilterInput: document.getElementById('taskTypeFilterInput'),
+  taskPriorityFilterInput: document.getElementById('taskPriorityFilterInput'),
   limitInput: document.getElementById('limitInput'),
   saveSettingsBtn: document.getElementById('saveSettingsBtn'),
   refreshBtn: document.getElementById('refreshBtn'),
@@ -20,10 +26,14 @@ const els = {
   statusText: document.getElementById('statusText'),
   tasksList: document.getElementById('tasksList'),
   modeTasksBtn: document.getElementById('modeTasksBtn'),
+  modeAgendaBtn: document.getElementById('modeAgendaBtn'),
   modeNoticesBtn: document.getElementById('modeNoticesBtn'),
   modeDetachedBtn: document.getElementById('modeDetachedBtn'),
   modeChatBtn: document.getElementById('modeChatBtn'),
   focusTasksSection: document.getElementById('focusTasksSection'),
+  agendaSection: document.getElementById('agendaSection'),
+  agendaStatusText: document.getElementById('agendaStatusText'),
+  agendaList: document.getElementById('agendaList'),
   noticesSection: document.getElementById('noticesSection'),
   noticesStatusText: document.getElementById('noticesStatusText'),
   noticesList: document.getElementById('noticesList'),
@@ -53,6 +63,10 @@ function setNoticesStatus(text) {
   if (els.noticesStatusText) els.noticesStatusText.textContent = text;
 }
 
+function setAgendaStatus(text) {
+  if (els.agendaStatusText) els.agendaStatusText.textContent = text;
+}
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -76,6 +90,42 @@ function formatDueDate(dateValue) {
   return date.toLocaleDateString('pt-BR');
 }
 
+function parseDateSafe(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function isSameDay(dateA, dateB) {
+  const a = parseDateSafe(dateA);
+  const b = parseDateSafe(dateB);
+  if (!a || !b) return false;
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function getAgendaTypeLabel(type) {
+  return String(type || '').toLowerCase() === 'task' ? 'Tarefa' : 'Evento';
+}
+
+function getAgendaStatusLabel(status) {
+  const safe = String(status || '').toLowerCase();
+  if (safe === 'done') return 'Concluido';
+  if (safe === 'cancelled') return 'Cancelado';
+  return 'Pendente';
+}
+
+function formatAgendaTime(eventItem) {
+  if (!eventItem) return '-';
+  if (Boolean(eventItem.is_all_day)) return 'Dia inteiro';
+  const start = parseDateSafe(eventItem.start_at);
+  if (!start) return '-';
+  return start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
 function renderTasks(tasks, settings) {
   if (!els.tasksList) return;
   els.tasksList.innerHTML = '';
@@ -83,7 +133,7 @@ function renderTasks(tasks, settings) {
   if (!Array.isArray(tasks) || tasks.length === 0) {
     const li = document.createElement('li');
     li.className = 'empty';
-    li.textContent = 'Nenhuma tarefa foco encontrada.';
+    li.textContent = '🥳 Nenhuma tarefa foco encontrada.';
     els.tasksList.appendChild(li);
     return;
   }
@@ -167,6 +217,55 @@ function renderNotices(notices) {
     });
 
     els.noticesList.appendChild(li);
+  });
+}
+
+function renderAgenda(events, settings) {
+  if (!els.agendaList) return;
+  els.agendaList.innerHTML = '';
+
+  const today = new Date();
+  const safeEvents = (Array.isArray(events) ? events : [])
+    .filter((item) => isSameDay(item?.start_at, today))
+    .sort((a, b) => {
+      const aDate = parseDateSafe(a?.start_at);
+      const bDate = parseDateSafe(b?.start_at);
+      if (!aDate && !bDate) return 0;
+      if (!aDate) return 1;
+      if (!bDate) return -1;
+      return aDate.getTime() - bDate.getTime();
+    });
+
+  if (safeEvents.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'empty';
+    li.textContent = '🥳 Nenhum evento para hoje.';
+    els.agendaList.appendChild(li);
+    return;
+  }
+
+  safeEvents.forEach((item) => {
+    const li = document.createElement('li');
+    li.className = 'task-item';
+    const title = escapeHtml(item?.title || 'Sem titulo');
+    const timeLabel = formatAgendaTime(item);
+    const typeLabel = getAgendaTypeLabel(item?.event_type);
+    const statusLabel = getAgendaStatusLabel(item?.status);
+
+    li.innerHTML = `
+      <div class="task-title">${title}</div>
+      <div class="task-meta">
+        <span>${escapeHtml(timeLabel)}</span>
+        <span class="badge badge-type">${escapeHtml(typeLabel)}</span>
+        <span class="badge badge-status">${escapeHtml(statusLabel)}</span>
+      </div>
+    `;
+
+    li.addEventListener('click', () => {
+      chrome.tabs.create({ url: `${settings.apiBase}/agenda.html` });
+    });
+
+    els.agendaList.appendChild(li);
   });
 }
 
@@ -284,9 +383,14 @@ async function addDetachedNote() {
 function loadSettings() {
   return new Promise((resolve) => {
     chrome.storage.sync.get(DEFAULT_SETTINGS, (saved) => {
+      const rawType = String(saved.taskTypeFilter || 'all').toLowerCase();
+      const rawPriority = String(saved.taskPriorityFilter || 'all').toLowerCase();
       resolve({
         apiBase: normalizeBase(saved.apiBase) || DEFAULT_SETTINGS.apiBase,
         email: String(saved.email || ''),
+        onlyAssigned: Boolean(saved.onlyAssigned),
+        taskTypeFilter: ['all', 'task', 'bug', 'improvement'].includes(rawType) ? rawType : 'all',
+        taskPriorityFilter: ['all', 'high', 'medium', 'low'].includes(rawPriority) ? rawPriority : 'all',
         limit: Number(saved.limit) || DEFAULT_SETTINGS.limit,
         settingsOpen: Boolean(saved.settingsOpen),
       });
@@ -346,9 +450,14 @@ function saveSettings(settings) {
 }
 
 function getFormSettings() {
+  const rawType = String(els.taskTypeFilterInput?.value || 'all').toLowerCase();
+  const rawPriority = String(els.taskPriorityFilterInput?.value || 'all').toLowerCase();
   return {
     apiBase: normalizeBase(els.apiBaseInput?.value) || DEFAULT_SETTINGS.apiBase,
     email: String(els.emailInput?.value || '').trim(),
+    onlyAssigned: Boolean(els.onlyAssignedInput?.checked),
+    taskTypeFilter: ['all', 'task', 'bug', 'improvement'].includes(rawType) ? rawType : 'all',
+    taskPriorityFilter: ['all', 'high', 'medium', 'low'].includes(rawPriority) ? rawPriority : 'all',
     limit: Math.max(1, Math.min(Number(els.limitInput?.value) || DEFAULT_SETTINGS.limit, 50)),
     settingsOpen: !(els.settingsPanel?.classList.contains('hidden')),
   };
@@ -385,20 +494,27 @@ function closeChatOverlay() {
 function setMode(mode, options = {}) {
   const modeValue = mode === 'chat'
     ? 'chat'
-    : (mode === 'detached' ? 'detached' : (mode === 'notices' ? 'notices' : 'tasks'));
+    : (mode === 'detached'
+      ? 'detached'
+      : (mode === 'notices'
+        ? 'notices'
+        : (mode === 'agenda' ? 'agenda' : 'tasks')));
   const keepStatus = Boolean(options.keepStatus);
   currentMode = modeValue;
 
   els.modeTasksBtn?.classList.toggle('active', modeValue === 'tasks');
+  els.modeAgendaBtn?.classList.toggle('active', modeValue === 'agenda');
   els.modeNoticesBtn?.classList.toggle('active', modeValue === 'notices');
   els.modeDetachedBtn?.classList.toggle('active', modeValue === 'detached');
   els.modeChatBtn?.classList.toggle('active', modeValue === 'chat');
   els.modeTasksBtn?.setAttribute('aria-selected', modeValue === 'tasks' ? 'true' : 'false');
+  els.modeAgendaBtn?.setAttribute('aria-selected', modeValue === 'agenda' ? 'true' : 'false');
   els.modeNoticesBtn?.setAttribute('aria-selected', modeValue === 'notices' ? 'true' : 'false');
   els.modeDetachedBtn?.setAttribute('aria-selected', modeValue === 'detached' ? 'true' : 'false');
   els.modeChatBtn?.setAttribute('aria-selected', modeValue === 'chat' ? 'true' : 'false');
 
   if (els.focusTasksSection) els.focusTasksSection.classList.toggle('hidden', modeValue !== 'tasks');
+  if (els.agendaSection) els.agendaSection.classList.toggle('hidden', modeValue !== 'agenda');
   if (els.noticesSection) els.noticesSection.classList.toggle('hidden', modeValue !== 'notices');
   if (els.detachedSection) els.detachedSection.classList.toggle('hidden', modeValue !== 'detached');
 
@@ -414,6 +530,8 @@ function setMode(mode, options = {}) {
   if (!keepStatus) {
     if (modeValue === 'detached') {
       updateDetachedStatus();
+    } else if (modeValue === 'agenda') {
+      setAgendaStatus('Visualizacao da agenda do dia ativa.');
     } else if (modeValue === 'notices') {
       setNoticesStatus('Visualização de avisos ativa.');
     } else {
@@ -425,7 +543,7 @@ function setMode(mode, options = {}) {
 async function fetchFocusTasks(settings) {
   const url = new URL(`${settings.apiBase}/api/tasks/focus`);
   url.searchParams.set('limit', String(settings.limit));
-  if (settings.email) {
+  if (settings.onlyAssigned && settings.email) {
     url.searchParams.set('email', settings.email);
   }
 
@@ -439,6 +557,21 @@ async function fetchFocusTasks(settings) {
   return Array.isArray(payload.data) ? payload.data : [];
 }
 
+function applyTaskFilters(tasks, settings) {
+  const typeFilter = String(settings?.taskTypeFilter || 'all').toLowerCase();
+  const priorityFilter = String(settings?.taskPriorityFilter || 'all').toLowerCase();
+
+  return (Array.isArray(tasks) ? tasks : []).filter((task) => {
+    const taskType = String(task?.type || '').toLowerCase();
+    const taskPriority = String(task?.priority || '').toLowerCase();
+
+    const typeMatches = typeFilter === 'all' || taskType === typeFilter;
+    const priorityMatches = priorityFilter === 'all' || taskPriority === priorityFilter;
+
+    return typeMatches && priorityMatches;
+  });
+}
+
 async function refreshTasks(options = {}) {
   const { force = false } = options;
   if (!force && currentMode !== 'tasks') return;
@@ -448,8 +581,9 @@ async function refreshTasks(options = {}) {
 
   try {
     const tasks = await fetchFocusTasks(settings);
-    renderTasks(tasks, settings);
-    setStatus(`${tasks.length} tarefa(s) foco carregada(s)`);
+    const filteredTasks = applyTaskFilters(tasks, settings);
+    renderTasks(filteredTasks, settings);
+    setStatus(`${filteredTasks.length} tarefa(s) foco carregada(s)`);
   } catch (error) {
     renderTasks([], settings);
     setStatus(`Falha ao carregar: ${error.message}`);
@@ -529,7 +663,45 @@ async function refreshNotices(options = {}) {
   }
 }
 
+async function fetchAgendaEvents(settings) {
+  const response = await fetch(`${settings.apiBase}/api/db/query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      table: 'agenda_events',
+      action: 'select',
+      select: 'id,title,event_type,status,start_at,end_at,is_all_day,created_at,updated_at',
+      order: { column: 'start_at', ascending: true },
+      limit: 250,
+    }),
+  });
+  const payload = await response.json();
+  if (!response.ok || payload.error) {
+    throw new Error(payload?.error?.message || `Erro HTTP ${response.status}`);
+  }
+  return Array.isArray(payload.data) ? payload.data : [];
+}
+
+async function refreshAgenda(options = {}) {
+  const { force = false } = options;
+  if (!force && currentMode !== 'agenda') return;
+
+  const settings = getFormSettings();
+  setAgendaStatus('Atualizando agenda do dia...');
+
+  try {
+    const events = await fetchAgendaEvents(settings);
+    const todayCount = events.filter((item) => isSameDay(item?.start_at, new Date())).length;
+    renderAgenda(events, settings);
+    setAgendaStatus(`${todayCount} item(ns) para hoje`);
+  } catch (error) {
+    renderAgenda([], settings);
+    setAgendaStatus(`Falha ao carregar: ${error.message}`);
+  }
+}
+
 function refreshCurrentMode(options = {}) {
+  if (currentMode === 'agenda') return refreshAgenda(options);
   if (currentMode === 'notices') return refreshNotices(options);
   return refreshTasks(options);
 }
@@ -539,6 +711,9 @@ async function init() {
   const settings = await loadSettings();
   if (els.apiBaseInput) els.apiBaseInput.value = settings.apiBase;
   if (els.emailInput) els.emailInput.value = settings.email;
+  if (els.onlyAssignedInput) els.onlyAssignedInput.checked = Boolean(settings.onlyAssigned);
+  if (els.taskTypeFilterInput) els.taskTypeFilterInput.value = settings.taskTypeFilter || 'all';
+  if (els.taskPriorityFilterInput) els.taskPriorityFilterInput.value = settings.taskPriorityFilter || 'all';
   if (els.limitInput) els.limitInput.value = String(settings.limit);
   setSettingsVisibility(Boolean(settings.settingsOpen));
 
@@ -559,7 +734,7 @@ async function init() {
       const nextSettings = getFormSettings();
       await saveSettings(nextSettings);
       setStatus('Configuração salva.');
-      await refreshTasks({ force: true });
+      await refreshCurrentMode({ force: true });
     });
   }
 
@@ -586,6 +761,13 @@ async function init() {
     els.modeNoticesBtn.addEventListener('click', () => {
       setMode('notices', { keepStatus: true });
       refreshNotices({ force: true });
+    });
+  }
+
+  if (els.modeAgendaBtn) {
+    els.modeAgendaBtn.addEventListener('click', () => {
+      setMode('agenda', { keepStatus: true });
+      refreshAgenda({ force: true });
     });
   }
 
@@ -629,7 +811,7 @@ async function init() {
   }
 
   setMode('tasks', { keepStatus: true });
-  await refreshTasks({ force: true });
+  await refreshCurrentMode({ force: true });
   setInterval(() => {
     refreshCurrentMode();
   }, 45000);

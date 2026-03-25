@@ -73,6 +73,14 @@ const RelatoriosModule = (() => {
     let currentUserId = null;
     let currentUserName = '';
     let currentUserGroupId = null;
+    let currentUserRole = 'user';
+    let reportPermissions = {
+        view: true,
+        create: true,
+        edit: true,
+        share: true,
+        export: true,
+    };
     let builderSelectedColumns = [...DEFAULT_DEFINITION.columns];
     let initialized = false;
 
@@ -82,6 +90,54 @@ const RelatoriosModule = (() => {
             return;
         }
         console.log(`[${type}] ${message}`);
+    };
+    const showPermissionDenied = (message) => {
+        const fallback = String(message || 'Você não tem permissão para executar esta ação.');
+        if (window.UtilsModule && typeof window.UtilsModule.showPermissionDeniedModal === 'function') {
+            window.UtilsModule.showPermissionDeniedModal(fallback);
+            return;
+        }
+
+        let overlay = document.getElementById('permissionDeniedModal');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'permissionDeniedModal';
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.right = '0';
+            overlay.style.bottom = '0';
+            overlay.style.display = 'none';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+            overlay.style.background = 'rgba(0,0,0,.55)';
+            overlay.style.zIndex = '99999';
+            overlay.innerHTML = `
+                <div style="width:calc(100% - 32px); max-width:480px; background:#fff; border-radius:10px; box-shadow:0 20px 50px rgba(0,0,0,.25); padding:16px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                        <h3 style="margin:0; font-size:20px; color:#223b54;">Acesso Negado</h3>
+                        <button type="button" data-close-permission-modal style="border:0; background:transparent; font-size:24px; cursor:pointer; color:#6b7f93;">&times;</button>
+                    </div>
+                    <p id="permissionDeniedModalMessage" style="margin: 8px 0 0; color:#3f5872;"></p>
+                    <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+                        <button type="button" class="btn btn-primary" data-close-permission-modal>Entendi</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            overlay.querySelectorAll('[data-close-permission-modal]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    overlay.style.display = 'none';
+                });
+            });
+            overlay.addEventListener('click', (event) => {
+                if (event.target === overlay) overlay.style.display = 'none';
+            });
+        }
+
+        const messageEl = document.getElementById('permissionDeniedModalMessage');
+        if (messageEl) messageEl.textContent = fallback;
+        overlay.style.display = 'flex';
     };
 
     const showLoading = (message) => {
@@ -163,12 +219,13 @@ const RelatoriosModule = (() => {
 
         const { data: currentUserRow, error: currentUserError } = await window.supabaseClient
             .from('app_users')
-            .select('id, permission_group_id, email, raw_user_meta_data')
+            .select('id, role, permission_group_id, email, raw_user_meta_data')
             .eq('id', currentUserId)
             .single();
 
         if (!currentUserError && currentUserRow) {
             currentUserGroupId = currentUserRow.permission_group_id || null;
+            currentUserRole = String(currentUserRow.role || user.user_metadata?.role || 'user').toLowerCase();
             currentUserName = String(currentUserRow.raw_user_meta_data?.full_name || currentUserRow.email || currentUserName);
         }
     };
@@ -179,7 +236,77 @@ const RelatoriosModule = (() => {
         groups = (Array.isArray(data) ? data : []).filter((g) => String(g.status || 'active') === 'active');
     };
 
-    const loadReports = async () => {
+    const hasPermission = (optionKey) => reportPermissions[String(optionKey || '')] === true;
+
+    const loadReportPermissions = async () => {
+        reportPermissions = {
+            view: false,
+            create: false,
+            edit: false,
+            share: false,
+            export: false,
+        };
+
+        if (!currentUserGroupId) return;
+
+        const { data, error } = await window.supabaseClient
+            .from('permission_group_rules')
+            .select('option_key, allowed')
+            .eq('group_id', currentUserGroupId)
+            .eq('screen_key', 'relatorios');
+        if (error) throw error;
+
+        const rows = Array.isArray(data) ? data : [];
+        if (!rows.length) return;
+
+        const allowed = new Set(
+            rows
+                .filter((row) => row.allowed !== false)
+                .map((row) => String(row.option_key || '').trim())
+                .filter(Boolean)
+        );
+
+        reportPermissions = {
+            view: allowed.has('view'),
+            create: allowed.has('create'),
+            edit: allowed.has('edit'),
+            share: allowed.has('share'),
+            export: allowed.has('export'),
+        };
+    };
+
+    const applyPermissionsToUi = () => {
+        if (newReportBtn) {
+            newReportBtn.disabled = false;
+            newReportBtn.title = hasPermission('create') ? '' : 'Sem permissão para criar relatórios';
+        }
+
+        if (reportVisibilityInput) {
+            const canShare = hasPermission('share');
+            Array.from(reportVisibilityInput.options).forEach((option) => {
+                const value = String(option.value || '');
+                if (value === 'groups' || value === 'public') {
+                    option.disabled = !canShare;
+                }
+            });
+            if (!canShare && reportVisibilityInput.value !== 'private') {
+                reportVisibilityInput.value = 'private';
+            }
+        }
+
+        const builderTabBtn = tabs.find((btn) => btn.dataset.tab === 'builder');
+        if (!builderTabBtn) return;
+
+        const canUseBuilder = hasPermission('view');
+        builderTabBtn.disabled = !canUseBuilder;
+        builderTabBtn.style.opacity = canUseBuilder ? '' : '0.5';
+        builderTabBtn.title = canUseBuilder ? '' : 'Sem permissão para usar o construtor';
+        if (!canUseBuilder && builderTabBtn.classList.contains('active')) {
+            setActiveTab('list');
+        }
+    };
+
+const loadReports = async () => {
         const { data, error } = await window.supabaseClient.from('task_report_definitions').select('*').order('updated_at', { ascending: false });
         if (error) throw error;
         reports = (Array.isArray(data) ? data : []).map((item) => ({
@@ -198,6 +325,7 @@ const RelatoriosModule = (() => {
     const getGroupName = (groupId) => String(groups.find((g) => String(g.id) === String(groupId))?.name || 'Grupo');
 
     const canViewReport = (report) => {
+        if (!hasPermission('view')) return false;
         if (!report) return false;
         if (String(report.owner_user_id) === String(currentUserId)) return true;
         if (report.visibility === 'public') return true;
@@ -205,7 +333,7 @@ const RelatoriosModule = (() => {
         return getReportShares(report.id).some((s) => String(s.group_id) === String(currentUserGroupId));
     };
 
-    const canEditReport = (report) => String(report?.owner_user_id || '') === String(currentUserId || '');
+    const canEditReport = (report) => hasPermission('edit') && String(report?.owner_user_id || '') === String(currentUserId || '');
 
     const getVisibilityLabel = (report) => {
         if (report.visibility === 'public') return 'Todos os operadores';
@@ -323,8 +451,12 @@ const RelatoriosModule = (() => {
 
     const openPreviewForReport = async (reportId, switchToBuilder = false) => {
         const report = reports.find((r) => String(r.id) === String(reportId));
-        if (!report || !canViewReport(report)) {
-            notify('Relatório não encontrado ou sem permissão.', 'warning');
+        if (!report) {
+            notify('Relatório não encontrado.', 'warning');
+            return;
+        }
+        if (!canViewReport(report)) {
+            showPermissionDenied('Você não tem permissão para visualizar este relatório.');
             return;
         }
 
@@ -369,8 +501,12 @@ const RelatoriosModule = (() => {
 
     const openReportForView = async (reportId) => {
         const report = reports.find((r) => String(r.id) === String(reportId));
-        if (!report || !canViewReport(report)) {
-            notify('Relatório não encontrado ou sem permissão.', 'warning');
+        if (!report) {
+            notify('Relatório não encontrado.', 'warning');
+            return;
+        }
+        if (!canViewReport(report)) {
+            showPermissionDenied('Você não tem permissão para visualizar este relatório.');
             return;
         }
 
@@ -428,9 +564,17 @@ th{background:#f5f9fd}</style></head><body>
     };
 
     const exportReport = async (reportId, format) => {
+        if (!hasPermission('export')) {
+            showPermissionDenied('Você não tem permissão para exportar relatórios.');
+            return;
+        }
         const report = reports.find((r) => String(r.id) === String(reportId));
-        if (!report || !canViewReport(report)) {
-            notify('Relatório não encontrado ou sem permissão.', 'warning');
+        if (!report) {
+            notify('Relatório não encontrado.', 'warning');
+            return;
+        }
+        if (!canViewReport(report)) {
+            showPermissionDenied('Você não tem permissão para visualizar este relatório.');
             return;
         }
 
@@ -449,7 +593,7 @@ th{background:#f5f9fd}</style></head><body>
             }
 
             exportExcel(report, filteredRows, selectedColumns);
-            notify('Exportacao Excel concluida.', 'success');
+            notify('Exportacao Excel concluída.', 'success');
         } catch (error) {
             console.error('Erro ao exportar relatorio:', error);
             notify(error?.message || 'Não foi possível exportar o relatorio.', 'error');
@@ -459,6 +603,10 @@ th{background:#f5f9fd}</style></head><body>
     };
     const renderList = () => {
         if (!listBodyEl) return;
+        if (!hasPermission('view')) {
+            listBodyEl.innerHTML = '<tr><td colspan="6" class="report-empty">Você não tem permissão para visualizar relatórios.</td></tr>';
+            return;
+        }
         const items = getAccessibleReports();
 
         if (!items.length) {
@@ -500,7 +648,11 @@ th{background:#f5f9fd}</style></head><body>
 
     const renderBuilderList = () => {
         if (!builderListBodyEl) return;
-        const mine = reports.filter((report) => canEditReport(report));
+        if (!hasPermission('view')) {
+            builderListBodyEl.innerHTML = '<tr><td colspan="5" class="report-empty">Você não tem permissão para visualizar relatórios.</td></tr>';
+            return;
+        }
+        const mine = reports.filter((report) => String(report.owner_user_id || '') === String(currentUserId || ''));
 
         if (!mine.length) {
             builderListBodyEl.innerHTML = '<tr><td colspan="5" class="report-empty">Nenhum relatório criado por você.</td></tr>';
@@ -546,7 +698,7 @@ th{background:#f5f9fd}</style></head><body>
         });
     };
 
-    const renderColumnsGrid = () => {
+const renderColumnsGrid = () => {
         if (!reportColumnsGrid) return;
         reportColumnsGrid.innerHTML = REPORT_COLUMNS.map((column) => `
             <label class="report-check">
@@ -681,6 +833,9 @@ th{background:#f5f9fd}</style></head><body>
             .filter(Boolean);
 
         const visibility = String(reportVisibilityInput.value || 'private');
+        if (visibility !== 'private' && !hasPermission('share')) {
+            throw new Error('Você não tem permissão para compartilhar relatórios.');
+        }
         if (visibility === 'groups' && !selectedGroups.length) {
             throw new Error('Selecione ao menos um grupo para compartilhar.');
         }
@@ -728,6 +883,11 @@ th{background:#f5f9fd}</style></head><body>
 
             let reportId = payload.id;
             if (reportId) {
+                const existing = reports.find((item) => String(item.id) === String(reportId));
+                if (!existing || !canEditReport(existing)) {
+                    showPermissionDenied('Você não tem permissão para editar este relatório.');
+                    return;
+                }
                 const { error } = await window.supabaseClient
                     .from('task_report_definitions')
                     .update({ name: payload.name, description: payload.description, visibility: payload.visibility, definition_json: payload.definition_json, updated_at: new Date().toISOString() })
@@ -735,6 +895,10 @@ th{background:#f5f9fd}</style></head><body>
                     .eq('owner_user_id', currentUserId);
                 if (error) throw error;
             } else {
+                if (!hasPermission('create')) {
+                    showPermissionDenied('Você não tem permissão para criar relatórios.');
+                    return;
+                }
                 const { data, error } = await window.supabaseClient
                     .from('task_report_definitions')
                     .insert([{ name: payload.name, description: payload.description, visibility: payload.visibility, definition_json: payload.definition_json, owner_user_id: currentUserId }])
@@ -752,7 +916,12 @@ th{background:#f5f9fd}</style></head><body>
             notify('Relatório salvo com sucesso.', 'success');
         } catch (error) {
             console.error('Erro ao salvar relatorio:', error);
-            notify(error?.message || 'Não foi possível salvar o relatorio.', 'error');
+            const message = error?.message || 'Não foi possível salvar o relatorio.';
+            if (String(message).toLowerCase().includes('permiss')) {
+                showPermissionDenied(message);
+            } else {
+                notify(message, 'error');
+            }
         } finally {
             hideLoading();
         }
@@ -761,7 +930,7 @@ th{background:#f5f9fd}</style></head><body>
     const startEditReport = (reportId) => {
         const report = reports.find((item) => String(item.id) === String(reportId));
         if (!report || !canEditReport(report)) {
-            notify('Você não tem permissão para editar este relatório.', 'warning');
+            showPermissionDenied('Você não tem permissão para editar este relatório.');
             return;
         }
 
@@ -779,7 +948,7 @@ th{background:#f5f9fd}</style></head><body>
     const deleteReport = async (reportId) => {
         const report = reports.find((item) => String(item.id) === String(reportId));
         if (!report || !canEditReport(report)) {
-            notify('Você não tem permissão para excluir este relatório.', 'warning');
+            showPermissionDenied('Você não tem permissão para excluir este relatório.');
             return;
         }
         if (!window.confirm(`Excluir o relatorio "${report.name}"?`)) return;
@@ -794,7 +963,7 @@ th{background:#f5f9fd}</style></head><body>
                 .eq('owner_user_id', currentUserId);
             if (error) throw error;
             await refreshData();
-            notify('Relatório excluido com sucesso.', 'success');
+            notify('Relatório excluído com sucesso.', 'success');
         } catch (error) {
             console.error('Erro ao excluir relatorio:', error);
             notify(error?.message || 'Não foi possível excluir o relatorio.', 'error');
@@ -825,6 +994,10 @@ th{background:#f5f9fd}</style></head><body>
 
         if (newReportBtn) {
             newReportBtn.addEventListener('click', () => {
+                if (!hasPermission('create')) {
+                    showPermissionDenied('Você não tem permissão para criar relatórios.');
+                    return;
+                }
                 resetBuilder();
                 if (reportEditorTitle) reportEditorTitle.textContent = 'Novo relatorio';
                 openEditorModal();
@@ -884,6 +1057,8 @@ th{background:#f5f9fd}</style></head><body>
             showLoading('Carregando relatorios...');
             bindEvents();
             await loadContext();
+            await loadReportPermissions();
+            applyPermissionsToUi();
             await loadGroups();
             renderGroupsAndColumns();
             await refreshData();
@@ -907,5 +1082,9 @@ if (document.readyState === 'loading') {
 } else {
     void RelatoriosModule.init();
 }
+
+
+
+
 
 

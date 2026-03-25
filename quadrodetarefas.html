@@ -63,6 +63,7 @@
                 <div class="socious-header">
                     <h3>Tarefas</h3>
                     <div class="socious-filters">
+                        <input type="text" id="titleQuickSearchInput" class="socious-title-search-input" placeholder="Buscar por título...">
                         <button class="action-btn" id="addTaskSocious">
                             <i class="fas fa-plus"></i>
                             <span class="btn-label">Nova Tarefa</span>
@@ -74,7 +75,7 @@
                     <thead>
                         <tr id="sociousTableHeadRow">
                             <th width="56px">Pin</th>
-                            <th>Tarefa</th>
+                            <th>Título</th>
                             <th>Responsável</th>
                             <th>Data Solicitação</th>
                             <th>Data Entrega</th>
@@ -461,6 +462,22 @@
                             </button>
                             <button type="button" class="btn btn-secondary" id="cancelImportPreviewBtn">Cancelar</button>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-overlay login-notices-modal" id="loginNoticesModal" style="display: none;">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Quadro de Avisos</h3>
+                    <button class="modal-close" id="closeLoginNoticesModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="loginNoticesCount" class="login-notices-count">Carregando avisos...</p>
+                    <div id="loginNoticesList" class="login-notices-list"></div>
+                    <div class="form-actions login-notices-actions">
+                        <button type="button" class="btn btn-primary" id="okLoginNoticesBtn">Fechar</button>
                     </div>
                 </div>
             </div>

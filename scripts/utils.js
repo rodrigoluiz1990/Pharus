@@ -1,4 +1,4 @@
-// scripts/utils.js
+﻿// scripts/utils.js
 const UtilsModule = (() => {
   let lastSaveButton = null;
   const SAVE_FEEDBACK_ATTR = 'data-save-feedback-original-html';
@@ -42,7 +42,7 @@ const UtilsModule = (() => {
           }
       }, true);
   }
-  // Formatar data - Corrigindo problema de fuso horário
+  // Formatar data - Corrigindo problema de fuso horÃ¡rio
   const formatDate = (dateString) => {
       if (!dateString) return "-";
       try {
@@ -52,14 +52,14 @@ const UtilsModule = (() => {
               return isNaN(date.getTime()) ? "-" : date.toLocaleDateString("pt-BR");
           }
           
-          // Dividir a data em partes para evitar problemas de fuso horário
+          // Dividir a data em partes para evitar problemas de fuso horÃ¡rio
           const [year, month, day] = dateString.split("-");
           if (year && month && day) {
-              const date = new Date(year, month - 1, day); // Mês é 0-indexed no JavaScript
+              const date = new Date(year, month - 1, day); // MÃªs Ã© 0-indexed no JavaScript
               return isNaN(date.getTime()) ? "-" : date.toLocaleDateString("pt-BR");
           }
           
-          // Tentar o método original como fallback
+          // Tentar o mÃ©todo original como fallback
           const date = new Date(dateString);
           return isNaN(date.getTime()) ? "-" : date.toLocaleDateString("pt-BR");
       } catch (e) {
@@ -74,7 +74,7 @@ const UtilsModule = (() => {
           pending: { text: "Pendente", class: "pending" },
           in_progress: { text: "Em Andamento", class: "in_progress" },
           review: { text: "Em Teste", class: "review" },
-          completed: { text: "Concluído", class: "completed" },
+          completed: { text: "ConcluÃ­do", class: "completed" },
           active: { text: "Ativo", class: "active" },
           inactive: { text: "Inativo", class: "inactive" }
       };
@@ -85,7 +85,7 @@ const UtilsModule = (() => {
   const getPriorityText = (priority) => {
       const priorityMap = {
           low: { text: "Baixa", class: "baixa" },
-          medium: { text: "Média", class: "media" },
+          medium: { text: "MÃ©dia", class: "media" },
           high: { text: "Alta", class: "alta" },
       };
       return priorityMap[priority] || { text: priority, class: "desconhecida" };
@@ -97,7 +97,7 @@ const UtilsModule = (() => {
           task: { text: "Novo", class: "task" },
           bug: { text: "Erro", class: "bug" },
           improvement: { text: "Melhoria", class: "improvement" },
-          user: { text: "Usuário", class: "user" },
+          user: { text: "UsuÃ¡rio", class: "user" },
           manager: { text: "Gerente", class: "manager" },
           admin: { text: "Administrador", class: "admin" }
       };
@@ -123,7 +123,7 @@ const UtilsModule = (() => {
       }
   };
 
-  // Gerar ID único
+  // Gerar ID Ãºnico
   const generateId = (items) => {
       if (!items || items.length === 0) return 1;
       return Math.max(0, ...items.map((item) => item.id || 0)) + 1;
@@ -136,9 +136,9 @@ const UtilsModule = (() => {
       return re.test(email);
   };
 
-  // Mostrar notificação
+  // Mostrar notificaÃ§Ã£o
   const showNotification = (message, type = "info") => {
-      // Verificar se existe um sistema de notificação na página
+      // Verificar se existe um sistema de notificaÃ§Ã£o na pÃ¡gina
       const notificationEl = document.getElementById('notification');
       const messageEl = document.getElementById('notificationMessage');
       
@@ -152,15 +152,15 @@ const UtilsModule = (() => {
           // Definir mensagem
           messageEl.textContent = message;
           
-          // Mostrar notificação
+          // Mostrar notificaÃ§Ã£o
           notificationEl.style.display = 'block';
           
-          // Ocultar após 5 segundos
+          // Ocultar apÃ³s 5 segundos
           setTimeout(() => {
               notificationEl.style.display = 'none';
           }, 5000);
       } else {
-          // Fallback para alerta básico
+          // Fallback para alerta bÃ¡sico
           console.log(`${type.toUpperCase()}: ${message}`);
       }
 
@@ -169,7 +169,63 @@ const UtilsModule = (() => {
       }
   };
 
-  // Mostrar loading global
+  const showPermissionDeniedModal = (message = 'Você não tem permissão para executar esta ação.') => {
+      if (typeof document === 'undefined') return;
+
+      let overlay = document.getElementById('permissionDeniedModal');
+      if (!overlay) {
+          overlay = document.createElement('div');
+          overlay.id = 'permissionDeniedModal';
+          overlay.className = 'modal-overlay';
+          overlay.style.display = 'none';
+          overlay.style.position = 'fixed';
+          overlay.style.top = '0';
+          overlay.style.left = '0';
+          overlay.style.right = '0';
+          overlay.style.bottom = '0';
+          overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.55)';
+          overlay.style.alignItems = 'center';
+          overlay.style.justifyContent = 'center';
+          overlay.style.zIndex = '99999';
+          overlay.innerHTML = `
+              <div class="modal" style="max-width:480px; width:calc(100% - 32px); background:#fff; border-radius:10px; box-shadow:0 20px 50px rgba(0,0,0,.25);">
+                  <div class="modal-header">
+                      <h3>Acesso Negado</h3>
+                      <button type="button" class="modal-close" data-permission-modal-close>&times;</button>
+                  </div>
+                  <div class="modal-body">
+                      <p id="permissionDeniedModalMessage" style="margin: 8px 0 0; color:#3f5872;"></p>
+                      <div class="form-actions">
+                          <button type="button" class="btn btn-primary" data-permission-modal-close>Entendi</button>
+                      </div>
+                  </div>
+              </div>
+          `;
+          document.body.appendChild(overlay);
+
+          overlay.querySelectorAll('[data-permission-modal-close]').forEach((btn) => {
+              btn.addEventListener('click', () => {
+                  overlay.classList.remove('visible');
+                  overlay.style.display = 'none';
+              });
+          });
+
+          overlay.addEventListener('click', (event) => {
+              if (event.target === overlay) {
+                  overlay.classList.remove('visible');
+                  overlay.style.display = 'none';
+              }
+          });
+      }
+
+      const messageEl = document.getElementById('permissionDeniedModalMessage');
+      if (messageEl) {
+          messageEl.textContent = String(message || 'Você não tem permissão para executar esta ação.');
+      }
+      overlay.classList.add('visible');
+      overlay.style.display = 'flex';
+  };
+// Mostrar loading global
   const showLoading = (message = 'Carregando...') => {
       const loading = document.getElementById('globalLoading');
       if (loading) {
@@ -188,7 +244,7 @@ const UtilsModule = (() => {
   };
 
   // Tratamento de erros de API
-  const handleApiError = (error, context = 'operação') => {
+  const handleApiError = (error, context = 'operaÃ§Ã£o') => {
       console.error(`Erro em ${context}:`, error);
 
       let message = 'Erro inesperado';
@@ -209,7 +265,7 @@ const UtilsModule = (() => {
           const date = new Date(dateString);
           if (isNaN(date.getTime())) return '';
 
-          // Ajustar para o fuso horário local
+          // Ajustar para o fuso horÃ¡rio local
           const offset = date.getTimezoneOffset();
           const adjustedDate = new Date(date.getTime() - (offset * 60 * 1000));
           return adjustedDate.toISOString().split('T')[0];
@@ -222,9 +278,9 @@ const UtilsModule = (() => {
   // Obter status da coluna do Supabase
   const getColumnStatusFromSupabase = async (columnId) => {
       try {
-          // Verificar se supabaseClient está disponível
+          // Verificar se supabaseClient estÃ¡ disponÃ­vel
           if (typeof window.supabaseClient === 'undefined') {
-              console.warn('Supabase client não disponível');
+              console.warn('Supabase client nÃ£o disponÃ­vel');
               return 'pending';
           }
           
@@ -254,7 +310,7 @@ const UtilsModule = (() => {
       return div.innerHTML;
   };
 
-  // Verificar se um objeto está vazio
+  // Verificar se um objeto estÃ¡ vazio
   const isEmptyObject = (obj) => {
       return !obj || Object.keys(obj).length === 0;
   };
@@ -289,8 +345,10 @@ const UtilsModule = (() => {
       escapeHtml,
       isEmptyObject,
       debounce,
-      applySaveSuccessFeedback
+      applySaveSuccessFeedback,
+      showPermissionDeniedModal
   };
 })();
+
 
 

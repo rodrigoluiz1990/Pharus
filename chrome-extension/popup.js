@@ -51,7 +51,7 @@ function renderTasks(tasks, settings) {
   if (!Array.isArray(tasks) || tasks.length === 0) {
     const li = document.createElement('li');
     li.className = 'empty';
-    li.textContent = 'Nenhuma tarefa foco encontrada.';
+    li.textContent = '🥳 Nenhuma tarefa foco encontrada.';
     els.tasksList.appendChild(li);
     return;
   }

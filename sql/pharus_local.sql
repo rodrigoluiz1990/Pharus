@@ -170,10 +170,14 @@ CREATE TABLE IF NOT EXISTS agenda_events (
   start_at TIMESTAMPTZ NOT NULL,
   end_at TIMESTAMPTZ NULL,
   is_all_day BOOLEAN NOT NULL DEFAULT FALSE,
+  event_color TEXT NULL,
   created_by UUID NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE IF EXISTS agenda_events
+  ADD COLUMN IF NOT EXISTS event_color TEXT NULL;
 
 CREATE TABLE IF NOT EXISTS notice_board_posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

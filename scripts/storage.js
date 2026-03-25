@@ -2,6 +2,7 @@ const StorageModule = (() => {
     const LS_KEYS = {
         CURRENT_USER: 'pharus_currentUser'
     };
+    const TASK_AGENDA_MARKER_PREFIX = '[PHARUS_TASK_ID:';
 
     // --------- Sess?o ----------
     const getCurrentUser = () => {
@@ -15,6 +16,125 @@ const StorageModule = (() => {
 
     const removeCurrentUser = () => {
         localStorage.removeItem(LS_KEYS.CURRENT_USER);
+    };
+
+    const buildTaskAgendaMarker = (taskId) => `${TASK_AGENDA_MARKER_PREFIX}${String(taskId)}]`;
+
+    const parseDateOnlyToIsoRange = (dateValue) => {
+        const raw = String(dateValue || '').trim();
+        const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!match) return null;
+
+        const year = Number(match[1]);
+        const month = Number(match[2]);
+        const day = Number(match[3]);
+
+        const startLocal = new Date(year, month - 1, day, 0, 0, 0, 0);
+        const endLocal = new Date(year, month - 1, day, 23, 59, 0, 0);
+
+        if (Number.isNaN(startLocal.getTime()) || Number.isNaN(endLocal.getTime())) {
+            return null;
+        }
+
+        return {
+            startAt: startLocal.toISOString(),
+            endAt: endLocal.toISOString(),
+        };
+    };
+
+    const mapTaskStatusToAgendaStatus = (taskStatus) => {
+        const safe = String(taskStatus || '').toLowerCase();
+        if (safe === 'completed' || safe === 'done') return 'done';
+        if (safe === 'cancelled' || safe === 'canceled') return 'cancelled';
+        return 'pending';
+    };
+
+    const buildAgendaDescriptionFromTask = (task) => {
+        const marker = buildTaskAgendaMarker(task.id);
+        const parts = [];
+        const taskDescription = String(task.description || '').trim();
+        const taskObservation = String(task.observation || '').trim();
+
+        if (taskDescription) parts.push(taskDescription);
+        if (taskObservation) parts.push(`Observacao: ${taskObservation}`);
+        parts.push(marker);
+
+        return parts.join('\n\n');
+    };
+
+    const getCurrentUserId = async () => {
+        try {
+            const { data, error } = await supabaseClient.auth.getSession();
+            if (error) return null;
+            return data?.session?.user?.id || null;
+        } catch (_error) {
+            return null;
+        }
+    };
+
+    const findAgendaEventByTaskId = async (taskId) => {
+        const marker = buildTaskAgendaMarker(taskId);
+        const { data, error } = await supabaseClient
+            .from('agenda_events')
+            .select('id, description, created_at')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        const rows = Array.isArray(data) ? data : [];
+        return rows.find((row) => String(row?.description || '').includes(marker)) || null;
+    };
+
+    const syncTaskToAgenda = async (taskRecord) => {
+        const taskId = String(taskRecord?.id || '').trim();
+        if (!taskId) return;
+
+        const dueDate = String(taskRecord?.due_date || '').trim();
+        const linkedEvent = await findAgendaEventByTaskId(taskId);
+
+        if (!dueDate) {
+            if (linkedEvent?.id) {
+                const { error: deleteError } = await supabaseClient
+                    .from('agenda_events')
+                    .delete()
+                    .eq('id', linkedEvent.id);
+                if (deleteError) throw deleteError;
+            }
+            return;
+        }
+
+        const range = parseDateOnlyToIsoRange(dueDate);
+        if (!range) return;
+
+        const payload = {
+            title: String(taskRecord.title || 'Tarefa').trim() || 'Tarefa',
+            description: buildAgendaDescriptionFromTask(taskRecord),
+            event_type: 'task',
+            status: mapTaskStatusToAgendaStatus(taskRecord.status),
+            start_at: range.startAt,
+            end_at: range.endAt,
+            is_all_day: true,
+            updated_at: new Date().toISOString(),
+        };
+
+        if (linkedEvent?.id) {
+            const { error: updateError } = await supabaseClient
+                .from('agenda_events')
+                .update(payload)
+                .eq('id', linkedEvent.id);
+            if (updateError) throw updateError;
+            return;
+        }
+
+        const createdBy = await getCurrentUserId();
+        const insertPayload = {
+            ...payload,
+            created_by: createdBy,
+        };
+
+        const { error: insertError } = await supabaseClient
+            .from('agenda_events')
+            .insert([insertPayload]);
+        if (insertError) throw insertError;
     };
 
     // --------- Users ----------
@@ -184,6 +304,13 @@ const StorageModule = (() => {
                 .single();
 
             if (error) throw error;
+
+            try {
+                await syncTaskToAgenda(data);
+            } catch (agendaError) {
+                console.warn('Falha ao sincronizar tarefa com agenda (saveTask):', agendaError);
+            }
+
             return data;
 
         } catch (error) {
@@ -208,6 +335,13 @@ const StorageModule = (() => {
                 .single();
 
             if (error) throw error;
+
+            try {
+                await syncTaskToAgenda(data);
+            } catch (agendaError) {
+                console.warn('Falha ao sincronizar tarefa com agenda (updateTask):', agendaError);
+            }
+
             return data;
 
         } catch (error) {

@@ -64,7 +64,8 @@ const PageBootstrap = (() => {
             'scripts/sort.js',
             'scripts/table-sort.js',
             'scripts/board.js',
-            'scripts/task-import.js'
+            'scripts/task-import.js',
+            'scripts/login-notices-modal.js'
         ]);
 
         if (typeof ModalModule !== 'undefined' && typeof ModalModule.initModal === 'function') {
@@ -85,6 +86,10 @@ const PageBootstrap = (() => {
 
         if (typeof TaskImportModule !== 'undefined' && typeof TaskImportModule.init === 'function') {
             TaskImportModule.init();
+        }
+
+        if (typeof LoginNoticesModalModule !== 'undefined' && typeof LoginNoticesModalModule.init === 'function') {
+            await LoginNoticesModalModule.init();
         }
     };
 
