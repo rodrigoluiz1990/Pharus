@@ -165,48 +165,64 @@ body.page-leaving .content {
 }
 
 .header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    position: relative;
+    z-index: 1000;
     background: white;
-    padding: 15px 20px;
-    border-bottom: 1px solid #e9ecef;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* Espaco padrao entre cabecalho e conteudo principal das paginas */
+.dashboard-view,
+.agenda-view,
+.notices-view,
+.clients-view,
+.settings-page,
+.reports-page,
+.chat-page,
+.socious-view {
+    margin-top: 0 !important;
 }
 
 .project-title h2 {
-    color: var(--text-color);
-    font-size: 24px;
-    font-weight: 700;
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.5rem;
+    white-space: nowrap;
+    font-weight: 600;
 }
 
 .project-actions {
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
 }
 
 .action-btn {
-    padding: 10px 16px;
-    border: 1px solid var(--border-color);
-    background: white;
-    color: var(--text-color);
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
     border-radius: 6px;
+    color: #495057;
     cursor: pointer;
     font-size: 14px;
-    font-weight: 500;
-    transition: all 0.3s ease;
     display: flex;
     align-items: center;
     gap: 6px;
+    transition: all 0.2s ease;
+    font-weight: 500;
 }
 
 .action-btn:hover {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-    box-shadow: var(--shadow);
+    background: #e9ecef;
+    border-color: #ced4da;
 }
 
 .save-success-feedback {
@@ -597,7 +613,7 @@ textarea.form-control {
     }
 
     .header {
-        padding: 20px;
+        padding: 12px 16px;
     }
 }
 
@@ -630,13 +646,47 @@ textarea.form-control {
     }
 
     .header {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 15px;
+        padding: 10px 12px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        gap: 6px;
+        margin-bottom: 8px;
+        overflow: hidden;
     }
 
     .project-actions {
-        justify-content: center;
+        justify-content: flex-end;
+        flex-wrap: nowrap;
+        gap: 4px;
+        width: auto;
+        margin-left: auto;
+        overflow: hidden;
+        padding-bottom: 0;
+        flex-shrink: 0;
+    }
+
+    .project-title {
+        min-width: 0;
+        flex: 0 0 auto;
+        max-width: 38%;
+    }
+
+    .project-title h2 {
+        font-size: 0.95rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.1;
+    }
+
+    .project-actions .action-btn {
+        padding: 4px 6px;
+        font-size: 11px;
+        gap: 2px;
+        white-space: nowrap;
+        flex: 0 0 auto;
     }
 
     .modal {
@@ -669,15 +719,23 @@ textarea.form-control {
         justify-content: center;
     }
 
-    .project-title h2 {
-        font-size: 20px;
-        text-align: center;
+    .header {
+        padding: 10px 10px;
+        gap: 6px;
     }
 
-    .action-btn {
-        flex: 1;
-        min-width: 120px;
-        justify-content: center;
+    .project-title h2 {
+        font-size: 1rem;
+    }
+
+    .project-actions .action-btn {
+        padding: 3px 5px;
+        font-size: 10px;
+        gap: 2px;
+    }
+
+    .project-actions {
+        gap: 3px;
     }
 }
 

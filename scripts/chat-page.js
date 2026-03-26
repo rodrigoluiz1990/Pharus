@@ -14,7 +14,6 @@
 
     const elements = {
         contactsList: document.getElementById('chatContactsList'),
-        contactsStatus: document.getElementById('chatContactsStatus'),
         contactSearch: document.getElementById('chatContactSearch'),
         emptyState: document.getElementById('chatConversationEmpty'),
         panel: document.getElementById('chatConversationPanel'),
@@ -113,10 +112,6 @@
         if (!state.currentUser || !elements.contactsList) return;
 
         try {
-            if (elements.contactsStatus) {
-                elements.contactsStatus.textContent = 'Atualizando contatos...';
-            }
-
             const [contactsResult, unreadResult, messagesResult] = await Promise.all([
                 window.supabaseClient
                     .from('user_profiles')
@@ -172,10 +167,6 @@
                 state.contactsSnapshot = snapshot;
             }
 
-            if (elements.contactsStatus) {
-                elements.contactsStatus.textContent = `${state.filteredContacts.length} contato(s)`;
-            }
-
             if (state.selectedContact) {
                 const refreshedSelection = state.contacts.find((item) => item.id === state.selectedContact.id);
                 if (!refreshedSelection) {
@@ -188,9 +179,6 @@
             }
         } catch (error) {
             console.error('Erro ao carregar contatos do chat:', error);
-            if (elements.contactsStatus) {
-                elements.contactsStatus.textContent = `Falha ao carregar contatos: ${error.message}`;
-            }
         }
     };
 

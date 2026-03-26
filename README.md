@@ -50,6 +50,111 @@ npm run dev
 http://localhost:3000
 ```
 
+## Execucao facil com Docker + PostgreSQL (recomendado para clientes)
+
+1. Garanta que o Docker Desktop esteja instalado e em execucao.
+
+2. Na raiz do projeto, suba os containers:
+```bash
+docker compose up -d --build
+```
+
+Ou no Windows, execute:
+```text
+Iniciar-Docker.bat
+```
+
+3. Acesse:
+```text
+http://localhost:3000
+```
+
+### O que o compose faz
+
+- Sobe o banco PostgreSQL (`postgres:16-alpine`)
+- Cria o banco `pharus`
+- Executa automaticamente o script `sql/pharus_local.sql` na primeira inicializacao do volume
+- Sobe o app Node.js conectado ao Postgres
+
+### Credenciais padrao (Docker)
+
+- DB Host: `localhost`
+- DB Port: `5432`
+- DB Name: `pharus`
+- DB User: `postgres`
+- DB Password: `postgres`
+
+### Comandos uteis
+
+Parar:
+```bash
+docker compose down
+```
+
+Parar e remover volumes (recria banco do zero no proximo `up`):
+```bash
+docker compose down -v
+```
+
+Ver logs:
+```bash
+docker compose logs -f app
+docker compose logs -f db
+```
+
+## Deploy em cliente sem clonar projeto (via imagens GHCR)
+
+Quando voce publicar as imagens, o cliente precisa apenas de:
+
+- `docker-compose.client.yml`
+- Docker instalado
+
+### 1) Publicar imagens (feito por voce)
+
+No seu ambiente de build, build e push da imagem da aplicacao:
+```bash
+docker build -t ghcr.io/<SEU_USUARIO_GITHUB>/pharus-app:latest -f Dockerfile .
+docker push ghcr.io/<SEU_USUARIO_GITHUB>/pharus-app:latest
+```
+
+Build e push da imagem do banco (com SQL embutido):
+```bash
+docker build -t ghcr.io/<SEU_USUARIO_GITHUB>/pharus-db:latest -f Dockerfile.db .
+docker push ghcr.io/<SEU_USUARIO_GITHUB>/pharus-db:latest
+```
+
+Opcional (automacao via PowerShell):
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Publicar-GHCR.ps1 -GithubUser <SEU_USUARIO_GITHUB> -Tag latest
+```
+
+Ao executar o script, ele pede o token de forma segura no prompt (sem expor no historico de comando).
+
+### 2) No cliente final
+
+1. Baixe apenas o arquivo `docker-compose.client.yml`
+2. Edite as imagens para seu usuario/organizacao GHCR:
+   - `ghcr.io/seu_usuario/pharus-app:latest`
+   - `ghcr.io/seu_usuario/pharus-db:latest`
+3. Suba:
+```bash
+docker compose -f docker-compose.client.yml up -d
+```
+
+4. Acesse:
+```text
+http://localhost:3000
+```
+
+### Observacoes importantes
+
+- O SQL de inicializacao do banco roda apenas na primeira criacao do volume.
+- Para resetar banco no cliente:
+```bash
+docker compose -f docker-compose.client.yml down -v
+docker compose -f docker-compose.client.yml up -d
+```
+
 ## Usuario inicial
 
 - Email: `admin@pharus.local`

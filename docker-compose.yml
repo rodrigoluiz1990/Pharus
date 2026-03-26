@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: pharus_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pharus
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pharus_pgdata:/var/lib/postgresql/data
+      - ./sql/pharus_local.sql:/docker-entrypoint-initdb.d/01-pharus_local.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pharus"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pharus_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: pharus
+    ports:
+      - "3000:3000"
+    volumes:
+      - pharus_uploads:/app/backend/uploads
+
+volumes:
+  pharus_pgdata:
+  pharus_uploads:

@@ -1,0 +1,4 @@
+FROM postgres:16-alpine
+
+# Inicializa schema e dados na primeira subida do volume
+COPY sql/pharus_local.sql /docker-entrypoint-initdb.d/01-pharus_local.sql

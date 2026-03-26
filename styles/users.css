@@ -1,6 +1,6 @@
 ﻿/* styles/users.css */
 .users-view {
-    padding: 20px;
+    padding: 4px;
     display: none;
     min-width: 0;
 }
@@ -16,8 +16,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
     border-bottom: 1px solid #e9ecef;
 }
 
