@@ -117,7 +117,7 @@
         const id = String(groupId || '').trim();
         if (!id) return 'Todos os grupos';
         const found = permissionGroups.find((group) => String(group.id) === id);
-        return found ? String(found.name || 'Grupo') : 'Grupo especifico';
+        return found ? String(found.name || 'Grupo') : 'Grupo específico';
     };
 
     const canCurrentUserSeeNotice = (notice) => {
@@ -151,7 +151,7 @@
             permissionGroups = (data || []).filter((item) => String(item.status || 'active') === 'active');
         } catch (error) {
             permissionGroups = [];
-            console.warn('Não foi possível carregar grupos de permissao:', error);
+            console.warn('Não foi possível carregar grupos de permissão:', error);
         }
         renderPermissionGroupOptions();
     };
@@ -174,7 +174,7 @@
             currentUserPermissionGroupId = userRow?.permission_group_id || null;
         } catch (error) {
             currentUserPermissionGroupId = null;
-            console.warn('Não foi possível identificar grupo do usuario atual:', error);
+            console.warn('Não foi possível identificar grupo do usuário atual:', error);
         }
     };
 
@@ -220,7 +220,7 @@
                 useLocalFallback = true;
                 notices = getLocalNotices().map(normalizeNotice);
                 if (!fallbackNotified) {
-                    notify('Tabela notice_board_posts nao encontrada. Usando armazenamento local temporario.', 'warning');
+                    notify('Tabela notice_board_posts não encontrada. Usando armazenamento local temporário.', 'warning');
                     fallbackNotified = true;
                 }
             } else {
@@ -286,7 +286,7 @@
             return `
                 <article class="notice-card priority-${escapeHtml(notice.priority)} status-${escapeHtml(notice.status)}" data-notice-id="${escapeHtml(notice.id)}">
                     <div class="notice-card-header">
-                        <h3>${escapeHtml(notice.title || 'Sem titulo')}</h3>
+                        <h3>${escapeHtml(notice.title || 'Sem título')}</h3>
                         <div class="notice-badges">
                             <span class="notice-priority">${priorityText}</span>
                             <span class="notice-chip notice-status-chip">${statusText}</span>
@@ -361,12 +361,12 @@
         const content = String(contentEl.value || '').trim();
 
         if (!title) {
-            notify('Informe o titulo do aviso.', 'warning');
+            notify('Informe o título do aviso.', 'warning');
             return null;
         }
 
         if (!content) {
-            notify('Informe o conteudo do aviso.', 'warning');
+            notify('Informe o conteúdo do aviso.', 'warning');
             return null;
         }
 
@@ -496,7 +496,7 @@
                 if (noticeId) updateLocal(noticeId, payload);
                 else insertLocal(payload);
                 useLocalFallback = true;
-                notify('Aviso salvo localmente (tabela do banco ainda nao existe).', 'warning');
+                notify('Aviso salvo localmente (tabela do banco ainda não existe).', 'warning');
                 closeModal();
                 applyFilters();
                 return;
@@ -582,5 +582,6 @@ if (document.readyState === 'loading') {
 } else {
     void AvisosModule.init();
 }
+
 
 

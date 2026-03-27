@@ -1,4 +1,4 @@
-﻿// board.js - VERSóO AJUSTADA (mantém estrutura original, dropdown robusto)
+﻿// board.js - VERSÃO AJUSTADA (mantém estrutura original, dropdown robusto)
 
 const BoardModule = (() => {
     // Elementos do DOM
@@ -384,7 +384,6 @@ const BoardModule = (() => {
         const statusInfo = UtilsModule.getStatusText(task.status);
         const priorityInfo = UtilsModule.getPriorityText(task.priority);
         const typeInfo = UtilsModule.getTypeText(task.type);
-        const taskRefLabel = formatTaskRefLabel(task);
         const isTitleOnlyMode = Boolean(sociousView?.classList.contains("title-only-mode"));
 
         const row = document.createElement("tr");
@@ -426,7 +425,7 @@ const BoardModule = (() => {
                                         ${safeTitle}${hasAttachment ? ' <i class="fas fa-paperclip" title="Tarefa com anexo"></i>' : ''}
                                     </span>
                                 `
-                                : `<span class="table-title-text"><span class="table-task-ref">${escapeHtml(taskRefLabel)}</span> ${safeTitle}${hasAttachment ? ' <i class="fas fa-paperclip" title="Tarefa com anexo"></i>' : ''}</span>`
+                                : `<span class="table-title-text">${safeTitle}${hasAttachment ? ' <i class="fas fa-paperclip" title="Tarefa com anexo"></i>' : ''}</span>`
                         }
                     </div>
                 </td>
@@ -1067,6 +1066,8 @@ if (document.readyState === 'loading') {
 } else {
     BoardModule.initBoard();
 }
+
+
 
 
 

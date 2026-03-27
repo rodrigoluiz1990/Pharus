@@ -12,12 +12,13 @@
       <div class="header-top">
         <h1 id="projectHeaderTitle">Pharus - Projeto</h1>
         <div class="header-actions">
+          <button id="logoutBtn" class="icon-btn hidden" title="Sair" aria-label="Sair">⎋</button>
           <button id="openChatBtn" class="icon-btn" title="Abrir chat" aria-label="Abrir chat">💬</button>
           <button id="refreshBtn" class="icon-btn" title="Atualizar">↻</button>
           <button id="settingsToggleBtn" class="icon-btn" title="Configurações">⚙</button>
         </div>
       </div>
-      <div class="mode-switch" role="tablist" aria-label="Modo de visualização">
+      <div id="modeSwitch" class="mode-switch" role="tablist" aria-label="Modo de visualização">
         <button id="modeTasksBtn" class="mode-btn active" role="tab" aria-selected="true" title="Modo Tarefas">Tarefas</button>
         <button id="modeAgendaBtn" class="mode-btn" role="tab" aria-selected="false" title="Modo Agenda">Agenda</button>
         <button id="modeNoticesBtn" class="mode-btn" role="tab" aria-selected="false" title="Modo Avisos">Avisos</button>
@@ -25,13 +26,24 @@
       </div>
     </header>
 
-    <section id="settingsPanel" class="settings hidden">
+    <section id="authPanel" class="settings">
+      <h2 class="auth-title">Login da Extensão</h2>
       <label>Servidor
-        <input id="apiBaseInput" type="text" placeholder="http://localhost:3000">
+        <input id="loginApiBaseInput" type="text" placeholder="http://localhost:3000">
       </label>
       <label>E-mail do usuário
-        <input id="emailInput" type="email" placeholder="admin@pharus.local">
+        <input id="loginEmailInput" type="email" placeholder="admin@pharus.local">
       </label>
+      <label>Senha
+        <input id="loginPasswordInput" type="password" placeholder="Digite sua senha">
+      </label>
+      <div class="settings-actions">
+        <button id="loginBtn">Entrar</button>
+      </div>
+      <div id="authStatusText" class="status hidden"></div>
+    </section>
+
+    <section id="settingsPanel" class="settings hidden">
       <label class="settings-checkbox" for="onlyAssignedInput">
         <input id="onlyAssignedInput" type="checkbox" checked>
         Apenas tarefas vinculadas ao usuário

@@ -835,6 +835,7 @@ app.post('/api/db/query', async (req, res) => {
     or,
     returning,
     auth_user_id: authUserIdRaw,
+    auth_email: authEmailRaw,
   } = req.body || {};
 
   const table = normalizeTable(rawTable);
@@ -847,7 +848,20 @@ app.post('/api/db/query', async (req, res) => {
   }
 
   try {
-    const authUserId = isNumericId(authUserIdRaw) ? Number(authUserIdRaw) : null;
+    let authUserId = isNumericId(authUserIdRaw) ? Number(authUserIdRaw) : null;
+    if (!authUserId) {
+      const authEmail = String(authEmailRaw || '').trim().toLowerCase();
+      if (authEmail) {
+        const mappedUser = await pool.query(
+          'SELECT id FROM app_users WHERE LOWER(email) = $1 LIMIT 1',
+          [authEmail]
+        );
+        const mappedId = mappedUser.rows?.[0]?.id;
+        if (isNumericId(mappedId)) {
+          authUserId = Number(mappedId);
+        }
+      }
+    }
     const requiredPermission = resolvePermissionForDbQuery(table, action, data);
     if (requiredPermission) {
       const allowed = await hasUserPermission(authUserId, requiredPermission.screen, requiredPermission.option);
@@ -1029,6 +1043,48 @@ app.get('/api/tasks/focus', async (req, res) => {
 
     const result = await pool.query(sql, values);
     return res.json({ data: result.rows || [], error: null });
+  } catch (error) {
+    return res.status(500).json({ data: null, error: formatError(error) });
+  }
+});
+
+app.get('/api/users/validate-email', async (req, res) => {
+  try {
+    const email = String(req.query?.email || '').trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!email || !emailRegex.test(email)) {
+      return res.json({
+        data: { valid: false, reason: 'invalid_format' },
+        error: null,
+      });
+    }
+
+    const result = await pool.query(
+      'SELECT id, status FROM app_users WHERE LOWER(email) = $1 LIMIT 1',
+      [email]
+    );
+
+    const row = result.rows?.[0] || null;
+    if (!row) {
+      return res.json({
+        data: { valid: false, reason: 'not_found' },
+        error: null,
+      });
+    }
+
+    const status = String(row.status || 'active').toLowerCase();
+    if (status !== 'active') {
+      return res.json({
+        data: { valid: false, reason: 'inactive' },
+        error: null,
+      });
+    }
+
+    return res.json({
+      data: { valid: true, reason: 'ok', user_id: Number(row.id) || null },
+      error: null,
+    });
   } catch (error) {
     return res.status(500).json({ data: null, error: formatError(error) });
   }

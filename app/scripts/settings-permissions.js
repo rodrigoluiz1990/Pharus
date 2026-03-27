@@ -99,11 +99,12 @@ const SettingsPermissionsModule = (() => {
 
             screen.options.forEach((option) => {
                 const k = keyOf(screen.key, option);
+                const ruleCode = `${screen.key}.${option}`;
                 const label = document.createElement('label');
                 label.className = 'permission-option';
                 label.innerHTML = `
                     <input type="checkbox" data-perm-key="${escapeHtml(k)}" ${allowedKeys.has(k) ? 'checked' : ''}>
-                    <span>${escapeHtml(OPTION_LABELS[option] || option)}</span>
+                    <span title="${escapeHtml(ruleCode)}">${escapeHtml(OPTION_LABELS[option] || option)}</span>
                 `;
                 const checkbox = label.querySelector('input[type="checkbox"]');
                 if (checkbox) {

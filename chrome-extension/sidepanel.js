@@ -1,6 +1,4 @@
 ﻿const DEFAULT_SETTINGS = {
-  apiBase: 'http://localhost:3000',
-  email: '',
   onlyAssigned: true,
   taskTypeFilter: 'all',
   taskPriorityFilter: 'all',
@@ -10,7 +8,16 @@
 const DETACHED_NOTES_KEY = 'pharus_detached_notes';
 const PROJECT_DISPLAY_NAME_KEY = 'pharus_project_display_name';
 const DEFAULT_PROJECT_DISPLAY_NAME = 'Projeto';
+const DEFAULT_AUTH_STATE = {
+  apiBase: 'http://localhost:3000',
+  email: '',
+  userId: null,
+  authenticated: false,
+};
+const AUTH_STATE_KEY = 'pharus_extension_auth';
 const PARTY_EMOJI = '🥳';
+const INVALID_EXTENSION_EMAIL_MESSAGE = 'Configure a extensão para continuar.';
+const LOAD_FAILURE_MESSAGE = 'Não foi possível carregar agora. Verifique a API e tente novamente.';
 const TASK_TYPE_FILTER_VALUES = ['all', 'new', 'optimization', 'improvement', 'discussion', 'suggestion', 'issue', 'epic'];
 const TASK_PRIORITY_FILTER_VALUES = ['all', 'very_high', 'high', 'medium', 'low', 'very_low'];
 
@@ -72,8 +79,13 @@ const TASK_PRIORITY_ALIASES = {
 };
 
 const els = {
-  apiBaseInput: document.getElementById('apiBaseInput'),
-  emailInput: document.getElementById('emailInput'),
+  authPanel: document.getElementById('authPanel'),
+  loginApiBaseInput: document.getElementById('loginApiBaseInput'),
+  loginEmailInput: document.getElementById('loginEmailInput'),
+  loginPasswordInput: document.getElementById('loginPasswordInput'),
+  loginBtn: document.getElementById('loginBtn'),
+  authStatusText: document.getElementById('authStatusText'),
+  logoutBtn: document.getElementById('logoutBtn'),
   onlyAssignedInput: document.getElementById('onlyAssignedInput'),
   taskTypeFilterInput: document.getElementById('taskTypeFilterInput'),
   taskPriorityFilterInput: document.getElementById('taskPriorityFilterInput'),
@@ -84,6 +96,7 @@ const els = {
   settingsToggleBtn: document.getElementById('settingsToggleBtn'),
   settingsPanel: document.getElementById('settingsPanel'),
   statusText: document.getElementById('statusText'),
+  modeSwitch: document.getElementById('modeSwitch'),
   tasksList: document.getElementById('tasksList'),
   modeTasksBtn: document.getElementById('modeTasksBtn'),
   modeAgendaBtn: document.getElementById('modeAgendaBtn'),
@@ -112,6 +125,9 @@ const els = {
 let currentMode = 'tasks';
 let lastNonChatMode = 'tasks';
 let detachedNotes = [];
+let emailValidationCacheKey = '';
+let emailValidationCache = null;
+let authState = { ...DEFAULT_AUTH_STATE };
 
 const normalizeBase = (value) => String(value || '').trim().replace(/\/+$/, '');
 const normalizeKey = (value) => String(value || '')
@@ -134,6 +150,223 @@ function setNoticesStatus(text) {
 
 function setAgendaStatus(text) {
   if (els.agendaStatusText) els.agendaStatusText.textContent = text;
+}
+
+function setAuthStatus(text, type = 'info') {
+  if (!els.authStatusText) return;
+  const safeText = String(text || '').trim();
+  els.authStatusText.textContent = safeText;
+  els.authStatusText.classList.toggle('hidden', !safeText);
+  els.authStatusText.style.color = type === 'error' ? '#a83333' : (type === 'success' ? '#23653a' : '#51657a');
+}
+
+function setElementVisible(element, visible) {
+  if (!element) return;
+  element.classList.toggle('hidden', !visible);
+}
+
+function normalizeAuthState(raw) {
+  const safe = raw && typeof raw === 'object' ? raw : {};
+  return {
+    apiBase: normalizeBase(safe.apiBase) || DEFAULT_AUTH_STATE.apiBase,
+    email: String(safe.email || '').trim().toLowerCase(),
+    userId: safe.userId == null ? null : String(safe.userId),
+    authenticated: Boolean(safe.authenticated),
+  };
+}
+
+function loadAuthState() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get({ [AUTH_STATE_KEY]: DEFAULT_AUTH_STATE }, (saved) => {
+      const loaded = normalizeAuthState(saved?.[AUTH_STATE_KEY]);
+      authState = loaded;
+      resolve(loaded);
+    });
+  });
+}
+
+function saveAuthState(nextState) {
+  const normalized = normalizeAuthState(nextState);
+  authState = normalized;
+  return new Promise((resolve) => {
+    chrome.storage.sync.set({ [AUTH_STATE_KEY]: normalized }, () => resolve(normalized));
+  });
+}
+
+function getAuthContext() {
+  return {
+    apiBase: normalizeBase(authState?.apiBase) || DEFAULT_AUTH_STATE.apiBase,
+    email: String(authState?.email || '').trim().toLowerCase(),
+    userId: authState?.userId == null ? null : String(authState.userId),
+    authenticated: Boolean(authState?.authenticated),
+  };
+}
+
+function applyAuthUI() {
+  const isAuthenticated = Boolean(getAuthContext().authenticated);
+  setElementVisible(els.authPanel, !isAuthenticated);
+  setElementVisible(els.logoutBtn, isAuthenticated);
+  setElementVisible(els.modeSwitch, isAuthenticated);
+  setElementVisible(els.settingsToggleBtn, isAuthenticated);
+  setElementVisible(els.refreshBtn, isAuthenticated);
+  setElementVisible(els.openChatBtn, isAuthenticated);
+  setElementVisible(els.modeTasksBtn, isAuthenticated);
+  setElementVisible(els.modeAgendaBtn, isAuthenticated);
+  setElementVisible(els.modeNoticesBtn, isAuthenticated);
+  setElementVisible(els.modeDetachedBtn, isAuthenticated);
+  if (!isAuthenticated) {
+    setElementVisible(els.settingsPanel, false);
+  }
+}
+
+function applySaveButtonFeedback(button) {
+  if (!button) return;
+  const original = button.innerHTML;
+  button.classList.add('btn-saved');
+  button.innerHTML = 'Salvo';
+  setTimeout(() => {
+    button.classList.remove('btn-saved');
+    button.innerHTML = original;
+  }, 1200);
+}
+
+function isExtensionAuthenticated() {
+  return Boolean(getAuthContext().authenticated);
+}
+
+function getLoginFormData() {
+  return {
+    apiBase: normalizeBase(els.loginApiBaseInput?.value) || DEFAULT_AUTH_STATE.apiBase,
+    email: String(els.loginEmailInput?.value || '').trim().toLowerCase(),
+    password: String(els.loginPasswordInput?.value || ''),
+  };
+}
+
+async function loginExtension() {
+  const { apiBase, email, password } = getLoginFormData();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!apiBase) {
+    setAuthStatus('Informe o servidor.', 'error');
+    return false;
+  }
+  if (!email || !emailRegex.test(email)) {
+    setAuthStatus('Informe um e-mail válido.', 'error');
+    return false;
+  }
+  if (!password) {
+    setAuthStatus('Informe a senha.', 'error');
+    return false;
+  }
+
+  if (els.loginBtn) {
+    els.loginBtn.disabled = true;
+    els.loginBtn.innerHTML = 'Entrando...';
+  }
+
+  try {
+    const response = await fetch(`${apiBase}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const payload = await parseApiJsonResponse(response);
+    const resolvedUser = payload?.data?.user || payload?.data?.session?.user || null;
+    const resolvedUserId = resolvedUser?.id != null ? String(resolvedUser.id) : null;
+
+    await saveAuthState({
+      apiBase,
+      email,
+      userId: resolvedUserId,
+      authenticated: true,
+    });
+
+    emailValidationCacheKey = '';
+    emailValidationCache = null;
+    if (els.loginPasswordInput) els.loginPasswordInput.value = '';
+    setAuthStatus('');
+    applyAuthUI();
+    await refreshCurrentMode({ force: true });
+    return true;
+  } catch (_error) {
+    await saveAuthState({
+      apiBase,
+      email,
+      userId: null,
+      authenticated: false,
+    });
+    applyAuthUI();
+    setAuthStatus('Falha no login. Verifique servidor, e-mail e senha.', 'error');
+    return false;
+  } finally {
+    if (els.loginBtn) {
+      els.loginBtn.disabled = false;
+      els.loginBtn.innerHTML = 'Entrar';
+    }
+  }
+}
+
+async function logoutExtension() {
+  await saveAuthState({
+    apiBase: getAuthContext().apiBase || DEFAULT_AUTH_STATE.apiBase,
+    email: '',
+    userId: null,
+    authenticated: false,
+  });
+  emailValidationCacheKey = '';
+  emailValidationCache = null;
+  if (els.loginEmailInput) els.loginEmailInput.value = '';
+  if (els.loginPasswordInput) els.loginPasswordInput.value = '';
+  if (els.loginApiBaseInput) els.loginApiBaseInput.value = getAuthContext().apiBase || DEFAULT_AUTH_STATE.apiBase;
+  if (els.tasksList) els.tasksList.innerHTML = '';
+  if (els.agendaList) els.agendaList.innerHTML = '';
+  if (els.noticesList) els.noticesList.innerHTML = '';
+  setAuthStatus('Faça login para carregar tarefas, agenda e avisos.', 'info');
+  applyAuthUI();
+}
+
+function renderInvalidEmailMessage(listElement) {
+  if (!listElement) return;
+  listElement.innerHTML = '';
+  const li = document.createElement('li');
+  li.className = 'empty';
+  li.innerHTML = `
+    <div style="text-align:left; line-height:1.45;">
+      <strong>${escapeHtml(INVALID_EXTENSION_EMAIL_MESSAGE)}</strong>
+      <ol style="margin:8px 0 0 18px; padding:0;">
+        <li>Clique em <strong>⚙ Configurações</strong>.</li>
+        <li>Preencha o <strong>Servidor</strong> (ex: <code>http://localhost:3000</code>).</li>
+        <li>Informe um <strong>E-mail do usuário</strong> válido no Pharus.</li>
+        <li>Clique em <strong>Salvar</strong> e depois em <strong>↻ Atualizar</strong>.</li>
+      </ol>
+    </div>
+  `;
+  listElement.appendChild(li);
+}
+
+function renderLoadErrorMessage(listElement, message) {
+  if (!listElement) return;
+  listElement.innerHTML = '';
+  const li = document.createElement('li');
+  li.className = 'empty';
+  li.textContent = String(message || LOAD_FAILURE_MESSAGE);
+  listElement.appendChild(li);
+}
+
+async function parseApiJsonResponse(response) {
+  const rawText = await response.text();
+  let payload = null;
+  try {
+    payload = rawText ? JSON.parse(rawText) : {};
+  } catch (_error) {
+    throw new Error(LOAD_FAILURE_MESSAGE);
+  }
+
+  if (!response.ok || payload?.error) {
+    const message = String(payload?.error?.message || '').trim();
+    throw new Error(message || LOAD_FAILURE_MESSAGE);
+  }
+
+  return payload;
 }
 
 function escapeHtml(value) {
@@ -205,7 +438,7 @@ function renderTasks(tasks, settings) {
   if (!Array.isArray(tasks) || tasks.length === 0) {
     const li = document.createElement('li');
     li.className = 'empty';
-    li.textContent = `${PARTY_EMOJI} Nenhuma tarefa foco encontrada.`;
+    li.textContent = `${PARTY_EMOJI} Queria ter essa vida boa sem tarefas!`;
     els.tasksList.appendChild(li);
     return;
   }
@@ -278,7 +511,7 @@ function renderNotices(notices) {
   if (safeNotices.length === 0) {
     const li = document.createElement('li');
     li.className = 'empty';
-    li.textContent = 'Nenhum aviso ativo.';
+    li.textContent = '🥳 sem perturbações por aqui.';
     els.noticesList.appendChild(li);
     return;
   }
@@ -328,7 +561,7 @@ function renderAgenda(events, settings) {
   if (safeEvents.length === 0) {
     const li = document.createElement('li');
     li.className = 'empty';
-    li.textContent = `${PARTY_EMOJI} Nenhum evento para hoje.`;
+    li.textContent = `${PARTY_EMOJI} Nem um showzinho agendado hoje?`;
     els.agendaList.appendChild(li);
     return;
   }
@@ -479,8 +712,6 @@ function loadSettings() {
       const rawType = normalizeTaskType(saved.taskTypeFilter || 'all');
       const rawPriority = normalizeTaskPriority(saved.taskPriorityFilter || 'all');
       resolve({
-        apiBase: normalizeBase(saved.apiBase) || DEFAULT_SETTINGS.apiBase,
-        email: String(saved.email || ''),
         onlyAssigned: Boolean(saved.onlyAssigned),
         taskTypeFilter: TASK_TYPE_FILTER_VALUES.includes(rawType) ? rawType : 'all',
         taskPriorityFilter: TASK_PRIORITY_FILTER_VALUES.includes(rawPriority) ? rawPriority : 'all',
@@ -537,17 +768,30 @@ async function applyProjectTitle() {
 }
 
 function saveSettings(settings) {
+  const safe = settings && typeof settings === 'object' ? settings : {};
+  const rawType = normalizeTaskType(safe.taskTypeFilter || 'all');
+  const rawPriority = normalizeTaskPriority(safe.taskPriorityFilter || 'all');
+  const payload = {
+    onlyAssigned: Boolean(safe.onlyAssigned),
+    taskTypeFilter: TASK_TYPE_FILTER_VALUES.includes(rawType) ? rawType : 'all',
+    taskPriorityFilter: TASK_PRIORITY_FILTER_VALUES.includes(rawPriority) ? rawPriority : 'all',
+    limit: Math.max(1, Math.min(Number(safe.limit) || DEFAULT_SETTINGS.limit, 50)),
+    settingsOpen: Boolean(safe.settingsOpen),
+  };
   return new Promise((resolve) => {
-    chrome.storage.sync.set(settings, () => resolve());
+    chrome.storage.sync.set(payload, () => resolve(payload));
   });
 }
 
 function getFormSettings() {
   const rawType = normalizeTaskType(els.taskTypeFilterInput?.value || 'all');
   const rawPriority = normalizeTaskPriority(els.taskPriorityFilterInput?.value || 'all');
+  const auth = getAuthContext();
   return {
-    apiBase: normalizeBase(els.apiBaseInput?.value) || DEFAULT_SETTINGS.apiBase,
-    email: String(els.emailInput?.value || '').trim(),
+    apiBase: auth.apiBase,
+    email: auth.email,
+    authUserId: auth.userId,
+    authenticated: auth.authenticated,
     onlyAssigned: Boolean(els.onlyAssignedInput?.checked),
     taskTypeFilter: TASK_TYPE_FILTER_VALUES.includes(rawType) ? rawType : 'all',
     taskPriorityFilter: TASK_PRIORITY_FILTER_VALUES.includes(rawPriority) ? rawPriority : 'all',
@@ -585,6 +829,16 @@ function closeChatOverlay() {
 }
 
 function setMode(mode, options = {}) {
+  if (!isExtensionAuthenticated() && mode !== 'detached') {
+    currentMode = 'tasks';
+    if (els.focusTasksSection) els.focusTasksSection.classList.remove('hidden');
+    if (els.agendaSection) els.agendaSection.classList.add('hidden');
+    if (els.noticesSection) els.noticesSection.classList.add('hidden');
+    if (els.detachedSection) els.detachedSection.classList.add('hidden');
+    closeChatOverlay();
+    return;
+  }
+
   const modeValue = mode === 'chat'
     ? 'chat'
     : (mode === 'detached'
@@ -621,12 +875,6 @@ function setMode(mode, options = {}) {
   if (!keepStatus) {
     if (modeValue === 'detached') {
       updateDetachedStatus();
-    } else if (modeValue === 'agenda') {
-      setAgendaStatus('Visualizacao da agenda do dia ativa.');
-    } else if (modeValue === 'notices') {
-      setNoticesStatus('Visualização de avisos ativa.');
-    } else {
-      setStatus('Visualização de tarefas ativa.');
     }
   }
 }
@@ -639,13 +887,41 @@ async function fetchFocusTasks(settings) {
   }
 
   const response = await fetch(url.toString());
-  const payload = await response.json();
-
-  if (!response.ok || payload.error) {
-    throw new Error(payload?.error?.message || `Erro HTTP ${response.status}`);
-  }
+  const payload = await parseApiJsonResponse(response);
 
   return Array.isArray(payload.data) ? payload.data : [];
+}
+
+async function validateConfiguredEmail(settings) {
+  const apiBase = normalizeBase(settings?.apiBase || '');
+  const email = String(settings?.email || '').trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!email || !emailRegex.test(email)) {
+    emailValidationCacheKey = `${apiBase}|${email}`;
+    emailValidationCache = { valid: false };
+    return emailValidationCache;
+  }
+
+  const cacheKey = `${apiBase}|${email}`;
+  if (emailValidationCacheKey === cacheKey && emailValidationCache) {
+    return emailValidationCache;
+  }
+
+  try {
+    const response = await fetch(`${apiBase}/api/users/validate-email?email=${encodeURIComponent(email)}`);
+    const payload = await parseApiJsonResponse(response);
+
+    emailValidationCacheKey = cacheKey;
+    emailValidationCache = {
+      valid: Boolean(payload?.data?.valid),
+    };
+    return emailValidationCache;
+  } catch (_error) {
+    emailValidationCacheKey = cacheKey;
+    emailValidationCache = { valid: false };
+    return emailValidationCache;
+  }
 }
 
 function applyTaskFilters(tasks, settings) {
@@ -663,21 +939,48 @@ function applyTaskFilters(tasks, settings) {
   });
 }
 
+function buildDbQueryPayload(settings, payload = {}) {
+  const safePayload = payload && typeof payload === 'object' ? { ...payload } : {};
+  const authEmail = String(settings?.email || '').trim().toLowerCase();
+  const authUserIdRaw = settings?.authUserId;
+  const authUserId = authUserIdRaw == null ? '' : String(authUserIdRaw).trim();
+  if (/^[0-9]+$/.test(authUserId)) {
+    safePayload.auth_user_id = Number(authUserId);
+  }
+  if (authEmail) {
+    safePayload.auth_email = authEmail;
+  }
+  return safePayload;
+}
+
 async function refreshTasks(options = {}) {
   const { force = false } = options;
   if (!force && currentMode !== 'tasks') return;
 
   const settings = getFormSettings();
+  if (!settings.authenticated) {
+    return;
+  }
   setStatus('Atualizando tarefas...');
 
   try {
+    const emailValidation = await validateConfiguredEmail(settings);
+    if (!emailValidation.valid) {
+      renderInvalidEmailMessage(els.tasksList);
+      setStatus('');
+      setElementVisible(els.statusText, false);
+      return;
+    }
+
     const tasks = await fetchFocusTasks(settings);
     const filteredTasks = applyTaskFilters(tasks, settings);
     renderTasks(filteredTasks, settings);
+    setElementVisible(els.statusText, true);
     setStatus(`${filteredTasks.length} tarefa(s) foco carregada(s)`);
   } catch (error) {
-    renderTasks([], settings);
-    setStatus(`Falha ao carregar: ${error.message}`);
+    renderLoadErrorMessage(els.tasksList, LOAD_FAILURE_MESSAGE);
+    setStatus('');
+    setElementVisible(els.statusText, false);
   }
 }
 
@@ -685,17 +988,14 @@ async function fetchNotices(settings) {
   const response = await fetch(`${settings.apiBase}/api/db/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    body: JSON.stringify(buildDbQueryPayload(settings, {
       table: 'notice_board_posts',
       action: 'select',
       select: 'id,title,content,priority,status,visible_until,permission_group_id,created_at',
       order: { column: 'created_at', ascending: false },
-    }),
+    })),
   });
-  const payload = await response.json();
-  if (!response.ok || payload.error) {
-    throw new Error(payload?.error?.message || `Erro HTTP ${response.status}`);
-  }
+  const payload = await parseApiJsonResponse(response);
   return Array.isArray(payload.data) ? payload.data : [];
 }
 
@@ -706,18 +1006,15 @@ async function fetchUserPermissionGroupId(settings) {
   const response = await fetch(`${settings.apiBase}/api/db/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    body: JSON.stringify(buildDbQueryPayload(settings, {
       table: 'app_users',
       action: 'select',
       select: 'id,email,permission_group_id',
       filters: [{ column: 'email', op: 'eq', value: email }],
-    }),
+    })),
   });
 
-  const payload = await response.json();
-  if (!response.ok || payload.error) {
-    throw new Error(payload?.error?.message || `Erro HTTP ${response.status}`);
-  }
+  const payload = await parseApiJsonResponse(response);
 
   const firstUser = Array.isArray(payload.data) ? payload.data[0] : null;
   return String(firstUser?.permission_group_id || '');
@@ -737,9 +1034,20 @@ async function refreshNotices(options = {}) {
   if (!force && currentMode !== 'notices') return;
 
   const settings = getFormSettings();
+  if (!settings.authenticated) {
+    return;
+  }
   setNoticesStatus('Atualizando avisos...');
 
   try {
+    const emailValidation = await validateConfiguredEmail(settings);
+    if (!emailValidation.valid) {
+      renderInvalidEmailMessage(els.noticesList);
+      setNoticesStatus('');
+      setElementVisible(els.noticesStatusText, false);
+      return;
+    }
+
     const [notices, userPermissionGroupId] = await Promise.all([
       fetchNotices(settings),
       fetchUserPermissionGroupId(settings).catch(() => ''),
@@ -747,10 +1055,12 @@ async function refreshNotices(options = {}) {
     const scopedNotices = filterNoticesByUserGroup(notices, userPermissionGroupId);
     const activeCount = scopedNotices.filter(isNoticeVisible).length;
     renderNotices(scopedNotices);
+    setElementVisible(els.noticesStatusText, true);
     setNoticesStatus(`${activeCount} aviso(s) ativo(s) carregado(s)`);
   } catch (error) {
-    renderNotices([]);
-    setNoticesStatus(`Falha ao carregar: ${error.message}`);
+    renderLoadErrorMessage(els.noticesList, LOAD_FAILURE_MESSAGE);
+    setNoticesStatus('');
+    setElementVisible(els.noticesStatusText, false);
   }
 }
 
@@ -758,18 +1068,15 @@ async function fetchAgendaEvents(settings) {
   const response = await fetch(`${settings.apiBase}/api/db/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    body: JSON.stringify(buildDbQueryPayload(settings, {
       table: 'agenda_events',
       action: 'select',
       select: 'id,title,event_type,status,start_at,end_at,is_all_day,created_at,updated_at',
       order: { column: 'start_at', ascending: true },
       limit: 250,
-    }),
+    })),
   });
-  const payload = await response.json();
-  if (!response.ok || payload.error) {
-    throw new Error(payload?.error?.message || `Erro HTTP ${response.status}`);
-  }
+  const payload = await parseApiJsonResponse(response);
   return Array.isArray(payload.data) ? payload.data : [];
 }
 
@@ -778,16 +1085,29 @@ async function refreshAgenda(options = {}) {
   if (!force && currentMode !== 'agenda') return;
 
   const settings = getFormSettings();
+  if (!settings.authenticated) {
+    return;
+  }
   setAgendaStatus('Atualizando agenda do dia...');
 
   try {
+    const emailValidation = await validateConfiguredEmail(settings);
+    if (!emailValidation.valid) {
+      renderInvalidEmailMessage(els.agendaList);
+      setAgendaStatus('');
+      setElementVisible(els.agendaStatusText, false);
+      return;
+    }
+
     const events = await fetchAgendaEvents(settings);
     const todayCount = events.filter((item) => isSameDay(item?.start_at, new Date())).length;
     renderAgenda(events, settings);
+    setElementVisible(els.agendaStatusText, true);
     setAgendaStatus(`${todayCount} item(ns) para hoje`);
   } catch (error) {
-    renderAgenda([], settings);
-    setAgendaStatus(`Falha ao carregar: ${error.message}`);
+    renderLoadErrorMessage(els.agendaList, LOAD_FAILURE_MESSAGE);
+    setAgendaStatus('');
+    setElementVisible(els.agendaStatusText, false);
   }
 }
 
@@ -800,14 +1120,19 @@ function refreshCurrentMode(options = {}) {
 async function init() {
   await applyProjectTitle();
   renderFilterOptions();
-  const settings = await loadSettings();
-  if (els.apiBaseInput) els.apiBaseInput.value = settings.apiBase;
-  if (els.emailInput) els.emailInput.value = settings.email;
+  const [settings, loadedAuthState] = await Promise.all([loadSettings(), loadAuthState()]);
+  if (els.loginApiBaseInput) els.loginApiBaseInput.value = loadedAuthState.apiBase || DEFAULT_AUTH_STATE.apiBase;
+  if (els.loginEmailInput) els.loginEmailInput.value = loadedAuthState.email || '';
+  if (els.loginPasswordInput) els.loginPasswordInput.value = '';
   if (els.onlyAssignedInput) els.onlyAssignedInput.checked = Boolean(settings.onlyAssigned);
   if (els.taskTypeFilterInput) els.taskTypeFilterInput.value = settings.taskTypeFilter || 'all';
   if (els.taskPriorityFilterInput) els.taskPriorityFilterInput.value = settings.taskPriorityFilter || 'all';
   if (els.limitInput) els.limitInput.value = String(settings.limit);
   setSettingsVisibility(Boolean(settings.settingsOpen));
+  applyAuthUI();
+  setElementVisible(els.statusText, false);
+  setElementVisible(els.noticesStatusText, false);
+  setElementVisible(els.agendaStatusText, false);
 
   await loadDetachedNotes();
   renderDetachedNotes();
@@ -825,8 +1150,30 @@ async function init() {
     els.saveSettingsBtn.addEventListener('click', async () => {
       const nextSettings = getFormSettings();
       await saveSettings(nextSettings);
-      setStatus('Configuração salva.');
+      emailValidationCacheKey = '';
+      emailValidationCache = null;
+      applySaveButtonFeedback(els.saveSettingsBtn);
       await refreshCurrentMode({ force: true });
+    });
+  }
+
+  if (els.loginBtn) {
+    els.loginBtn.addEventListener('click', async () => {
+      await loginExtension();
+    });
+  }
+
+  if (els.loginPasswordInput) {
+    els.loginPasswordInput.addEventListener('keydown', async (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      await loginExtension();
+    });
+  }
+
+  if (els.logoutBtn) {
+    els.logoutBtn.addEventListener('click', async () => {
+      await logoutExtension();
     });
   }
 
@@ -903,9 +1250,15 @@ async function init() {
   }
 
   setMode('tasks', { keepStatus: true });
-  await refreshCurrentMode({ force: true });
+  if (isExtensionAuthenticated()) {
+    await refreshCurrentMode({ force: true });
+  } else {
+    setAuthStatus('Faça login para carregar tarefas, agenda e avisos.', 'info');
+  }
   setInterval(() => {
-    refreshCurrentMode();
+    if (isExtensionAuthenticated()) {
+      refreshCurrentMode();
+    }
   }, 45000);
 }
 
