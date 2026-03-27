@@ -205,6 +205,18 @@ const MUTABLE_TABLES = new Set([
   'task_report_group_shares',
 ]);
 
+const SELECT_PERMISSION_BY_TABLE = {
+  user_profiles: { screen: 'chat', option: 'view' },
+  columns: { screen: 'quadro_tarefas', option: 'view' },
+  tasks: { screen: 'quadro_tarefas', option: 'view' },
+  clients: { screen: 'clientes', option: 'view' },
+  chat_messages: { screen: 'chat', option: 'view' },
+  agenda_events: { screen: 'agenda', option: 'view' },
+  notice_board_posts: { screen: 'avisos', option: 'view' },
+  task_report_definitions: { screen: 'relatorios', option: 'view' },
+  task_report_group_shares: { screen: 'relatorios', option: 'view' },
+};
+
 function normalizeTable(table) {
   if (!table || typeof table !== 'string') return null;
   return Object.prototype.hasOwnProperty.call(TABLE_COLUMNS, table) ? table : null;
@@ -278,6 +290,120 @@ function normalizeWriteValue(table, column, value) {
 
 function isNumericId(value) {
   return /^[0-9]+$/.test(String(value ?? '').trim());
+}
+
+async function hasUserPermission(userId, screenKey, optionKey) {
+  if (!isNumericId(userId)) return false;
+  if (!screenKey || !optionKey) return true;
+
+  const userResult = await pool.query(
+    'SELECT permission_group_id FROM app_users WHERE id = $1 LIMIT 1',
+    [Number(userId)]
+  );
+  const groupId = userResult.rows?.[0]?.permission_group_id || null;
+  if (!groupId) return false;
+
+  const ruleResult = await pool.query(
+    `SELECT 1
+       FROM permission_group_rules
+      WHERE group_id = $1
+        AND screen_key = $2
+        AND option_key = $3
+        AND allowed = TRUE
+      LIMIT 1`,
+    [groupId, String(screenKey), String(optionKey)]
+  );
+  return ruleResult.rows.length > 0;
+}
+
+function hasOnlyKeys(payload, allowedKeys) {
+  const keys = Object.keys(payload || {});
+  return keys.length > 0 && keys.every((key) => allowedKeys.has(String(key)));
+}
+
+function resolvePermissionForDbQuery(table, action, data) {
+  if (action === 'select') {
+    return SELECT_PERMISSION_BY_TABLE[table] || null;
+  }
+
+  if (action === 'insert') {
+    if (table === 'tasks') return { screen: 'quadro_tarefas', option: 'create' };
+    if (table === 'clients') return { screen: 'clientes', option: 'create' };
+    if (table === 'agenda_events') return { screen: 'agenda', option: 'create' };
+    if (table === 'notice_board_posts') return { screen: 'avisos', option: 'create' };
+    if (table === 'chat_messages') return { screen: 'chat', option: 'send' };
+    if (table === 'app_users') return { screen: 'usuarios', option: 'create' };
+    if (table === 'columns') return { screen: 'configuracoes', option: 'table' };
+    if (table === 'permission_groups' || table === 'permission_group_rules') return { screen: 'configuracoes', option: 'permissions' };
+    if (table === 'task_report_definitions') return { screen: 'relatorios', option: 'create' };
+    if (table === 'task_report_group_shares') return { screen: 'relatorios', option: 'share' };
+    return null;
+  }
+
+  if (action === 'update') {
+    const payload = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+
+    if (table === 'tasks') {
+      if (hasOnlyKeys(payload, new Set(['is_pinned', 'focus_order', 'updated_at']))) {
+        return { screen: 'quadro_tarefas', option: 'pin' };
+      }
+      if (hasOnlyKeys(payload, new Set(['board_column_id', 'status', 'updated_at']))) {
+        return { screen: 'quadro_tarefas', option: 'move' };
+      }
+      return { screen: 'quadro_tarefas', option: 'edit' };
+    }
+    if (table === 'clients') return { screen: 'clientes', option: 'edit' };
+    if (table === 'agenda_events') return { screen: 'agenda', option: 'edit' };
+    if (table === 'notice_board_posts') {
+      const isArchiveOnly = String(payload.status || '').toLowerCase() === 'archived'
+        && hasOnlyKeys(payload, new Set(['status', 'updated_at']));
+      return { screen: 'avisos', option: isArchiveOnly ? 'archive' : 'edit' };
+    }
+    if (table === 'chat_messages') return { screen: 'chat', option: 'view' };
+    if (table === 'app_users') return { screen: 'usuarios', option: 'edit' };
+    if (table === 'columns') return { screen: 'configuracoes', option: 'table' };
+    if (table === 'permission_groups' || table === 'permission_group_rules') return { screen: 'configuracoes', option: 'permissions' };
+    if (table === 'task_report_definitions') return { screen: 'relatorios', option: 'edit' };
+    if (table === 'task_report_group_shares') return { screen: 'relatorios', option: 'share' };
+    return null;
+  }
+
+  if (action === 'delete') {
+    if (table === 'tasks') return { screen: 'quadro_tarefas', option: 'delete' };
+    if (table === 'clients') return { screen: 'clientes', option: 'delete' };
+    if (table === 'agenda_events') return { screen: 'agenda', option: 'delete' };
+    if (table === 'notice_board_posts') return { screen: 'avisos', option: 'delete' };
+    if (table === 'app_users') return { screen: 'usuarios', option: 'delete' };
+    if (table === 'columns') return { screen: 'configuracoes', option: 'table' };
+    if (table === 'permission_groups' || table === 'permission_group_rules') return { screen: 'configuracoes', option: 'permissions' };
+    if (table === 'task_report_definitions') return { screen: 'relatorios', option: 'edit' };
+    if (table === 'task_report_group_shares') return { screen: 'relatorios', option: 'share' };
+    return null;
+  }
+
+  return null;
+}
+
+function hasTaskAttachmentPayload(action, data) {
+  const attachmentKeys = ['attachment_name', 'attachment_path', 'attachment_type', 'attachment_size', 'attachment_data'];
+  const hasAnyAttachmentField = (payload) => {
+    if (!payload || typeof payload !== 'object') return false;
+    return attachmentKeys.some((key) => {
+      if (!Object.prototype.hasOwnProperty.call(payload, key)) return false;
+      const value = payload[key];
+      return value !== null && value !== undefined && String(value).trim() !== '';
+    });
+  };
+
+  if (action === 'insert' && Array.isArray(data)) {
+    return data.some((row) => hasAnyAttachmentField(row));
+  }
+
+  if (action === 'update' && data && typeof data === 'object' && !Array.isArray(data)) {
+    return hasAnyAttachmentField(data);
+  }
+
+  return false;
 }
 
 async function normalizeAgendaCreatedBy(value) {
@@ -708,6 +834,7 @@ app.post('/api/db/query', async (req, res) => {
     data,
     or,
     returning,
+    auth_user_id: authUserIdRaw,
   } = req.body || {};
 
   const table = normalizeTable(rawTable);
@@ -720,6 +847,31 @@ app.post('/api/db/query', async (req, res) => {
   }
 
   try {
+    const authUserId = isNumericId(authUserIdRaw) ? Number(authUserIdRaw) : null;
+    const requiredPermission = resolvePermissionForDbQuery(table, action, data);
+    if (requiredPermission) {
+      const allowed = await hasUserPermission(authUserId, requiredPermission.screen, requiredPermission.option);
+      if (!allowed) {
+        return res.status(403).json({
+          data: null,
+          error: {
+            message: `Permissão negada para ${requiredPermission.screen}.${requiredPermission.option}`,
+          },
+        });
+      }
+    }
+    if (table === 'tasks' && (action === 'insert' || action === 'update') && hasTaskAttachmentPayload(action, data)) {
+      const canAttach = await hasUserPermission(authUserId, 'quadro_tarefas', 'attachment');
+      if (!canAttach) {
+        return res.status(403).json({
+          data: null,
+          error: {
+            message: 'Permissão negada para quadro_tarefas.attachment',
+          },
+        });
+      }
+    }
+
     let result;
 
     if (action === 'select') {

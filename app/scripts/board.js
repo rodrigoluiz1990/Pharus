@@ -42,6 +42,45 @@ const BoardModule = (() => {
     let lastDataSignature = null;
     let lastLoadHadChanges = true;
     let queryTaskHandled = false;
+    let boardPermissions = {
+        view: true,
+        create: true,
+        edit: true,
+        move: true,
+        delete: true,
+        pin: true,
+        filter: true,
+        sort: true,
+        import: true,
+    };
+
+    const hasBoardPermission = (optionKey) => {
+        if (typeof PermissionService === 'undefined' || typeof PermissionService.has !== 'function') return true;
+        return PermissionService.has('quadro_tarefas', optionKey);
+    };
+
+    const ensureBoardPermission = (optionKey, message) => {
+        if (typeof PermissionService === 'undefined' || typeof PermissionService.ensure !== 'function') return true;
+        return PermissionService.ensure('quadro_tarefas', optionKey, message);
+    };
+
+    const loadBoardPermissions = async () => {
+        if (typeof PermissionService !== 'undefined' && typeof PermissionService.init === 'function') {
+            await PermissionService.init();
+        }
+
+        boardPermissions = {
+            view: hasBoardPermission('view'),
+            create: hasBoardPermission('create'),
+            edit: hasBoardPermission('edit'),
+            move: hasBoardPermission('move'),
+            delete: hasBoardPermission('delete'),
+            pin: hasBoardPermission('pin'),
+            filter: hasBoardPermission('filter'),
+            sort: hasBoardPermission('sort'),
+            import: hasBoardPermission('import'),
+        };
+    };
 
     const buildDataSignature = (columnsData, tasksData, usersData, clientsData) => {
         const safeColumns = Array.isArray(columnsData) ? columnsData : [];
@@ -257,7 +296,9 @@ const BoardModule = (() => {
         const addButton = document.createElement("button");
         addButton.className = "add-task-btn";
         addButton.innerHTML = '<i class="fas fa-plus"></i> Adicionar tarefa';
+        addButton.disabled = !boardPermissions.create;
         addButton.addEventListener("click", () => {
+            if (!ensureBoardPermission('create', 'Você não tem permissão para criar tarefas.')) return;
             ModalModule.showModal(column.id);
         });
 
@@ -330,6 +371,7 @@ const BoardModule = (() => {
         if (boardPinBtn) {
             boardPinBtn.addEventListener("click", async (e) => {
                 e.stopPropagation();
+                if (!ensureBoardPermission('pin', 'Você não tem permissão para alterar destaque das tarefas.')) return;
                 await toggleTaskPinned(task.id, !Boolean(task.is_pinned));
             });
         }
@@ -458,6 +500,7 @@ const BoardModule = (() => {
         if (btn) {
             btn.addEventListener("click", (e) => {
                 e.stopPropagation();
+                if (!ensureBoardPermission('edit', 'Você não tem permissão para editar tarefas.')) return;
                 openTaskModalFallback(taskId);
             });
         }
@@ -468,6 +511,7 @@ const BoardModule = (() => {
         if (pinBtn) {
             pinBtn.addEventListener("click", async (e) => {
                 e.stopPropagation();
+                if (!ensureBoardPermission('pin', 'Você não tem permissão para alterar destaque das tarefas.')) return;
                 const task = tasks.find((item) => String(item.id) === String(taskId));
                 if (!task) return;
                 await toggleTaskPinned(taskId, !Boolean(task.is_pinned));
@@ -487,6 +531,7 @@ const BoardModule = (() => {
         if (titlePinBtn) {
             titlePinBtn.addEventListener("click", async (e) => {
                 e.stopPropagation();
+                if (!ensureBoardPermission('pin', 'Você não tem permissão para alterar destaque das tarefas.')) return;
                 const task = tasks.find((item) => String(item.id) === String(taskId));
                 if (!task) return;
                 await toggleTaskPinned(taskId, !Boolean(task.is_pinned));
@@ -495,12 +540,14 @@ const BoardModule = (() => {
 
         row.addEventListener("click", (e) => {
             if (e.target.closest("button") || e.target.closest(".pin-toggle-btn") || e.target.closest('td[data-col="pin"]')) return;
+            if (!ensureBoardPermission('edit', 'Você não tem permissão para editar tarefas.')) return;
             openTaskModalFallback(taskId);
         });
     };
 
     // Função fallback melhorada para abrir modal
     const openTaskModalFallback = async (taskRef) => {
+        if (!ensureBoardPermission('edit', 'Você não tem permissão para editar tarefas.')) return;
         console.log('Abrindo modal para tarefa:', taskRef, '(id)');
 
         try {
@@ -736,6 +783,7 @@ const BoardModule = (() => {
     };
 
     const moveTaskToColumn = async (taskId, columnId) => {
+        if (!ensureBoardPermission('move', 'Você não tem permissão para mover tarefas.')) return false;
         try {
             const status = await getStatusFromColumnId(columnId);
             await StorageModule.updateTask(taskId, { board_column_id: columnId, status: status });
@@ -787,6 +835,7 @@ const BoardModule = (() => {
         columnContent.addEventListener("drop", async (e) => {
             e.preventDefault();
             columnContent.style.backgroundColor = "";
+            if (!ensureBoardPermission('move', 'Você não tem permissão para mover tarefas.')) return;
 
             const taskId = e.dataTransfer.getData("taskId");
             if (taskId) {
@@ -800,6 +849,7 @@ const BoardModule = (() => {
         taskElement.addEventListener("click", (e) => {
             // Só abre o modal se não foi um clique em elementos interiores
             if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                if (!ensureBoardPermission('edit', 'Você não tem permissão para editar tarefas.')) return;
                 openTaskModalFallback(taskId);
             }
         });
@@ -892,6 +942,11 @@ const BoardModule = (() => {
         isInitializing = true;
 
         try {
+            await loadBoardPermissions();
+            if (!boardPermissions.view) {
+                ensureBoardPermission('view', 'Você não tem permissão para visualizar o quadro de tarefas.');
+                return;
+            }
             await loadData({ silent: true });
             setupEventListeners();
             setupFilterListeners();
@@ -918,7 +973,9 @@ const BoardModule = (() => {
         if (sociousViewBtn) sociousViewBtn.addEventListener("click", showSociousView);
         if (titleOnlyViewBtn) titleOnlyViewBtn.addEventListener("click", showTitleOnlyView);
         if (addTaskSocious) {
+            addTaskSocious.disabled = !boardPermissions.create;
             addTaskSocious.addEventListener("click", () => {
+                if (!ensureBoardPermission('create', 'Você não tem permissão para criar tarefas.')) return;
                 const pendingColumn = columns.find(col => col.type === 'pending');
                 ModalModule.showModal(pendingColumn ? pendingColumn.id : null);
             });

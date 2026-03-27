@@ -80,8 +80,23 @@ class SidebarManager {
         this.setupCustomSidebarMenuListeners();
         this.setupSidebarChatUnreadBadge();
         this.setupChatMenuItem(); // MOVER para depois do setupNavigation
+        this.applyPermissionsInSidebar();
 
         console.log('Sidebar inicializado com sucesso');
+    }
+
+    async applyPermissionsInSidebar() {
+        try {
+            if (typeof PermissionService === 'undefined') return;
+            if (typeof PermissionService.init === 'function') {
+                await PermissionService.init();
+            }
+            if (typeof PermissionService.applySidebarVisibility === 'function') {
+                PermissionService.applySidebarVisibility();
+            }
+        } catch (error) {
+            console.warn('Falha ao aplicar permissões no menu lateral:', error);
+        }
     }
 
     setupPageTransition() {
@@ -403,6 +418,12 @@ class SidebarManager {
 
     async refreshSidebarUnreadFromApi() {
         try {
+            if (typeof PermissionService !== 'undefined' && typeof PermissionService.has === 'function') {
+                if (!PermissionService.has('chat', 'view')) {
+                    this.applySidebarUnreadCount(0);
+                    return;
+                }
+            }
             if (!window.dbClient || !window.dbClient.auth) return;
 
             const { data: sessionData, error: sessionError } = await window.dbClient.auth.getSession();

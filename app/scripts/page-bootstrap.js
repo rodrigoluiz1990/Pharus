@@ -173,6 +173,16 @@ const PageBootstrap = (() => {
 
         await waitForDbClient();
 
+        await loadScripts([
+            'scripts/permission-service.js',
+            'scripts/utils.js',
+        ]);
+
+        if (typeof PermissionService !== 'undefined' && typeof PermissionService.init === 'function') {
+            await PermissionService.init();
+            if (!PermissionService.guardPageAccess()) return;
+        }
+
         if (typeof ComponentLoader !== 'undefined' && typeof ComponentLoader.loadAllComponents === 'function') {
             await ComponentLoader.loadAllComponents();
         }

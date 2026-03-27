@@ -93,6 +93,10 @@ const FilterModule = (() => {
     const filterAssignee = document.getElementById('filterAssignee');
     const filterPriority = document.getElementById('filterPriority');
     const filterType = document.getElementById('filterType');
+    const ensureFilterPermission = (message) => {
+        if (typeof PermissionService === 'undefined' || typeof PermissionService.ensure !== 'function') return true;
+        return PermissionService.ensure('quadro_tarefas', 'filter', message || 'Você não tem permissão para filtrar tarefas.');
+    };
 
     const getPriorityDefinitions = () => {
         if (window.UtilsModule && typeof window.UtilsModule.getPriorityDefinitions === 'function') {
@@ -161,7 +165,13 @@ const FilterModule = (() => {
 
     // Configurar event listeners
     const setupEventListeners = () => {
-        if (filterBtn) {filterBtn.addEventListener('click', showFilterModal);}
+        if (filterBtn) {
+            const allowed = typeof PermissionService === 'undefined' || typeof PermissionService.has !== 'function'
+                ? true
+                : PermissionService.has('quadro_tarefas', 'filter');
+            filterBtn.disabled = !allowed;
+            filterBtn.addEventListener('click', showFilterModal);
+        }
         if (closeFilterModal) {closeFilterModal.addEventListener('click', hideFilterModal);}
         if (cancelFilter) {cancelFilter.addEventListener('click', hideFilterModal);}
         if (filterForm) {filterForm.addEventListener('submit', applyFilters);}
@@ -179,6 +189,7 @@ const FilterModule = (() => {
 
     // Mostrar modal de filtro
     const showFilterModal = () => {
+        if (!ensureFilterPermission()) return;
         if (!filterModal) return;
 
         populateAssigneeFilter();
@@ -280,6 +291,7 @@ const FilterModule = (() => {
     // Aplicar filtros
     const applyFilters = (e) => {
         e.preventDefault();
+        if (!ensureFilterPermission()) return;
 
         // Coletar valores dos filtros
         const statusSelect = document.getElementById('filterStatus');

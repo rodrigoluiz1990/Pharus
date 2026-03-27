@@ -1,4 +1,4 @@
-ï»¿// scripts/utils.js
+// scripts/utils.js
 const UtilsModule = (() => {
   let lastSaveButton = null;
   const SAVE_FEEDBACK_ATTR = 'data-save-feedback-original-html';
@@ -8,19 +8,19 @@ const UtilsModule = (() => {
   const TASK_PRIORITY_DEFINITIONS = [
       { value: 'very_high', label: 'Muito Alta', class: 'muito_alta', icon: 'fas fa-angles-up', defaultColor: '#c62828' },
       { value: 'high', label: 'Alta', class: 'alta', icon: 'fas fa-arrow-up', defaultColor: '#ef5350' },
-      { value: 'medium', label: 'MÃ©dia', class: 'media', icon: 'fas fa-minus', defaultColor: '#f4b400' },
+      { value: 'medium', label: 'Média', class: 'media', icon: 'fas fa-minus', defaultColor: '#f4b400' },
       { value: 'low', label: 'Baixa', class: 'baixa', icon: 'fas fa-arrow-down', defaultColor: '#43a047' },
       { value: 'very_low', label: 'Muito Baixa', class: 'muito_baixa', icon: 'fas fa-angles-down', defaultColor: '#2e7d32' },
   ];
 
   const TASK_TYPE_DEFINITIONS = [
-      { value: 'new', label: 'Novo', class: 'new', icon: 'fas fa-sparkles', defaultColor: '#1e88e5' },
-      { value: 'optimization', label: 'OtimizaÃ§Ã£o', class: 'optimization', icon: 'fas fa-gauge-high', defaultColor: '#00897b' },
+      { value: 'new', label: 'Novo', class: 'new', icon: 'fas fa-star', defaultColor: '#1e88e5' },
+      { value: 'optimization', label: 'Otimização', class: 'optimization', icon: 'fas fa-gauge-high', defaultColor: '#00897b' },
       { value: 'improvement', label: 'Melhoria', class: 'improvement', icon: 'fas fa-wand-magic-sparkles', defaultColor: '#43a047' },
       { value: 'discussion', label: 'Para Discutir', class: 'discussion', icon: 'fas fa-comments', defaultColor: '#8e24aa' },
-      { value: 'suggestion', label: 'SugestÃ£o', class: 'suggestion', icon: 'fas fa-lightbulb', defaultColor: '#fb8c00' },
+      { value: 'suggestion', label: 'Sugestão', class: 'suggestion', icon: 'fas fa-lightbulb', defaultColor: '#fb8c00' },
       { value: 'issue', label: 'Problema', class: 'issue', icon: 'fas fa-triangle-exclamation', defaultColor: '#e53935' },
-      { value: 'epic', label: 'Ã‰pico', class: 'epic', icon: 'fas fa-mountain', defaultColor: '#3949ab' },
+      { value: 'epic', label: 'Épico', class: 'epic', icon: 'fas fa-bolt', defaultColor: '#3949ab' },
   ];
 
   const PRIORITY_ALIASES = {
@@ -267,7 +267,7 @@ const UtilsModule = (() => {
       });
   }
 
-  // Formatar data - Corrigindo problema de fuso horÃ¡rio
+  // Formatar data - Corrigindo problema de fuso horário
   const formatDate = (dateString) => {
       if (!dateString) return '-';
       try {
@@ -295,7 +295,7 @@ const UtilsModule = (() => {
           pending: { text: 'Pendente', class: 'pending' },
           in_progress: { text: 'Em Andamento', class: 'in_progress' },
           review: { text: 'Em Teste', class: 'review' },
-          completed: { text: 'ConcluÃ­do', class: 'completed' },
+          completed: { text: 'Concluído', class: 'completed' },
           active: { text: 'Ativo', class: 'active' },
           inactive: { text: 'Inativo', class: 'inactive' },
       };
@@ -395,7 +395,7 @@ const UtilsModule = (() => {
       }
   };
 
-  const showPermissionDeniedModal = (message = 'VocÃª nÃ£o tem permissÃ£o para executar esta aÃ§Ã£o.') => {
+  const showPermissionDeniedModal = (message = 'Você não tem permissão para executar esta ação.') => {
       if (typeof document === 'undefined') return;
 
       let overlay = document.getElementById('permissionDeniedModal');
@@ -446,7 +446,7 @@ const UtilsModule = (() => {
 
       const messageEl = document.getElementById('permissionDeniedModalMessage');
       if (messageEl) {
-          messageEl.textContent = String(message || 'VocÃª nÃ£o tem permissÃ£o para executar esta aÃ§Ã£o.');
+          messageEl.textContent = String(message || 'Você não tem permissão para executar esta ação.');
       }
       overlay.classList.add('visible');
       overlay.style.display = 'flex';
@@ -468,7 +468,7 @@ const UtilsModule = (() => {
       }
   };
 
-  const handleApiError = (error, context = 'operaÃ§Ã£o') => {
+  const handleApiError = (error, context = 'operação') => {
       console.error(`Erro em ${context}:`, error);
 
       let message = 'Erro inesperado';
@@ -500,7 +500,7 @@ const UtilsModule = (() => {
   const getColumnStatusFromSupabase = async (columnId) => {
       try {
           if (typeof window.dbClient === 'undefined') {
-              console.warn('Supabase client nÃ£o disponÃ­vel');
+              console.warn('Supabase client não disponível');
               return 'pending';
           }
 
@@ -577,5 +577,6 @@ const UtilsModule = (() => {
       showPermissionDeniedModal,
   };
 })();
+
 
 

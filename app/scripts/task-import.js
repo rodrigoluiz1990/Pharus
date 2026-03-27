@@ -18,6 +18,10 @@ const TaskImportModule = (() => {
     let xlsxLoaderPromise = null;
     let previewRows = [];
     let lookupData = null;
+    const ensureImportPermission = (message) => {
+        if (typeof PermissionService === 'undefined' || typeof PermissionService.ensure !== 'function') return true;
+        return PermissionService.ensure('quadro_tarefas', 'import', message || 'Você não tem permissão para importar tarefas.');
+    };
 
     const HEADER_ALIASES = {
         title: ['title', 'titulo', 'nome'],
@@ -803,10 +807,12 @@ const TaskImportModule = (() => {
     };
 
     const onImportClick = () => {
+        if (!ensureImportPermission()) return;
         openImportModal();
     };
 
     const onStartImportClick = () => {
+        if (!ensureImportPermission()) return;
         if (!fileInput) return;
         fileInput.click();
     };
@@ -844,6 +850,7 @@ const TaskImportModule = (() => {
     };
 
     const onConfirmImportClick = async () => {
+        if (!ensureImportPermission()) return;
         if (!lookupData || !previewRows.length) return;
 
         const invalid = previewRows.filter((row) => row.error);
@@ -898,6 +905,10 @@ const TaskImportModule = (() => {
     const init = () => {
         if (isInitialized) return;
         if (!importBtn || !fileInput || !importModal || !startImportBtn || !cancelImportBtn || !closeImportBtn) return;
+        const allowed = typeof PermissionService === 'undefined' || typeof PermissionService.has !== 'function'
+            ? true
+            : PermissionService.has('quadro_tarefas', 'import');
+        importBtn.disabled = !allowed;
 
         importBtn.addEventListener('click', onImportClick);
         startImportBtn.addEventListener('click', onStartImportClick);

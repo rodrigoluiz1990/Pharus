@@ -78,6 +78,13 @@ const SettingsModule = (() => {
     const SETTINGS_CARDS_STATE_KEY = 'pharus_settings_cards_state';
     const DEFAULT_TABLE_COLUMNS_ORDER = ['pin', 'title', 'assignee', 'request_date', 'due_date', 'status', 'priority', 'client', 'type', 'actions'];
     const ALLOWED_SETTINGS_TABS = new Set(['general', 'permissions', 'users', 'extension', 'table']);
+    const SETTINGS_TAB_PERMISSION_MAP = {
+        general: 'project',
+        permissions: 'permissions',
+        users: 'users',
+        extension: 'extension',
+        table: 'table',
+    };
     const DEFAULT_TABLE_COLUMNS_WIDTHS = {
         pin: 56,
         title: 320,
@@ -707,7 +714,44 @@ const SettingsModule = (() => {
         return copied;
     };
 
-    const init = () => {
+    const hasSettingsPermission = (optionKey) => {
+        if (typeof PermissionService === 'undefined' || typeof PermissionService.has !== 'function') return true;
+        return PermissionService.has('configuracoes', optionKey);
+    };
+
+    const ensureSettingsPermission = (optionKey, message) => {
+        if (typeof PermissionService === 'undefined' || typeof PermissionService.ensure !== 'function') return true;
+        return PermissionService.ensure('configuracoes', optionKey, message || 'Você não tem permissão para executar esta ação.');
+    };
+
+    const hasUsersScreenViewPermission = () => {
+        if (typeof PermissionService === 'undefined' || typeof PermissionService.has !== 'function') return true;
+        return PermissionService.has('usuarios', 'view');
+    };
+
+    const applySettingsTabPermissions = () => {
+        settingsTabButtons.forEach((button) => {
+            const tabId = String(button.dataset.tab || '').trim();
+            const optionKey = SETTINGS_TAB_PERMISSION_MAP[tabId];
+            if (!optionKey) return;
+            let allowed = hasSettingsPermission(optionKey);
+            if (tabId === 'users') {
+                allowed = allowed && hasUsersScreenViewPermission();
+            }
+            button.style.display = allowed ? '' : 'none';
+        });
+    };
+
+    const init = async () => {
+        if (typeof PermissionService !== 'undefined' && typeof PermissionService.init === 'function') {
+            await PermissionService.init();
+        }
+        const canViewSettings = hasSettingsPermission('view') || Object.values(SETTINGS_TAB_PERMISSION_MAP).some((optionKey) => hasSettingsPermission(optionKey));
+        if (!canViewSettings) {
+            ensureSettingsPermission('view', 'Você não tem permissão para acessar configurações.');
+            return;
+        }
+        applySettingsTabPermissions();
         initTabs();
         initCardToggles();
         hideStatusHint(projectDisplayNameStatus);
@@ -794,6 +838,7 @@ const SettingsModule = (() => {
         if (saveGeneralSettingsBtn && projectDisplayNameInput && customSidebarMenuNameInput && customSidebarMenuUrlInput && customSidebarMenuIconInput && customSidebarMenuEnabledInput) {
             saveGeneralSettingsBtn.addEventListener('click', (event) => {
                 event.preventDefault();
+                if (!ensureSettingsPermission('project', 'Você não tem permissão para alterar configurações gerais.')) return;
                 const originalHtml = saveGeneralSettingsBtn.innerHTML;
 
                 const normalizedName = normalizeProjectDisplayName(projectDisplayNameInput.value);
@@ -888,6 +933,7 @@ const SettingsModule = (() => {
         if (saveTableColumnsOrderBtn) {
             saveTableColumnsOrderBtn.addEventListener('click', (event) => {
                 event.preventDefault();
+                if (!ensureSettingsPermission('table', 'Você não tem permissão para alterar a ordem das colunas.')) return;
                 const originalHtml = saveTableColumnsOrderBtn.innerHTML;
                 localStorage.setItem(TABLE_COLUMNS_ORDER_KEY, JSON.stringify(tableColumnsOrder));
                 notify('Ordem das colunas salva com sucesso.', 'success');
@@ -898,6 +944,7 @@ const SettingsModule = (() => {
         if (resetTableColumnsOrderBtn) {
             resetTableColumnsOrderBtn.addEventListener('click', (event) => {
                 event.preventDefault();
+                if (!ensureSettingsPermission('table', 'Você não tem permissão para alterar a ordem das colunas.')) return;
                 const originalHtml = resetTableColumnsOrderBtn.innerHTML;
                 tableColumnsOrder = [...DEFAULT_TABLE_COLUMNS_ORDER];
                 localStorage.setItem(TABLE_COLUMNS_ORDER_KEY, JSON.stringify(tableColumnsOrder));
@@ -911,6 +958,7 @@ const SettingsModule = (() => {
         if (saveTableColumnsWidthBtn) {
             saveTableColumnsWidthBtn.addEventListener('click', (event) => {
                 event.preventDefault();
+                if (!ensureSettingsPermission('table', 'Você não tem permissão para alterar a largura das colunas.')) return;
                 const originalHtml = saveTableColumnsWidthBtn.innerHTML;
                 localStorage.setItem(TABLE_COLUMNS_WIDTHS_KEY, JSON.stringify(tableColumnsWidths));
                 notify('Largura das colunas salva com sucesso.', 'success');
@@ -921,6 +969,7 @@ const SettingsModule = (() => {
         if (resetTableColumnsWidthBtn) {
             resetTableColumnsWidthBtn.addEventListener('click', (event) => {
                 event.preventDefault();
+                if (!ensureSettingsPermission('table', 'Você não tem permissão para alterar a largura das colunas.')) return;
                 const originalHtml = resetTableColumnsWidthBtn.innerHTML;
                 tableColumnsWidths = { ...DEFAULT_TABLE_COLUMNS_WIDTHS };
                 localStorage.setItem(TABLE_COLUMNS_WIDTHS_KEY, JSON.stringify(tableColumnsWidths));
@@ -933,7 +982,21 @@ const SettingsModule = (() => {
 
     const normalizeTab = (tabId) => {
         const cleaned = String(tabId || '').trim();
-        return ALLOWED_SETTINGS_TABS.has(cleaned) ? cleaned : 'extension';
+        if (ALLOWED_SETTINGS_TABS.has(cleaned)) {
+            const optionKey = SETTINGS_TAB_PERMISSION_MAP[cleaned];
+            const hasOptionPermission = !optionKey || hasSettingsPermission(optionKey);
+            const hasUsersPermission = cleaned !== 'users' || hasUsersScreenViewPermission();
+            if (hasOptionPermission && hasUsersPermission) return cleaned;
+        }
+        const firstAllowed = settingsTabButtons
+            .map((button) => String(button.dataset.tab || '').trim())
+            .find((tab) => {
+                const optionKey = SETTINGS_TAB_PERMISSION_MAP[tab];
+                if (!optionKey || !hasSettingsPermission(optionKey)) return false;
+                if (tab === 'users' && !hasUsersScreenViewPermission()) return false;
+                return true;
+            });
+        return firstAllowed || 'general';
     };
 
     const setActiveTab = (tabId) => {
@@ -1158,6 +1221,7 @@ if (document.readyState === 'loading') {
 } else {
     SettingsModule.init();
 }
+
 
 
 

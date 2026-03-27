@@ -27,6 +27,14 @@
     padding: 12px;
     display: grid;
     gap: 8px;
+    cursor: pointer;
+    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.notice-card:hover {
+    border-color: #c7d6e7;
+    box-shadow: 0 6px 18px rgba(18, 43, 71, 0.08);
+    transform: translateY(-1px);
 }
 
 .notice-card.priority-urgent {
@@ -66,6 +74,7 @@
     font-size: 11px;
     font-weight: 700;
     padding: 4px 8px;
+    white-space: nowrap;
 }
 
 .notice-content {
@@ -75,12 +84,49 @@
     white-space: pre-wrap;
 }
 
+.notice-badges {
+    display: grid;
+    gap: 4px;
+    justify-items: end;
+    align-content: start;
+    max-width: 150px;
+}
+
+.notice-chip {
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    white-space: nowrap;
+    border: 1px solid #d9e4ef;
+    background: #f7fbff;
+    color: #3f5a74;
+}
+
+.notice-status-chip {
+    background: #eef4fb;
+    color: #395570;
+    font-weight: 700;
+}
+
+.notice-group-chip {
+    background: #f6f9fc;
+    color: #4c6781;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .notice-meta {
     display: flex;
     flex-wrap: wrap;
     gap: 8px 12px;
-    font-size: 12px;
-    color: #5e7791;
+    align-items: center;
+}
+
+.notice-meta-chip {
+    background: #f7fafc;
+    color: #4e6780;
 }
 
 .notice-expired {
@@ -108,17 +154,43 @@
 
 #noticeForm {
     display: grid;
-    gap: 10px;
+    gap: 6px;
+}
+
+#noticeModal .modal {
+    max-width: 540px;
+}
+
+#noticeModal .modal-body {
+    padding-top: 8px;
 }
 
 #noticeForm .form-row {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 8px;
 }
 
 #noticeForm .form-group.full-row {
     grid-column: 1 / -1;
+}
+
+#noticeForm .form-group {
+    margin-bottom: 0;
+}
+
+#noticeForm .form-group label {
+    margin-top: 0;
+    margin-bottom: 4px;
+}
+
+#noticeForm .form-control {
+    padding: 8px 10px;
+}
+
+#noticeForm .form-actions {
+    margin-top: 12px;
+    padding-top: 12px;
 }
 
 @media (max-width: 820px) {

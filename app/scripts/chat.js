@@ -53,6 +53,13 @@ const ChatModule = (() => {
         isInitializing = true;
 
         try {
+            if (typeof PermissionService !== 'undefined' && typeof PermissionService.init === 'function') {
+                await PermissionService.init();
+                if (typeof PermissionService.ensure === 'function' && !PermissionService.has('chat', 'view')) {
+                    PermissionService.ensure('chat', 'view', 'Você não tem permissão para acessar o chat.');
+                    return;
+                }
+            }
             await createChatInterface();
             await loadCurrentUser();
             startPresencePing();
@@ -789,6 +796,9 @@ const ChatModule = (() => {
     };
 
     const sendMessage = async () => {
+        if (typeof PermissionService !== 'undefined' && typeof PermissionService.ensure === 'function') {
+            if (!PermissionService.ensure('chat', 'send', 'Você não tem permissão para enviar mensagens no chat.')) return;
+        }
         if (!elements.messageInput || !currentReceiver || !currentUser) return;
         if (isSendingAttachment) return;
         hideEmojiPicker();
@@ -1298,6 +1308,9 @@ const ChatModule = (() => {
     };
 
     const sendAttachment = async (file, messageText) => {
+        if (typeof PermissionService !== 'undefined' && typeof PermissionService.ensure === 'function') {
+            if (!PermissionService.ensure('chat', 'attachment', 'Você não tem permissão para enviar anexos no chat.')) return;
+        }
         let sendButtonOriginalHtml = '';
         try {
             isSendingAttachment = true;

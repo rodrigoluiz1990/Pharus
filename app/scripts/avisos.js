@@ -30,6 +30,10 @@
     let useLocalFallback = false;
     let fallbackNotified = false;
     let initialized = false;
+    const ensureNoticePermission = (optionKey, message) => {
+        if (typeof PermissionService === 'undefined' || typeof PermissionService.ensure !== 'function') return true;
+        return PermissionService.ensure('avisos', optionKey, message || 'Você não tem permissão para executar esta ação.');
+    };
 
     const notify = (message, type = 'info') => {
         if (window.UtilsModule && typeof window.UtilsModule.showNotification === 'function') {
@@ -270,7 +274,7 @@
 
         listEl.innerHTML = filteredNotices.map((notice) => {
             const statusText = notice.status === 'active' ? 'Ativo' : 'Arquivado';
-            const expiredText = notice.status === 'active' && isExpired(notice) ? '<span class="notice-expired">Expirado</span>' : '';
+            const isNoticeExpired = notice.status === 'active' && isExpired(notice);
             const priorityText = notice.priority === 'urgent'
                 ? 'Urgente'
                 : notice.priority === 'high'
@@ -283,28 +287,21 @@
                 <article class="notice-card priority-${escapeHtml(notice.priority)} status-${escapeHtml(notice.status)}" data-notice-id="${escapeHtml(notice.id)}">
                     <div class="notice-card-header">
                         <h3>${escapeHtml(notice.title || 'Sem titulo')}</h3>
-                        <span class="notice-priority">${priorityText}</span>
+                        <div class="notice-badges">
+                            <span class="notice-priority">${priorityText}</span>
+                            <span class="notice-chip notice-status-chip">${statusText}</span>
+                        </div>
                     </div>
                     <p class="notice-content">${escapeHtml(notice.content || '')}</p>
-                    <div class="notice-meta">
-                        <span>Status: ${statusText}</span>
-                        <span>Grupo: ${escapeHtml(getPermissionGroupName(notice.permission_group_id))}</span>
-                        <span>Criado em: ${formatDate(notice.created_at)}</span>
-                        <span>Visivel ate: ${formatDate(notice.visible_until)}</span>
-                        ${expiredText}
-                    </div>
-                    <div class="notice-actions">
-                        <button type="button" class="btn btn-secondary" data-edit-notice="${escapeHtml(notice.id)}">
-                            <i class="fas fa-edit"></i> Editar
-                        </button>
-                    </div>
+                    ${isNoticeExpired ? '<div class="notice-meta"><span class="notice-expired">Expirado</span></div>' : ''}
                 </article>
             `;
         }).join('');
 
-        listEl.querySelectorAll('[data-edit-notice]').forEach((button) => {
-            button.addEventListener('click', () => {
-                const id = button.getAttribute('data-edit-notice');
+        listEl.querySelectorAll('.notice-card[data-notice-id]').forEach((card) => {
+            card.addEventListener('click', () => {
+                if (!ensureNoticePermission('edit', 'Você não tem permissão para editar avisos.')) return;
+                const id = card.getAttribute('data-notice-id');
                 const notice = notices.find((item) => String(item.id) === String(id));
                 if (notice) openModal(notice);
             });
@@ -327,6 +324,11 @@
     };
 
     const openModal = (notice) => {
+        if (notice) {
+            if (!ensureNoticePermission('edit', 'Você não tem permissão para editar avisos.')) return;
+        } else if (!ensureNoticePermission('create', 'Você não tem permissão para criar avisos.')) {
+            return;
+        }
         resetForm();
 
         if (!notice) {
@@ -343,7 +345,10 @@
         visibleUntilEl.value = formatDateForInput(notice.visible_until);
         renderPermissionGroupOptions(notice.permission_group_id || '');
         contentEl.value = notice.content || '';
-        deleteBtn.style.display = 'inline-flex';
+        const canArchive = typeof PermissionService === 'undefined' || typeof PermissionService.has !== 'function'
+            ? true
+            : PermissionService.has('avisos', 'archive');
+        deleteBtn.style.display = notice.status === 'active' && canArchive ? 'inline-flex' : 'none';
         setModalVisible(true);
     };
 
@@ -414,6 +419,16 @@
         saveLocalNotices(next);
     };
 
+    const archiveLocal = (id) => {
+        const nowIso = new Date().toISOString();
+        const next = notices.map((item) => {
+            if (String(item.id) !== String(id)) return item;
+            return { ...item, status: 'archived', updated_at: nowIso };
+        });
+        notices = next;
+        saveLocalNotices(next);
+    };
+
     const deleteLocal = (id) => {
         const next = notices.filter((item) => String(item.id) !== String(id));
         notices = next;
@@ -427,6 +442,10 @@
         if (!payload) return;
 
         const noticeId = idEl.value;
+        const permissionKey = noticeId ? 'edit' : 'create';
+        if (!ensureNoticePermission(permissionKey, noticeId ? 'Você não tem permissão para editar avisos.' : 'Você não tem permissão para criar avisos.')) {
+            return;
+        }
 
         showLoading('Salvando aviso...');
         try {
@@ -488,42 +507,49 @@
         }
     };
 
-    const deleteNotice = async () => {
+    const archiveNotice = async () => {
+        if (!ensureNoticePermission('archive', 'Você não tem permissão para arquivar avisos.')) return;
         const noticeId = idEl.value;
         if (!noticeId) return;
-        if (!window.confirm('Deseja excluir este aviso?')) return;
+        if (!window.confirm('Deseja arquivar este aviso?')) return;
 
-        showLoading('Excluindo aviso...');
+        showLoading('Arquivando aviso...');
         try {
             if (useLocalFallback) {
-                deleteLocal(noticeId);
+                archiveLocal(noticeId);
             } else {
                 const { error } = await window.dbClient
                     .from('notice_board_posts')
-                    .delete()
+                    .update({ status: 'archived', updated_at: new Date().toISOString() })
                     .eq('id', noticeId);
                 if (error) throw error;
             }
 
-            notify('Aviso excluido com sucesso.', 'success');
+            notify('Aviso arquivado com sucesso.', 'success');
             closeModal();
             await loadNotices();
             applyFilters();
         } catch (error) {
-            console.error('Erro ao excluir aviso:', error);
-            notify(`Falha ao excluir aviso: ${error.message || 'erro inesperado'}`, 'error');
+            console.error('Erro ao arquivar aviso:', error);
+            notify(`Falha ao arquivar aviso: ${error.message || 'erro inesperado'}`, 'error');
         } finally {
             hideLoading();
         }
     };
 
     const attachEvents = () => {
-        if (newBtn) newBtn.addEventListener('click', () => openModal(null));
+        if (newBtn) {
+            const canCreate = typeof PermissionService === 'undefined' || typeof PermissionService.has !== 'function'
+                ? true
+                : PermissionService.has('avisos', 'create');
+            newBtn.disabled = !canCreate;
+            newBtn.addEventListener('click', () => openModal(null));
+        }
         if (searchEl) searchEl.addEventListener('input', applyFilters);
         if (statusFilterEl) statusFilterEl.addEventListener('change', applyFilters);
 
         if (formEl) formEl.addEventListener('submit', (event) => void saveNotice(event));
-        if (deleteBtn) deleteBtn.addEventListener('click', () => void deleteNotice());
+        if (deleteBtn) deleteBtn.addEventListener('click', () => void archiveNotice());
 
         if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
         if (cancelBtn) cancelBtn.addEventListener('click', closeModal);

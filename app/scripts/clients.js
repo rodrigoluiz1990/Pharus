@@ -23,6 +23,10 @@ const ClientsModule = (() => {
     let remoteConnections = [];
     let editingRemoteConnectionIndex = -1;
     let isInitialized = false;
+    const ensureClientPermission = (optionKey, message) => {
+        if (typeof PermissionService === 'undefined' || typeof PermissionService.ensure !== 'function') return true;
+        return PermissionService.ensure('clientes', optionKey, message || 'Você não tem permissão para executar esta ação.');
+    };
 
     const setActiveFormTab = (tabId) => {
         const safeTab = ['general', 'address', 'remote'].includes(String(tabId || '')) ? tabId : 'general';
@@ -333,6 +337,7 @@ const ClientsModule = (() => {
     };
 
     const openAddModal = () => {
+        if (!ensureClientPermission('create', 'Você não tem permissão para criar clientes.')) return;
         if (!clientModal || !clientForm) return;
         clientModalTitle.textContent = 'Novo Cliente';
         clientIdField.value = '';
@@ -348,6 +353,7 @@ const ClientsModule = (() => {
     };
 
     const openEditModal = (clientId) => {
+        if (!ensureClientPermission('edit', 'Você não tem permissão para editar clientes.')) return;
         const client = clients.find((item) => item.id === clientId);
         if (!client || !clientModal) return;
 
@@ -497,6 +503,8 @@ const ClientsModule = (() => {
 
     const saveClient = async (e) => {
         e.preventDefault();
+        const permissionKey = clientIdField?.value ? 'edit' : 'create';
+        if (!ensureClientPermission(permissionKey, permissionKey === 'edit' ? 'Você não tem permissão para editar clientes.' : 'Você não tem permissão para criar clientes.')) return;
         if (!validateForm()) return;
 
         try {
@@ -545,6 +553,7 @@ const ClientsModule = (() => {
     };
 
     const deleteClient = async () => {
+        if (!ensureClientPermission('delete', 'Você não tem permissão para excluir clientes.')) return;
         const clientId = clientIdField.value;
         if (!clientId) return;
 
@@ -583,7 +592,13 @@ const ClientsModule = (() => {
     };
 
     const attachEvents = () => {
-        if (addClientBtn) addClientBtn.addEventListener('click', openAddModal);
+        if (addClientBtn) {
+            const canCreate = typeof PermissionService === 'undefined' || typeof PermissionService.has !== 'function'
+                ? true
+                : PermissionService.has('clientes', 'create');
+            addClientBtn.disabled = !canCreate;
+            addClientBtn.addEventListener('click', openAddModal);
+        }
         if (clientForm) clientForm.addEventListener('submit', saveClient);
         if (closeClientModal) closeClientModal.addEventListener('click', closeModal);
         if (cancelClientBtn) cancelClientBtn.addEventListener('click', closeModal);
@@ -648,6 +663,7 @@ const ClientsModule = (() => {
 
     const initClientsModule = async () => {
         if (isInitialized) return;
+        if (!ensureClientPermission('view', 'Você não tem permissão para visualizar clientes.')) return;
         isInitialized = true;
 
         attachEvents();

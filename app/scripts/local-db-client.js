@@ -114,7 +114,7 @@
     return nextSession;
   }
 
-  async function api(path, payload) {
+    async function api(path, payload) {
     let response;
     try {
       response = await fetch(path, {
@@ -225,7 +225,13 @@
       if (!this.state.action) {
         this.state.action = 'select';
       }
-      return api('/api/db/query', this.state);
+      const session = await normalizeSessionUserId(readSession());
+      const authUserId = session?.user?.id;
+      const payload = {
+        ...this.state,
+        auth_user_id: isNumericId(authUserId) ? Number(authUserId) : null,
+      };
+      return api('/api/db/query', payload);
     }
   }
 

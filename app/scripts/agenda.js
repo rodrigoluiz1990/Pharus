@@ -52,6 +52,10 @@
     let fallbackNotified = false;
     let lastTimedStartValue = '';
     let lastTimedEndValue = '';
+    const ensureAgendaPermission = (optionKey, message) => {
+        if (typeof PermissionService === 'undefined' || typeof PermissionService.ensure !== 'function') return true;
+        return PermissionService.ensure('agenda', optionKey, message || 'Você não tem permissão para executar esta ação.');
+    };
 
     const notify = (message, type = 'info') => {
         if (window.UtilsModule && typeof window.UtilsModule.showNotification === 'function') {
@@ -720,6 +724,11 @@
     };
 
     const openModal = (event, dateForNew) => {
+        if (event) {
+            if (!ensureAgendaPermission('edit', 'Você não tem permissão para editar eventos da agenda.')) return;
+        } else if (!ensureAgendaPermission('create', 'Você não tem permissão para criar eventos da agenda.')) {
+            return;
+        }
         if (event) fillFormForEdit(event);
         else fillFormForNew(dateForNew || null);
         setModalVisible(true);
@@ -769,7 +778,7 @@
             ? Math.max(2, Math.min(60, Math.trunc(repeatCountRaw)))
             : 2;
 
-        return {
+        const payload = {
             title,
             description: String(descriptionEl.value || '').trim() || null,
             event_type: typeEl.value === 'task' ? 'task' : 'event',
@@ -778,11 +787,16 @@
             end_at: endIso,
             is_all_day: Boolean(allDayEl.checked),
             event_color: normalizeEventColor(colorEl?.value),
-            created_by: userId,
             updated_at: new Date().toISOString(),
             repeat_type: ['none', 'daily', 'weekly', 'monthly'].includes(repeatType) ? repeatType : 'none',
             repeat_count: repeatCount,
         };
+
+        if (Number.isFinite(userId) && userId > 0) {
+            payload.created_by = userId;
+        }
+
+        return payload;
     };
 
     const shiftDateByFrequency = (date, repeatType, index) => {
@@ -873,11 +887,14 @@
 
     const saveEvent = async (ev) => {
         ev.preventDefault();
+        const eventId = idEl.value;
+        const permissionKey = eventId ? 'edit' : 'create';
+        if (!ensureAgendaPermission(permissionKey, eventId ? 'Você não tem permissão para editar eventos da agenda.' : 'Você não tem permissão para criar eventos da agenda.')) {
+            return;
+        }
 
         const payloadWithRepeat = await getPayloadFromForm();
         if (!payloadWithRepeat) return;
-
-        const eventId = idEl.value;
 
         showLoading('Salvando agenda...');
         try {
@@ -932,6 +949,7 @@
     };
 
     const deleteEvent = async () => {
+        if (!ensureAgendaPermission('delete', 'Você não tem permissão para excluir eventos da agenda.')) return;
         const eventId = idEl.value;
         if (!eventId) return;
         if (!window.confirm('Deseja excluir este item da agenda?')) return;
@@ -990,7 +1008,13 @@
         if (viewWeekBtn) viewWeekBtn.addEventListener('click', () => setView(VIEW_WEEK));
         if (viewMonthBtn) viewMonthBtn.addEventListener('click', () => setView(VIEW_MONTH));
 
-        if (newEventBtn) newEventBtn.addEventListener('click', () => openModal(null, currentCursor));
+        if (newEventBtn) {
+            const canCreate = typeof PermissionService === 'undefined' || typeof PermissionService.has !== 'function'
+                ? true
+                : PermissionService.has('agenda', 'create');
+            newEventBtn.disabled = !canCreate;
+            newEventBtn.addEventListener('click', () => openModal(null, currentCursor));
+        }
 
         if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
         if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
@@ -1048,6 +1072,7 @@
 
     const init = async () => {
         if (isInitialized) return;
+        if (!ensureAgendaPermission('view', 'Você não tem permissão para visualizar a agenda.')) return;
         isInitialized = true;
         holidayEventsByDate = buildHolidayEventsMap(HOLIDAY_MIN_YEAR, HOLIDAY_MAX_YEAR);
 

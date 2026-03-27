@@ -37,6 +37,13 @@
     ];
 
     const init = async () => {
+        if (typeof PermissionService !== 'undefined' && typeof PermissionService.init === 'function') {
+            await PermissionService.init();
+            if (typeof PermissionService.ensure === 'function' && !PermissionService.has('chat', 'view')) {
+                PermissionService.ensure('chat', 'view', 'Você não tem permissão para acessar o chat.');
+                return;
+            }
+        }
         await loadCurrentUser();
         setupEvents();
         await loadContacts({ forceRender: true });
@@ -64,6 +71,10 @@
         }
 
         if (elements.sendButton) {
+            const canSend = typeof PermissionService === 'undefined' || typeof PermissionService.has !== 'function'
+                ? true
+                : PermissionService.has('chat', 'send');
+            elements.sendButton.disabled = !canSend;
             elements.sendButton.addEventListener('click', sendMessage);
         }
 
@@ -79,6 +90,7 @@
 
         if (elements.attachBtn) {
             elements.attachBtn.addEventListener('click', () => {
+                if (typeof PermissionService !== 'undefined' && typeof PermissionService.ensure === 'function' && !PermissionService.ensure('chat', 'attachment', 'Você não tem permissão para enviar anexos no chat.')) return;
                 if (elements.attachmentInput) elements.attachmentInput.click();
             });
         }
@@ -364,6 +376,9 @@
     };
 
     const sendMessage = async () => {
+        if (typeof PermissionService !== 'undefined' && typeof PermissionService.ensure === 'function') {
+            if (!PermissionService.ensure('chat', 'send', 'Você não tem permissão para enviar mensagens no chat.')) return;
+        }
         if (!state.currentUser || !state.selectedContact || !elements.messageInput) return;
         const text = elements.messageInput.value.trim();
         const hasAttachment = Boolean(state.selectedAttachment);

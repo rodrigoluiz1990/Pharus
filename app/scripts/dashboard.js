@@ -47,6 +47,13 @@
     const PRIORITY_COLORS = ['#d9534f', '#f0ad4e', '#5cb85c', '#7f8c8d'];
 
     const init = async () => {
+        if (typeof PermissionService !== 'undefined' && typeof PermissionService.init === 'function') {
+            await PermissionService.init();
+            if (typeof PermissionService.ensure === 'function' && !PermissionService.has('dashboard', 'view')) {
+                PermissionService.ensure('dashboard', 'view', 'Você não tem permissão para visualizar o dashboard.');
+                return;
+            }
+        }
         await loadAndRender();
         window.addEventListener('tasksUpdated', loadAndRender);
         refreshTimer = setInterval(loadAndRender, 30000);

@@ -31,7 +31,7 @@
 
             <div class="notices-view">
                 <div class="notices-filters">
-                    <input type="text" id="noticeSearchInput" class="form-control" placeholder="Buscar por tÃ­tulo ou conteÃºdo...">
+                    <input type="text" id="noticeSearchInput" class="form-control" placeholder="Buscar por titulo ou conteudo...">
                     <select id="noticeStatusFilter" class="form-control">
                         <option value="active">Ativos</option>
                         <option value="all">Todos</option>
@@ -53,20 +53,10 @@
             <div class="modal-body">
                 <form id="noticeForm">
                     <input type="hidden" id="noticeId">
-
                     <div class="form-row">
-                        <div class="form-group">
-                            <label for="noticeTitle">TÃ­tulo *</label>
+                        <div class="form-group full-row">
+                            <label for="noticeTitle">Título *</label>
                             <input type="text" id="noticeTitle" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="noticePriority">Prioridade</label>
-                            <select id="noticePriority" class="form-control">
-                                <option value="medium">MÃ©dia</option>
-                                <option value="high">Alta</option>
-                                <option value="urgent">Urgente</option>
-                                <option value="low">Baixa</option>
-                            </select>
                         </div>
                     </div>
 
@@ -79,17 +69,26 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="noticeVisibleUntil">Visivel ate</label>
-                            <input type="date" id="noticeVisibleUntil" class="form-control">
+                            <label for="noticePriority">Prioridade</label>
+                            <select id="noticePriority" class="form-control">
+                                <option value="urgent">Urgente</option>
+                                <option value="high">Alta</option>
+                                <option value="medium">Média</option>
+                                <option value="low">Baixa</option>
+                            </select>
                         </div>
                     </div>
 
                     <div class="form-row">
-                        <div class="form-group full-row">
-                            <label for="noticePermissionGroup">Grupo de permissao (visualizaÃ§Ã£o)</label>
+                        <div class="form-group">
+                            <label for="noticePermissionGroup">Grupo de permissao (visualização)</label>
                             <select id="noticePermissionGroup" class="form-control">
                                 <option value="">Todos os grupos</option>
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="noticeVisibleUntil">Visivel ate</label>
+                            <input type="date" id="noticeVisibleUntil" class="form-control">
                         </div>
                     </div>
 
@@ -98,9 +97,10 @@
                         <textarea id="noticeContent" class="form-control" rows="5" required></textarea>
                     </div>
 
+
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Salvar</button>
-                        <button type="button" class="btn btn-danger" id="deleteNoticeBtn" style="display:none;">Excluir</button>
+                        <button type="button" class="btn btn-secondary" id="deleteNoticeBtn" style="display:none;">Arquivar</button>
                         <button type="button" class="btn btn-secondary" id="cancelNoticeBtn">Cancelar</button>
                     </div>
                 </form>
@@ -117,6 +117,7 @@
 
     <script src="scripts/local-db-client.js"></script>
     <script src="scripts/db-client-config.js"></script>
+    <script src="scripts/permission-service.js"></script>
     <script src="scripts/auth.js"></script>
     <script src="scripts/component-loader.js"></script>
     <script src="scripts/page-bootstrap.js"></script>
@@ -124,3 +125,6 @@
     <script src="scripts/chat.js"></script>
 </body>
 </html>
+
+
+

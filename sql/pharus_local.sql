@@ -276,16 +276,96 @@ WHERE NOT EXISTS (
   SELECT 1 FROM permission_groups WHERE name = 'Leitura'
 );
 
-INSERT INTO app_users (email, password, raw_user_meta_data, role, status, last_sign_in_at)
+INSERT INTO permission_group_rules (group_id, screen_key, option_key, allowed)
+SELECT
+  pg.id,
+  perms.screen_key,
+  perms.option_key,
+  TRUE
+FROM permission_groups pg
+CROSS JOIN (
+  VALUES
+    ('dashboard', 'view'),
+    ('dashboard', 'widgets'),
+    ('agenda', 'view'),
+    ('agenda', 'create'),
+    ('agenda', 'edit'),
+    ('agenda', 'delete'),
+    ('agenda', 'complete'),
+    ('avisos', 'view'),
+    ('avisos', 'create'),
+    ('avisos', 'edit'),
+    ('avisos', 'delete'),
+    ('avisos', 'archive'),
+    ('quadro_tarefas', 'view'),
+    ('quadro_tarefas', 'create'),
+    ('quadro_tarefas', 'edit'),
+    ('quadro_tarefas', 'move'),
+    ('quadro_tarefas', 'delete'),
+    ('quadro_tarefas', 'pin'),
+    ('quadro_tarefas', 'filter'),
+    ('quadro_tarefas', 'sort'),
+    ('quadro_tarefas', 'import'),
+    ('quadro_tarefas', 'attachment'),
+    ('clientes', 'view'),
+    ('clientes', 'create'),
+    ('clientes', 'edit'),
+    ('clientes', 'delete'),
+    ('usuarios', 'view'),
+    ('usuarios', 'create'),
+    ('usuarios', 'edit'),
+    ('usuarios', 'delete'),
+    ('usuarios', 'chat'),
+    ('chat', 'view'),
+    ('chat', 'send'),
+    ('chat', 'attachment'),
+    ('relatorios', 'view'),
+    ('relatorios', 'create'),
+    ('relatorios', 'edit'),
+    ('relatorios', 'share'),
+    ('relatorios', 'export'),
+    ('configuracoes', 'view'),
+    ('configuracoes', 'project'),
+    ('configuracoes', 'permissions'),
+    ('configuracoes', 'users'),
+    ('configuracoes', 'table'),
+    ('configuracoes', 'extension')
+) AS perms(screen_key, option_key)
+WHERE pg.name = 'Administradores'
+ON CONFLICT (group_id, screen_key, option_key)
+DO UPDATE SET allowed = EXCLUDED.allowed;
+
+INSERT INTO app_users (email, password, raw_user_meta_data, role, permission_group_id, status, last_sign_in_at)
 SELECT
   'admin@pharus.local',
   'admin123',
   '{"full_name":"Administrador Local"}'::jsonb,
   'admin',
+  (SELECT id FROM permission_groups WHERE name = 'Administradores' LIMIT 1),
   'active',
   NOW()
 WHERE NOT EXISTS (
   SELECT 1 FROM app_users WHERE email = 'admin@pharus.local'
 );
 
+UPDATE app_users
+SET permission_group_id = (
+  SELECT id FROM permission_groups WHERE name = 'Administradores' LIMIT 1
+)
+WHERE role = 'admin'
+  AND permission_group_id IS NULL;
+
+DO $$
+DECLARE
+  agenda_max_id BIGINT;
+BEGIN
+  SELECT COALESCE(MAX(id), 0) INTO agenda_max_id FROM agenda_events;
+
+  IF agenda_max_id > 0 THEN
+    PERFORM setval('agenda_events_id_seq', agenda_max_id, true);
+  ELSE
+    PERFORM setval('agenda_events_id_seq', 1, false);
+  END IF;
+END;
+$$;
 

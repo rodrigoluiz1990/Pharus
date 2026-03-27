@@ -18,12 +18,12 @@ const SettingsPermissionsModule = (() => {
         { key: 'dashboard', label: 'Dashboard', options: ['view', 'widgets'] },
         { key: 'agenda', label: 'Agenda', options: ['view', 'create', 'edit', 'delete', 'complete'] },
         { key: 'avisos', label: 'Quadro de avisos', options: ['view', 'create', 'edit', 'delete', 'archive'] },
-        { key: 'quadro_tarefas', label: 'Quadro de tarefas', options: ['view', 'create', 'edit', 'move', 'delete', 'pin'] },
+        { key: 'quadro_tarefas', label: 'Quadro de tarefas', options: ['view', 'create', 'edit', 'move', 'delete', 'pin', 'filter', 'sort', 'import', 'attachment'] },
         { key: 'clientes', label: 'Clientes', options: ['view', 'create', 'edit', 'delete'] },
         { key: 'usuarios', label: 'Usuários', options: ['view', 'create', 'edit', 'delete', 'chat'] },
         { key: 'chat', label: 'Chat', options: ['view', 'send', 'attachment'] },
         { key: 'relatorios', label: 'Relatórios', options: ['view', 'create', 'edit', 'share', 'export'] },
-        { key: 'configuracoes', label: 'Configurações', options: ['view', 'project', 'permissions', 'users', 'table'] },
+        { key: 'configuracoes', label: 'Configurações', options: ['view', 'project', 'permissions', 'users', 'table', 'extension'] },
     ];
 
     const OPTION_LABELS = {
@@ -39,11 +39,15 @@ const SettingsPermissionsModule = (() => {
         chat: 'Abrir chat',
         send: 'Enviar mensagem',
         attachment: 'Enviar anexo',
+        filter: 'Filtrar tarefas',
+        sort: 'Ordenar tarefas',
+        import: 'Importar tarefas',
         export: 'Exportar',
         project: 'Editar dados gerais',
         permissions: 'Gerenciar permissões',
         users: 'Gerenciar usuários',
         table: 'Editar tabela',
+        extension: 'Configurar extensão',
     };
 
     let groups = [];
@@ -297,6 +301,12 @@ const SettingsPermissionsModule = (() => {
 
     const init = async () => {
         if (!groupsListEl || !matrixGridEl || !window.dbClient) return;
+        if (typeof PermissionService !== 'undefined' && typeof PermissionService.init === 'function') {
+            await PermissionService.init();
+            if (typeof PermissionService.has === 'function' && !PermissionService.has('configuracoes', 'permissions')) {
+                return;
+            }
+        }
         renderMatrix();
         if (!(await ensureSchema())) return;
 
@@ -352,6 +362,7 @@ if (document.readyState === 'loading') {
 } else {
     void SettingsPermissionsModule.init();
 }
+
 
 
 

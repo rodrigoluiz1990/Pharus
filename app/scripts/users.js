@@ -31,6 +31,10 @@ const UsersModule = (() => {
         { index: 4, key: 'last_sign_in_at' },
         { index: 5, key: 'created_at' },
     ];
+    const ensureUserPermission = (optionKey, message) => {
+        if (typeof PermissionService === 'undefined' || typeof PermissionService.ensure !== 'function') return true;
+        return PermissionService.ensure('usuarios', optionKey, message || 'Você não tem permissão para executar esta ação.');
+    };
 
     const loadUsers = async () => {
         try {
@@ -97,12 +101,6 @@ const UsersModule = (() => {
                 .single();
 
             if (userError) throw userError;
-
-            const role = String(userRow?.role || currentUser?.user_metadata?.role || '').toLowerCase();
-            if (role === 'admin') {
-                canEditOtherUsers = true;
-                return;
-            }
 
             const groupId = userRow?.permission_group_id;
             if (!groupId) return;
@@ -376,6 +374,7 @@ const UsersModule = (() => {
     };
 
     const createUser = async (userData) => {
+        if (!ensureUserPermission('create', 'Você não tem permissão para criar usuários.')) return;
         try {
             UtilsModule.showLoading('Criando usuário...');
             const metadata = {
@@ -423,6 +422,7 @@ const UsersModule = (() => {
     };
 
     const updateUser = async (userId, userData) => {
+        if (!ensureUserPermission('edit', 'Você não tem permissão para editar usuários.')) return;
         try {
             UtilsModule.showLoading('Atualizando usuário...');
             
@@ -521,6 +521,7 @@ const UsersModule = (() => {
     };
 
     const openEditUserModal = async (userId) => {
+        if (!ensureUserPermission('edit', 'Você não tem permissão para editar usuários.')) return;
         const user = users.find(u => u.id === userId);
         if (!user) return;
 
@@ -583,6 +584,7 @@ const UsersModule = (() => {
     };
 
     const openAddUserModal = () => {
+        if (!ensureUserPermission('create', 'Você não tem permissão para criar usuários.')) return;
         userModalTitle.textContent = 'Novo Usuário';
         userIdField.value = '';
         userForm.reset();
@@ -621,6 +623,9 @@ const UsersModule = (() => {
 
     const handleUserSubmit = async (e) => {
         e.preventDefault();
+        const isUpdate = Boolean(userIdField.value);
+        const permissionKey = isUpdate ? 'edit' : 'create';
+        if (!ensureUserPermission(permissionKey, isUpdate ? 'Você não tem permissão para editar usuários.' : 'Você não tem permissão para criar usuários.')) return;
 
         const formData = {
             name: document.getElementById('userName').value.trim(),
@@ -740,15 +745,35 @@ const UsersModule = (() => {
         div.textContent = text;
         return div.innerHTML;
     };
+    const hasUserPermission = (optionKey) => {
+        if (typeof PermissionService === 'undefined' || typeof PermissionService.has !== 'function') return true;
+        return PermissionService.has('usuarios', optionKey);
+    };
+
+    const hideUsersTabIfNoAccess = () => {
+        const settingsUsersTab = document.getElementById('settingsTabUsers');
+        if (settingsUsersTab) settingsUsersTab.style.display = 'none';
+        const usersPanel = document.getElementById('settingsPanelUsers');
+        if (usersPanel) usersPanel.classList.remove('active');
+    };
+
     const initUsersModule = () => {
         if (isInitialized) return;
+        if (!hasUserPermission('view')) {
+            hideUsersTabIfNoAccess();
+            return;
+        }
 
         const usersView = document.querySelector('.users-view');
         if (usersView) {
             usersView.style.display = 'block';
         }
 
-        if (addUserBtn) addUserBtn.addEventListener('click', openAddUserModal);
+        if (addUserBtn) {
+            const canCreate = hasUserPermission('create');
+            addUserBtn.disabled = !canCreate;
+            addUserBtn.addEventListener('click', openAddUserModal);
+        }
         if (userForm) userForm.addEventListener('submit', handleUserSubmit);
         if (closeUserModal) closeUserModal.addEventListener('click', closeModal);
         if (cancelUserBtn) cancelUserBtn.addEventListener('click', closeModal);
@@ -777,6 +802,7 @@ if (document.readyState === 'loading') {
 } else {
     UsersModule.initUsersModule();
 }
+
 
 
 

@@ -177,10 +177,10 @@
         }
 
         const createdBy = await getCurrentUserId();
-        const insertPayload = {
-            ...payload,
-            created_by: createdBy,
-        };
+        const insertPayload = { ...payload };
+        if (Number.isFinite(createdBy) && createdBy > 0) {
+            insertPayload.created_by = createdBy;
+        }
 
         const { error: insertError } = await dbClient
             .from('agenda_events')

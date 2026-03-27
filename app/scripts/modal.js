@@ -24,6 +24,10 @@ const ModalModule = (() => {
     let isUploadingAttachment = false;
     let isSavingTask = false;
     const MAX_ATTACHMENT_SIZE_BYTES = 10 * 1024 * 1024;
+    const ensureTaskPermission = (optionKey, message) => {
+        if (typeof PermissionService === 'undefined' || typeof PermissionService.ensure !== 'function') return true;
+        return PermissionService.ensure('quadro_tarefas', optionKey, message || 'Você não tem permissão para executar esta ação.');
+    };
 
     const getTaskIdFromForm = () => String(document.getElementById('taskId')?.value || '').trim();
 
@@ -292,6 +296,11 @@ const ModalModule = (() => {
 
     const showModal = async (columnId, taskId = null) => {
         if (!modalOverlay) return;
+        if (taskId) {
+            if (!ensureTaskPermission('edit', 'Você não tem permissão para editar tarefas.')) return;
+        } else if (!ensureTaskPermission('create', 'Você não tem permissão para criar tarefas.')) {
+            return;
+        }
 
         taskForm.reset();
         syncPinToggleUI();
@@ -368,7 +377,10 @@ const ModalModule = (() => {
 
                     document.getElementById('modalTitle').textContent = 'Editar Tarefa';
                     if (deleteTaskBtn) {
-                        deleteTaskBtn.style.display = 'inline-flex';
+                        const canDelete = typeof PermissionService === 'undefined' || typeof PermissionService.has !== 'function'
+                            ? true
+                            : PermissionService.has('quadro_tarefas', 'delete');
+                        deleteTaskBtn.style.display = canDelete ? 'inline-flex' : 'none';
                     }
                 }
             } catch (error) {
@@ -443,6 +455,10 @@ const ModalModule = (() => {
         if (isSavingTask) return;
 
         const taskId = getTaskIdFromForm();
+        const permissionKey = taskId ? 'edit' : 'create';
+        if (!ensureTaskPermission(permissionKey, taskId ? 'Você não tem permissão para editar tarefas.' : 'Você não tem permissão para criar tarefas.')) {
+            return;
+        }
         const title = document.getElementById('taskTitle').value;
 
         if (!title) {
@@ -569,6 +585,7 @@ const ModalModule = (() => {
     };
 
     const deleteTask = async () => {
+        if (!ensureTaskPermission('delete', 'Você não tem permissão para excluir tarefas.')) return;
         if (!confirm('Tem certeza que deseja excluir esta tarefa?')) {
             return;
         }
@@ -635,6 +652,7 @@ const ModalModule = (() => {
 
         if (taskPinToggleBtn && taskIsPinned) {
             taskPinToggleBtn.addEventListener('click', () => {
+                if (!ensureTaskPermission('pin', 'Você não tem permissão para alterar destaque das tarefas.')) return;
                 taskIsPinned.checked = !taskIsPinned.checked;
                 syncPinToggleUI();
             });
@@ -642,6 +660,10 @@ const ModalModule = (() => {
 
         if (taskAttachmentInput) {
             taskAttachmentInput.addEventListener('change', () => {
+                if (!ensureTaskPermission('attachment', 'Você não tem permissão para anexar arquivos em tarefas.')) {
+                    taskAttachmentInput.value = '';
+                    return;
+                }
                 const file = taskAttachmentInput.files && taskAttachmentInput.files[0]
                     ? taskAttachmentInput.files[0]
                     : null;
@@ -682,6 +704,7 @@ const ModalModule = (() => {
 
         if (taskAttachmentRemoveBtn) {
             taskAttachmentRemoveBtn.addEventListener('click', () => {
+                if (!ensureTaskPermission('attachment', 'Você não tem permissão para anexar arquivos em tarefas.')) return;
                 selectedAttachmentFile = null;
                 currentTaskAttachment = null;
                 if (taskAttachmentInput) taskAttachmentInput.value = '';

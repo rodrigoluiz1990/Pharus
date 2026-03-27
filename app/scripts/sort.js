@@ -56,6 +56,10 @@ const SortModule = (() => {
         clearSorting: document.getElementById('clearSorting'),
         sortForm: document.getElementById('sortForm'),
     };
+    const ensureSortPermission = (message) => {
+        if (typeof PermissionService === 'undefined' || typeof PermissionService.ensure !== 'function') return true;
+        return PermissionService.ensure('quadro_tarefas', 'sort', message || 'Você não tem permissão para ordenar tarefas.');
+    };
 
     const getLevelElements = (level) => ({
         field: document.getElementById(`sortField${level}`),
@@ -419,7 +423,13 @@ const SortModule = (() => {
     };
 
     const setupEventListeners = () => {
-        if (elements.sortBtn) elements.sortBtn.addEventListener('click', showSortModal);
+        if (elements.sortBtn) {
+            const allowed = typeof PermissionService === 'undefined' || typeof PermissionService.has !== 'function'
+                ? true
+                : PermissionService.has('quadro_tarefas', 'sort');
+            elements.sortBtn.disabled = !allowed;
+            elements.sortBtn.addEventListener('click', showSortModal);
+        }
         if (elements.closeSortModal) elements.closeSortModal.addEventListener('click', hideSortModal);
         if (elements.cancelSort) elements.cancelSort.addEventListener('click', hideSortModal);
         if (elements.clearSorting) elements.clearSorting.addEventListener('click', clearSorting);
@@ -480,6 +490,7 @@ const SortModule = (() => {
     };
 
     const showSortModal = async () => {
+        if (!ensureSortPermission()) return;
         if (!elements.sortModal) return;
         await loadSortValues();
         elements.sortModal.style.display = 'flex';
@@ -492,6 +503,7 @@ const SortModule = (() => {
 
     const applySorting = (e) => {
         e.preventDefault();
+        if (!ensureSortPermission()) return;
 
         const criteria = [];
 
@@ -521,6 +533,7 @@ const SortModule = (() => {
     };
 
     const clearSorting = () => {
+        if (!ensureSortPermission()) return;
         currentSort = JSON.parse(JSON.stringify(DEFAULT_SORT));
         saveSort();
         loadSortValues();

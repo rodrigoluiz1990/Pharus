@@ -1083,6 +1083,13 @@ const renderColumnsGrid = () => {
         initialized = true;
 
         try {
+            if (typeof PermissionService !== 'undefined' && typeof PermissionService.init === 'function') {
+                await PermissionService.init();
+                if (typeof PermissionService.ensure === 'function' && !PermissionService.has('relatorios', 'view')) {
+                    PermissionService.ensure('relatorios', 'view', 'Você não tem permissão para visualizar relatórios.');
+                    return;
+                }
+            }
             showLoading('Carregando relatorios...');
             bindEvents();
             await loadContext();
