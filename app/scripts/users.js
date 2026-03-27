@@ -757,8 +757,13 @@ const UsersModule = (() => {
         if (usersPanel) usersPanel.classList.remove('active');
     };
 
-    const initUsersModule = () => {
+    const initUsersModule = async () => {
         if (isInitialized) return;
+
+        if (typeof PermissionService !== 'undefined' && typeof PermissionService.init === 'function') {
+            await PermissionService.init();
+        }
+
         if (!hasUserPermission('view')) {
             hideUsersTabIfNoAccess();
             return;
@@ -787,7 +792,7 @@ const UsersModule = (() => {
         isInitialized = true;
 
         console.log('Mádulo de usuários inicializado');
-        loadUsers();
+        await loadUsers();
     };
 
     return {
@@ -798,9 +803,11 @@ const UsersModule = (() => {
 
 // Inicializar quando o DOM estiver carregado
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', UsersModule.initUsersModule);
+    document.addEventListener('DOMContentLoaded', () => {
+        void UsersModule.initUsersModule();
+    });
 } else {
-    UsersModule.initUsersModule();
+    void UsersModule.initUsersModule();
 }
 
 
