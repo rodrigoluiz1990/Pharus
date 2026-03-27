@@ -1,0 +1,294 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <base href="../">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharus - Manual</title>
+    <link rel="icon" type="image/svg+xml" href="lighthouse-favicon.svg?v=20260321d">
+    <link rel="alternate icon" type="image/png" href="lighthouse-favicon-32.png?v=20260321d">
+    <link rel="shortcut icon" type="image/png" href="lighthouse-favicon-32.png?v=20260321d">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/sidebar.css">
+    <link rel="stylesheet" href="styles/manual.css">
+</head>
+<body>
+    <div class="container">
+        <div id="sidebar-container"></div>
+        <div class="content">
+            <div class="header">
+                <div class="project-title">
+                    <h2>Manual do Sistema</h2>
+                </div>
+            </div>
+
+            <div class="manual-page" id="manualPage">
+                <aside class="manual-nav" aria-label="Menus do sistema">
+                    <div class="manual-nav-head">
+                        <h3>Menus Laterais</h3>
+                        <p>Clique em um menu para ver a explicação da tela.</p>
+                    </div>
+                    <div class="manual-search-wrap">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                        <input type="text" id="manualSearch" placeholder="Buscar no manual..." aria-label="Buscar no manual">
+                    </div>
+                    <nav class="manual-nav-list" id="manualNavList">
+                        <button class="manual-nav-item active" data-target="manual-dashboard"><i class="fas fa-chart-line"></i> Dashboard</button>
+                        <button class="manual-nav-item" data-target="manual-agenda"><i class="fas fa-calendar-alt"></i> Agenda</button>
+                        <button class="manual-nav-item" data-target="manual-avisos"><i class="fas fa-bullhorn"></i> Quadro de Avisos</button>
+                        <button class="manual-nav-item" data-target="manual-tarefas"><i class="fas fa-th"></i> Quadro de Tarefas</button>
+                        <button class="manual-nav-item" data-target="manual-clientes"><i class="fas fa-building"></i> Clientes</button>
+                        <button class="manual-nav-item" data-target="manual-chat"><i class="fas fa-comment"></i> Chat</button>
+                        <button class="manual-nav-item" data-target="manual-relatorios"><i class="fas fa-file-alt"></i> Relatórios</button>
+                        <button class="manual-nav-item" data-target="manual-configuracoes"><i class="fas fa-cog"></i> Configurações</button>
+                    </nav>
+                </aside>
+
+                <main class="manual-content" id="manualContent">
+                    <section class="manual-section" id="manual-dashboard" data-keywords="dashboard grafico tarefas status prioridade cliente">
+                        <header>
+                            <h3>Dashboard</h3>
+                            <p>Resumo rápido do que está acontecendo agora no sistema.</p>
+                        </header>
+                        <div class="manual-grid">
+                            <article class="manual-card">
+                                <h4>Para que serve</h4>
+                                <p>Mostrar os números principais: quantidade de tarefas, atrasos, entregas próximas e concluídas.</p>
+                            </article>
+                            <article class="manual-card">
+                                <h4>O que você encontra</h4>
+                                <ul>
+                                    <li>Cards com totais.</li>
+                                    <li>Gráficos de status, prioridade e tipo.</li>
+                                    <li>Listas de top responsáveis e top clientes.</li>
+                                    <li>Bloco de próximas entregas.</li>
+                                </ul>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Passo a passo</h4>
+                                <ol>
+                                    <li>Abra o Dashboard ao entrar no sistema.</li>
+                                    <li>Verifique primeiro o card de atrasadas.</li>
+                                    <li>Veja os gráficos para entender onde está o maior volume.</li>
+                                    <li>Use a lista de próximas entregas para planejar o dia.</li>
+                                </ol>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="manual-section" id="manual-agenda" data-keywords="agenda evento compromisso dia semana mês calendário">
+                        <header>
+                            <h3>Agenda</h3>
+                            <p>Organização de compromissos por dia, semana e mês.</p>
+                        </header>
+                        <div class="manual-grid">
+                            <article class="manual-card">
+                                <h4>Para que serve</h4>
+                                <p>Controlar eventos e tarefas com data, evitando esquecimentos e atrasos.</p>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Como usar</h4>
+                                <ol>
+                                    <li>Clique em <strong>Novo evento</strong>.</li>
+                                    <li>Preencha título, tipo e status.</li>
+                                    <li>Defina data e horário ou marque <strong>Dia inteiro</strong>.</li>
+                                    <li>Salve e confira no calendário.</li>
+                                </ol>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Dica prática</h4>
+                                <p>Use a visão semanal para planejar o curto prazo e a mensal para acompanhar feriados e picos de demanda.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="manual-section" id="manual-avisos" data-keywords="avisos comunicado mural prioridade status grupo">
+                        <header>
+                            <h3>Quadro de Avisos</h3>
+                            <p>Comunicação interna com mensagens importantes para a equipe.</p>
+                        </header>
+                        <div class="manual-grid">
+                            <article class="manual-card">
+                                <h4>Quando usar</h4>
+                                <p>Use para recados oficiais, alertas de processo, janelas de manutenção e comunicados gerais.</p>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Publicando um aviso</h4>
+                                <ol>
+                                    <li>Clique em <strong>Novo aviso</strong>.</li>
+                                    <li>Informe título, prioridade e conteúdo.</li>
+                                    <li>Escolha grupo específico ou todos os grupos.</li>
+                                    <li>Defina data limite de visibilidade e salve.</li>
+                                </ol>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Boa prática</h4>
+                                <p>Escreva textos curtos, com ação objetiva: o que mudou, quem precisa agir e até quando.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="manual-section" id="manual-tarefas" data-keywords="tarefas quadro tabela título filtro ordenar importar">
+                        <header>
+                            <h3>Quadro de Tarefas</h3>
+                            <p>Tela principal de operação para criar, acompanhar e concluir tarefas.</p>
+                        </header>
+                        <div class="manual-grid">
+                            <article class="manual-card">
+                                <h4>Visões disponíveis</h4>
+                                <ul>
+                                    <li><strong>Quadro:</strong> cards por status.</li>
+                                    <li><strong>Tabela:</strong> comparação rápida em linhas e colunas.</li>
+                                    <li><strong>Título:</strong> foco em lista simples.</li>
+                                </ul>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Fluxo básico</h4>
+                                <ol>
+                                    <li>Clique em <strong>Nova tarefa</strong>.</li>
+                                    <li>Preencha título, tipo, prioridade, responsável e prazo.</li>
+                                    <li>Use filtros para localizar tarefas específicas.</li>
+                                    <li>Atualize o status conforme o andamento.</li>
+                                </ol>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Importação em lote</h4>
+                                <p>Ideal para carga inicial: baixe o modelo, preencha, revise a pre-visualização e confirme a importação.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="manual-section" id="manual-clientes" data-keywords="clientes cadastro cnpj endereço conexão remota status">
+                        <header>
+                            <h3>Clientes</h3>
+                            <p>Cadastro completo de empresas atendidas e dados de contato.</p>
+                        </header>
+                        <div class="manual-grid">
+                            <article class="manual-card">
+                                <h4>Abas da tela</h4>
+                                <ul>
+                                    <li><strong>Geral:</strong> nome, sigla, contato e dados fiscais.</li>
+                                    <li><strong>Endereço:</strong> CEP com busca automática.</li>
+                                    <li><strong>Conexão remota:</strong> múltiplos acessos (AnyDesk e outros).</li>
+                                </ul>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Passo a passo</h4>
+                                <ol>
+                                    <li>Abra <strong>Novo cliente</strong>.</li>
+                                    <li>Complete os campos obrigatórios na aba Geral.</li>
+                                    <li>Use o botão de buscar CEP para preencher endereço.</li>
+                                    <li>Salve e valide se o cliente apareceu na lista.</li>
+                                </ol>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Dica de qualidade</h4>
+                                <p>Padronize siglas (ex: BP, MVS, RV) para melhorar filtros e relatórios.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="manual-section" id="manual-chat" data-keywords="chat conversa contatos notificação mensagem">
+                        <header>
+                            <h3>Chat</h3>
+                            <p>Comunicação rápida entre operadores sem sair do sistema.</p>
+                        </header>
+                        <div class="manual-grid">
+                            <article class="manual-card">
+                                <h4>Funções principais</h4>
+                                <ul>
+                                    <li>Lista de contatos com ordenação por mensagem recente.</li>
+                                    <li>Indicadores de mensagens não lidas.</li>
+                                    <li>Abertura por tela principal e modo bolha/post-it.</li>
+                                </ul>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Como conversar</h4>
+                                <ol>
+                                    <li>Abra o menu <strong>Chat</strong>.</li>
+                                    <li>Clique no contato desejado.</li>
+                                    <li>Digite a mensagem e envie.</li>
+                                    <li>Acompanhe notificações no menu lateral.</li>
+                                </ol>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Boa prática</h4>
+                                <p>Use o chat para dúvidas curtas. Para decisões oficiais, registre no Quadro de Avisos.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="manual-section" id="manual-relatorios" data-keywords="relatórios construtor exportar pdf excel filtros colunas">
+                        <header>
+                            <h3>Relatórios</h3>
+                            <p>Construa relatórios personalizados e compartilhe com outros usuários.</p>
+                        </header>
+                        <div class="manual-grid">
+                            <article class="manual-card">
+                                <h4>Aba Relatórios</h4>
+                                <p>Mostra os relatórios cadastrados. Clique em uma linha para abrir e visualizar os dados.</p>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Aba Construtor</h4>
+                                <ol>
+                                    <li>Clique em <strong>Novo relatório</strong>.</li>
+                                    <li>Defina nome, disponibilidade e filtros.</li>
+                                    <li>Escolha colunas e ordenação.</li>
+                                    <li>Valide o preview e salve.</li>
+                                </ol>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Exportação</h4>
+                                <p>Use os botões da lista para gerar PDF ou Excel e compartilhar com a equipe.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="manual-section" id="manual-configuracoes" data-keywords="configurações geral permissão usuários extensão tabela">
+                        <header>
+                            <h3>Configurações</h3>
+                            <p>Área administrativa para ajustar regras, perfil da empresa e comportamento do sistema.</p>
+                        </header>
+                        <div class="manual-grid">
+                            <article class="manual-card">
+                                <h4>Guia rápida das abas</h4>
+                                <ul>
+                                    <li><strong>Geral:</strong> nome do projeto, menu personalizado e cores/ícones.</li>
+                                    <li><strong>Permissões:</strong> grupos e matriz de acesso por tela.</li>
+                                    <li><strong>Usuários:</strong> cadastro de operadores.</li>
+                                    <li><strong>Extensão:</strong> instalação e pacote do modo post-it.</li>
+                                    <li><strong>Tabela:</strong> ordem e largura de colunas.</li>
+                                </ul>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Fluxo recomendado para implantação</h4>
+                                <ol>
+                                    <li>Cadastre grupos de permissão.</li>
+                                    <li>Cadastre usuários e vincule cada grupo.</li>
+                                    <li>Ajuste tipos/prioridades (cor e ícone).</li>
+                                    <li>Configure a extensão dos operadores.</li>
+                                </ol>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Importante</h4>
+                                <p>Se algo ficar inacessível, valide primeiro as permissões do grupo do usuário logado.</p>
+                            </article>
+                        </div>
+                    </section>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/local-db-client.js"></script>
+    <script src="scripts/db-client-config.js"></script>
+    <script src="scripts/permission-service.js"></script>
+    <script src="scripts/storage.js"></script>
+    <script src="scripts/component-loader.js"></script>
+    <script src="scripts/profile-modal.js"></script>
+    <script src="scripts/chat.js"></script>
+    <script src="scripts/manual.js"></script>
+</body>
+</html>
+
