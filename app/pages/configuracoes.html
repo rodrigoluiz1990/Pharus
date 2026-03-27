@@ -242,7 +242,7 @@
 
         .custom-menu-row {
             display: grid;
-            grid-template-columns: minmax(220px, 1fr) auto;
+            grid-template-columns: minmax(190px, 220px) minmax(320px, 1fr);
             gap: 10px;
             align-items: stretch;
         }
@@ -254,7 +254,7 @@
             padding: 10px;
             display: grid;
             gap: 6px;
-            min-width: 220px;
+            min-width: 190px;
         }
 
         .table-column-width-item label,
@@ -285,8 +285,8 @@
         }
 
         .custom-menu-icon-config select {
-            flex: 1;
-            min-width: 0;
+            flex: 0 0 138px;
+            min-width: 138px;
             border: 1px solid #cbd7e4;
             border-radius: 6px;
             padding: 7px 8px;
@@ -709,13 +709,12 @@
                                     <label for="projectDisplayNameInput">Nome do projeto</label>
                                     <input id="projectDisplayNameInput" type="text" maxlength="40" placeholder="Ex: Pharus">
                                 </div>
-                                <div class="settings-actions">
-                                    <button class="btn btn-secondary" id="resetProjectDisplayNameBtn" type="button">
-                                        <i class="fas fa-undo"></i> Restaurar padrão
-                                    </button>
-                                </div>
                                 <p class="status-hint" id="projectDisplayNameStatus" aria-live="polite"></p>
                                 <hr style="border:none; border-top:1px solid #e3ebf5; margin: 2px 0;">
+                                <label class="custom-menu-toggle" for="customSidebarMenuEnabledInput">
+                                    <input id="customSidebarMenuEnabledInput" type="checkbox" checked>
+                                    Ativar menu personalizado no menu lateral
+                                </label>
                                 <p>Configure um menu lateral personalizado para abrir uma página definida por URL.</p>
                                 <div class="custom-menu-row">
                                     <div class="custom-menu-icon-picker">
@@ -744,15 +743,6 @@
                                 <div class="table-column-width-item">
                                     <label for="customSidebarMenuUrlInput">URL de destino</label>
                                     <input id="customSidebarMenuUrlInput" type="text" maxlength="300" placeholder="Ex: https://portal.exemplo.com">
-                                </div>
-                                <label class="custom-menu-toggle" for="customSidebarMenuEnabledInput">
-                                    <input id="customSidebarMenuEnabledInput" type="checkbox" checked>
-                                    Ativar menu personalizado no menu lateral
-                                </label>
-                                <div class="settings-actions">
-                                    <button class="btn btn-secondary" id="resetCustomSidebarMenuBtn" type="button">
-                                        <i class="fas fa-undo"></i> Limpar menu personalizado
-                                    </button>
                                 </div>
                                 <p class="status-hint" id="customSidebarMenuStatus" aria-live="polite"></p>
                                 <hr style="border:none; border-top:1px solid #e3ebf5; margin: 2px 0;">

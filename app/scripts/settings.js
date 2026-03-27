@@ -1,7 +1,6 @@
 ﻿// scripts/settings.js
 const SettingsModule = (() => {
     const projectDisplayNameInput = document.getElementById('projectDisplayNameInput');
-    const resetProjectDisplayNameBtn = document.getElementById('resetProjectDisplayNameBtn');
     const projectDisplayNameStatus = document.getElementById('projectDisplayNameStatus');
     const customSidebarMenuNameInput = document.getElementById('customSidebarMenuNameInput');
     const customSidebarMenuUrlInput = document.getElementById('customSidebarMenuUrlInput');
@@ -399,6 +398,32 @@ const SettingsModule = (() => {
         customSidebarMenuIconInput.value = saved.icon || DEFAULT_CUSTOM_SIDEBAR_ICON;
         customSidebarMenuEnabledInput.checked = Boolean(saved.enabled);
         updateCustomSidebarMenuIconPreview(customSidebarMenuIconInput.value);
+        syncCustomSidebarMenuEnabledState();
+    };
+
+    const syncCustomSidebarMenuEnabledState = () => {
+        if (!customSidebarMenuEnabledInput) return;
+        const enabled = Boolean(customSidebarMenuEnabledInput.checked);
+        const controlledInputs = [
+            customSidebarMenuNameInput,
+            customSidebarMenuUrlInput,
+            customSidebarMenuIconInput,
+        ];
+
+        controlledInputs.forEach((input) => {
+            if (!input) return;
+            input.disabled = !enabled;
+            input.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+
+            const group = input.closest('.table-column-width-item, .custom-menu-icon-picker');
+            if (group) {
+                group.style.opacity = enabled ? '1' : '0.6';
+            }
+        });
+
+        if (customSidebarMenuIconPreview) {
+            customSidebarMenuIconPreview.style.opacity = enabled ? '1' : '0.6';
+        }
     };
 
     const applyTaskTaxonomyColorInputs = () => {
@@ -699,24 +724,11 @@ const SettingsModule = (() => {
         // Reaplica apos montar os pickers para garantir sincronia visual completa
         applyTaskTaxonomyIconInputs();
         updateCustomSidebarMenuIconPreview(customSidebarMenuIconInput?.value || DEFAULT_CUSTOM_SIDEBAR_ICON);
+        syncCustomSidebarMenuEnabledState();
         loadTableColumnsOrder();
         loadTableColumnsWidths();
         renderTableColumnsOrderList();
         renderTableColumnsWidthGrid();
-
-        if (resetProjectDisplayNameBtn && projectDisplayNameInput) {
-            resetProjectDisplayNameBtn.addEventListener('click', (event) => {
-                event.preventDefault();
-                const originalHtml = resetProjectDisplayNameBtn.innerHTML;
-                projectDisplayNameInput.value = DEFAULT_PROJECT_DISPLAY_NAME;
-                localStorage.setItem(PROJECT_DISPLAY_NAME_KEY, DEFAULT_PROJECT_DISPLAY_NAME);
-                window.dispatchEvent(new CustomEvent('pharus:project-name-updated', {
-                    detail: { projectName: DEFAULT_PROJECT_DISPLAY_NAME }
-                }));
-                notify('Nome do projeto restaurado para o padrão.', 'success');
-                showButtonActionFeedback(resetProjectDisplayNameBtn, originalHtml, 'success');
-            });
-        }
 
         if (openExtensionsBtn) {
             openExtensionsBtn.addEventListener('click', async (event) => {
@@ -804,6 +816,7 @@ const SettingsModule = (() => {
                 const hasCustomMenuFieldsMismatch = customMenuEnabled && ((customMenuName && !customMenuUrl) || (!customMenuName && customMenuUrl));
                 const normalizedCustomMenuEnabled = hasCustomMenuFieldsMismatch ? false : customMenuEnabled;
                 customSidebarMenuEnabledInput.checked = normalizedCustomMenuEnabled;
+                syncCustomSidebarMenuEnabledState();
 
                 localStorage.setItem(CUSTOM_SIDEBAR_MENU_KEY, JSON.stringify({
                     name: customMenuName,
@@ -852,6 +865,12 @@ const SettingsModule = (() => {
         if (customSidebarMenuIconInput) {
             customSidebarMenuIconInput.addEventListener('change', () => {
                 updateCustomSidebarMenuIconPreview(customSidebarMenuIconInput.value);
+            });
+        }
+
+        if (customSidebarMenuEnabledInput) {
+            customSidebarMenuEnabledInput.addEventListener('change', () => {
+                syncCustomSidebarMenuEnabledState();
             });
         }
 
