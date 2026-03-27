@@ -11,6 +11,65 @@ const DETACHED_NOTES_KEY = 'pharus_detached_notes';
 const PROJECT_DISPLAY_NAME_KEY = 'pharus_project_display_name';
 const DEFAULT_PROJECT_DISPLAY_NAME = 'Projeto';
 const PARTY_EMOJI = '🥳';
+const TASK_TYPE_FILTER_VALUES = ['all', 'new', 'optimization', 'improvement', 'discussion', 'suggestion', 'issue', 'epic'];
+const TASK_PRIORITY_FILTER_VALUES = ['all', 'very_high', 'high', 'medium', 'low', 'very_low'];
+
+const TASK_TYPE_FILTER_OPTIONS = [
+  { value: 'all', label: 'Todos' },
+  { value: 'new', label: 'Novo' },
+  { value: 'optimization', label: 'Otimização' },
+  { value: 'improvement', label: 'Melhoria' },
+  { value: 'discussion', label: 'Para discutir' },
+  { value: 'suggestion', label: 'Sugestão' },
+  { value: 'issue', label: 'Problema' },
+  { value: 'epic', label: 'Épico' },
+];
+
+const TASK_PRIORITY_FILTER_OPTIONS = [
+  { value: 'all', label: 'Todas' },
+  { value: 'very_high', label: 'Muito alta' },
+  { value: 'high', label: 'Alta' },
+  { value: 'medium', label: 'Média' },
+  { value: 'low', label: 'Baixa' },
+  { value: 'very_low', label: 'Muito baixa' },
+];
+
+const TASK_TYPE_ALIASES = {
+  all: 'all',
+  new: 'new',
+  novo: 'new',
+  task: 'new',
+  optimization: 'optimization',
+  otimizacao: 'optimization',
+  improvement: 'improvement',
+  melhoria: 'improvement',
+  discussion: 'discussion',
+  para_discutir: 'discussion',
+  suggestion: 'suggestion',
+  sugestao: 'suggestion',
+  issue: 'issue',
+  bug: 'issue',
+  problema: 'issue',
+  epic: 'epic',
+  epico: 'epic',
+};
+
+const TASK_PRIORITY_ALIASES = {
+  all: 'all',
+  very_high: 'very_high',
+  muito_alta: 'very_high',
+  urgent: 'very_high',
+  urgente: 'very_high',
+  high: 'high',
+  alta: 'high',
+  medium: 'medium',
+  media: 'medium',
+  normal: 'medium',
+  low: 'low',
+  baixa: 'low',
+  very_low: 'very_low',
+  muito_baixa: 'very_low',
+};
 
 const els = {
   apiBaseInput: document.getElementById('apiBaseInput'),
@@ -30,7 +89,7 @@ const els = {
   modeAgendaBtn: document.getElementById('modeAgendaBtn'),
   modeNoticesBtn: document.getElementById('modeNoticesBtn'),
   modeDetachedBtn: document.getElementById('modeDetachedBtn'),
-  modeChatBtn: document.getElementById('modeChatBtn'),
+  openChatBtn: document.getElementById('openChatBtn'),
   focusTasksSection: document.getElementById('focusTasksSection'),
   agendaSection: document.getElementById('agendaSection'),
   agendaStatusText: document.getElementById('agendaStatusText'),
@@ -55,6 +114,15 @@ let lastNonChatMode = 'tasks';
 let detachedNotes = [];
 
 const normalizeBase = (value) => String(value || '').trim().replace(/\/+$/, '');
+const normalizeKey = (value) => String(value || '')
+  .trim()
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/\s+/g, '_');
+
+const normalizeTaskType = (value) => TASK_TYPE_ALIASES[normalizeKey(value)] || 'all';
+const normalizeTaskPriority = (value) => TASK_PRIORITY_ALIASES[normalizeKey(value)] || 'all';
 
 function setStatus(text) {
   if (els.statusText) els.statusText.textContent = text;
@@ -78,10 +146,12 @@ function escapeHtml(value) {
 }
 
 function getPriorityLabel(priority) {
-  const safe = String(priority || '').toLowerCase();
-  if (safe === 'high' || safe === 'alta') return 'Alta';
-  if (safe === 'medium' || safe === 'media') return 'Média';
-  if (safe === 'low' || safe === 'baixa') return 'Baixa';
+  const safe = normalizeTaskPriority(priority);
+  if (safe === 'very_high') return 'Muito alta';
+  if (safe === 'high') return 'Alta';
+  if (safe === 'medium') return 'Média';
+  if (safe === 'low') return 'Baixa';
+  if (safe === 'very_low') return 'Muito baixa';
   return String(priority || '-');
 }
 
@@ -144,9 +214,7 @@ function renderTasks(tasks, settings) {
     const li = document.createElement('li');
     li.className = `task-item ${task.is_pinned ? 'pinned' : ''}`;
 
-    const id = Number(task?.id);
-    const refLabel = Number.isFinite(id) && id > 0 ? `#${id} ` : '';
-    const safeTitle = `${escapeHtml(refLabel)}${escapeHtml(task.title || 'Sem título')}`;
+    const safeTitle = escapeHtml(task.title || 'Sem título');
     const dueLabel = formatDueDate(task.due_date);
     const priority = String(task.priority || 'medium');
 
@@ -179,11 +247,27 @@ function isNoticeVisible(notice) {
 }
 
 function getNoticePriorityLabel(priority) {
-  const safe = String(priority || '').toLowerCase();
-  if (safe === 'high' || safe === 'alta') return 'Alta';
-  if (safe === 'medium' || safe === 'media') return 'Média';
-  if (safe === 'low' || safe === 'baixa') return 'Baixa';
+  const safe = normalizeTaskPriority(priority);
+  if (safe === 'very_high') return 'Muito alta';
+  if (safe === 'high') return 'Alta';
+  if (safe === 'medium') return 'Média';
+  if (safe === 'low') return 'Baixa';
+  if (safe === 'very_low') return 'Muito baixa';
   return String(priority || '-');
+}
+
+function renderFilterOptions() {
+  if (els.taskTypeFilterInput) {
+    els.taskTypeFilterInput.innerHTML = TASK_TYPE_FILTER_OPTIONS
+      .map((option) => `<option value="${option.value}">${option.label}</option>`)
+      .join('');
+  }
+
+  if (els.taskPriorityFilterInput) {
+    els.taskPriorityFilterInput.innerHTML = TASK_PRIORITY_FILTER_OPTIONS
+      .map((option) => `<option value="${option.value}">${option.label}</option>`)
+      .join('');
+  }
 }
 
 function renderNotices(notices) {
@@ -319,13 +403,15 @@ function renderDetachedNotes() {
   detachedNotes.forEach((note) => {
     const li = document.createElement('li');
     li.className = `task-item ${note.done ? 'done' : ''}`;
+    const toggleIcon = note.done ? '↩' : '✓';
+    const toggleLabel = note.done ? 'Desmarcar' : 'Concluir';
     li.innerHTML = `
       <div class="detached-meta">
         <div class="task-title">${escapeHtml(note.title)}</div>
         <div class="detached-actions">
-          <button type="button" data-action="toggle" title="${note.done ? 'Desmarcar' : 'Concluir'}">${note.done ? 'O' : 'V'}</button>
-          <button type="button" data-action="edit" title="Editar">E</button>
-          <button type="button" data-action="delete" title="Excluir">X</button>
+          <button type="button" data-action="toggle" title="${toggleLabel}" aria-label="${toggleLabel}">${toggleIcon}</button>
+          <button type="button" data-action="edit" title="Editar" aria-label="Editar">✎</button>
+          <button type="button" data-action="delete" title="Excluir" aria-label="Excluir">🗑</button>
         </div>
       </div>
     `;
@@ -390,14 +476,14 @@ async function addDetachedNote() {
 function loadSettings() {
   return new Promise((resolve) => {
     chrome.storage.sync.get(DEFAULT_SETTINGS, (saved) => {
-      const rawType = String(saved.taskTypeFilter || 'all').toLowerCase();
-      const rawPriority = String(saved.taskPriorityFilter || 'all').toLowerCase();
+      const rawType = normalizeTaskType(saved.taskTypeFilter || 'all');
+      const rawPriority = normalizeTaskPriority(saved.taskPriorityFilter || 'all');
       resolve({
         apiBase: normalizeBase(saved.apiBase) || DEFAULT_SETTINGS.apiBase,
         email: String(saved.email || ''),
         onlyAssigned: Boolean(saved.onlyAssigned),
-        taskTypeFilter: ['all', 'task', 'bug', 'improvement'].includes(rawType) ? rawType : 'all',
-        taskPriorityFilter: ['all', 'high', 'medium', 'low'].includes(rawPriority) ? rawPriority : 'all',
+        taskTypeFilter: TASK_TYPE_FILTER_VALUES.includes(rawType) ? rawType : 'all',
+        taskPriorityFilter: TASK_PRIORITY_FILTER_VALUES.includes(rawPriority) ? rawPriority : 'all',
         limit: Number(saved.limit) || DEFAULT_SETTINGS.limit,
         settingsOpen: Boolean(saved.settingsOpen),
       });
@@ -457,14 +543,14 @@ function saveSettings(settings) {
 }
 
 function getFormSettings() {
-  const rawType = String(els.taskTypeFilterInput?.value || 'all').toLowerCase();
-  const rawPriority = String(els.taskPriorityFilterInput?.value || 'all').toLowerCase();
+  const rawType = normalizeTaskType(els.taskTypeFilterInput?.value || 'all');
+  const rawPriority = normalizeTaskPriority(els.taskPriorityFilterInput?.value || 'all');
   return {
     apiBase: normalizeBase(els.apiBaseInput?.value) || DEFAULT_SETTINGS.apiBase,
     email: String(els.emailInput?.value || '').trim(),
     onlyAssigned: Boolean(els.onlyAssignedInput?.checked),
-    taskTypeFilter: ['all', 'task', 'bug', 'improvement'].includes(rawType) ? rawType : 'all',
-    taskPriorityFilter: ['all', 'high', 'medium', 'low'].includes(rawPriority) ? rawPriority : 'all',
+    taskTypeFilter: TASK_TYPE_FILTER_VALUES.includes(rawType) ? rawType : 'all',
+    taskPriorityFilter: TASK_PRIORITY_FILTER_VALUES.includes(rawPriority) ? rawPriority : 'all',
     limit: Math.max(1, Math.min(Number(els.limitInput?.value) || DEFAULT_SETTINGS.limit, 50)),
     settingsOpen: !(els.settingsPanel?.classList.contains('hidden')),
   };
@@ -513,12 +599,10 @@ function setMode(mode, options = {}) {
   els.modeAgendaBtn?.classList.toggle('active', modeValue === 'agenda');
   els.modeNoticesBtn?.classList.toggle('active', modeValue === 'notices');
   els.modeDetachedBtn?.classList.toggle('active', modeValue === 'detached');
-  els.modeChatBtn?.classList.toggle('active', modeValue === 'chat');
   els.modeTasksBtn?.setAttribute('aria-selected', modeValue === 'tasks' ? 'true' : 'false');
   els.modeAgendaBtn?.setAttribute('aria-selected', modeValue === 'agenda' ? 'true' : 'false');
   els.modeNoticesBtn?.setAttribute('aria-selected', modeValue === 'notices' ? 'true' : 'false');
   els.modeDetachedBtn?.setAttribute('aria-selected', modeValue === 'detached' ? 'true' : 'false');
-  els.modeChatBtn?.setAttribute('aria-selected', modeValue === 'chat' ? 'true' : 'false');
 
   if (els.focusTasksSection) els.focusTasksSection.classList.toggle('hidden', modeValue !== 'tasks');
   if (els.agendaSection) els.agendaSection.classList.toggle('hidden', modeValue !== 'agenda');
@@ -565,12 +649,12 @@ async function fetchFocusTasks(settings) {
 }
 
 function applyTaskFilters(tasks, settings) {
-  const typeFilter = String(settings?.taskTypeFilter || 'all').toLowerCase();
-  const priorityFilter = String(settings?.taskPriorityFilter || 'all').toLowerCase();
+  const typeFilter = normalizeTaskType(settings?.taskTypeFilter || 'all');
+  const priorityFilter = normalizeTaskPriority(settings?.taskPriorityFilter || 'all');
 
   return (Array.isArray(tasks) ? tasks : []).filter((task) => {
-    const taskType = String(task?.type || '').toLowerCase();
-    const taskPriority = String(task?.priority || '').toLowerCase();
+    const taskType = normalizeTaskType(task?.type || '');
+    const taskPriority = normalizeTaskPriority(task?.priority || '');
 
     const typeMatches = typeFilter === 'all' || taskType === typeFilter;
     const priorityMatches = priorityFilter === 'all' || taskPriority === priorityFilter;
@@ -715,6 +799,7 @@ function refreshCurrentMode(options = {}) {
 
 async function init() {
   await applyProjectTitle();
+  renderFilterOptions();
   const settings = await loadSettings();
   if (els.apiBaseInput) els.apiBaseInput.value = settings.apiBase;
   if (els.emailInput) els.emailInput.value = settings.email;
@@ -778,8 +863,8 @@ async function init() {
     });
   }
 
-  if (els.modeChatBtn) {
-    els.modeChatBtn.addEventListener('click', () => {
+  if (els.openChatBtn) {
+    els.openChatBtn.addEventListener('click', () => {
       setMode('chat');
     });
   }

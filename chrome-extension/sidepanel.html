@@ -9,19 +9,19 @@
 <body>
   <div class="app">
     <header class="header">
-      <div class="header-main">
+      <div class="header-top">
         <h1 id="projectHeaderTitle">Pharus - Projeto</h1>
-        <div class="mode-switch" role="tablist" aria-label="Modo de visualização">
-          <button id="modeTasksBtn" class="mode-btn active" role="tab" aria-selected="true" title="Modo Tarefas">Tarefas</button>
-          <button id="modeAgendaBtn" class="mode-btn" role="tab" aria-selected="false" title="Modo Agenda">Agenda</button>
-          <button id="modeNoticesBtn" class="mode-btn" role="tab" aria-selected="false" title="Modo Avisos">Avisos</button>
-          <button id="modeDetachedBtn" class="mode-btn" role="tab" aria-selected="false" title="Post-it Avulso">Avulso</button>
-          <button id="modeChatBtn" class="mode-btn" role="tab" aria-selected="false" title="Modo Chat">Chat</button>
+        <div class="header-actions">
+          <button id="openChatBtn" class="icon-btn" title="Abrir chat" aria-label="Abrir chat">💬</button>
+          <button id="refreshBtn" class="icon-btn" title="Atualizar">↻</button>
+          <button id="settingsToggleBtn" class="icon-btn" title="Configurações">⚙</button>
         </div>
       </div>
-      <div class="header-actions">
-        <button id="refreshBtn" class="icon-btn" title="Atualizar">↻</button>
-        <button id="settingsToggleBtn" class="icon-btn" title="Configurações">⚙</button>
+      <div class="mode-switch" role="tablist" aria-label="Modo de visualização">
+        <button id="modeTasksBtn" class="mode-btn active" role="tab" aria-selected="true" title="Modo Tarefas">Tarefas</button>
+        <button id="modeAgendaBtn" class="mode-btn" role="tab" aria-selected="false" title="Modo Agenda">Agenda</button>
+        <button id="modeNoticesBtn" class="mode-btn" role="tab" aria-selected="false" title="Modo Avisos">Avisos</button>
+        <button id="modeDetachedBtn" class="mode-btn" role="tab" aria-selected="false" title="Post-it Avulso">Avulso</button>
       </div>
     </header>
 
@@ -39,17 +39,23 @@
       <label>Tipo da tarefa
         <select id="taskTypeFilterInput">
           <option value="all">Todos</option>
-          <option value="task">Novo</option>
-          <option value="bug">Erro</option>
+          <option value="new">Novo</option>
+          <option value="optimization">Otimização</option>
           <option value="improvement">Melhoria</option>
+          <option value="discussion">Para discutir</option>
+          <option value="suggestion">Sugestão</option>
+          <option value="issue">Problema</option>
+          <option value="epic">Épico</option>
         </select>
       </label>
       <label>Prioridade
         <select id="taskPriorityFilterInput">
           <option value="all">Todas</option>
+          <option value="very_high">Muito alta</option>
           <option value="high">Alta</option>
           <option value="medium">Média</option>
           <option value="low">Baixa</option>
+          <option value="very_low">Muito baixa</option>
         </select>
       </label>
       <label>Limite

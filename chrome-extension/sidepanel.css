@@ -20,17 +20,17 @@ body {
 
 .header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
   margin-bottom: 10px;
   gap: 8px;
 }
 
-.header-main {
+.header-top {
   min-width: 0;
   display: grid;
-  grid-template-rows: auto auto;
-  row-gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
 }
 
 .header h1 {
@@ -39,32 +39,35 @@ body {
 }
 
 .mode-switch {
-  display: inline-flex;
-  gap: 6px;
-  background: #e9f1fb;
-  border: 1px solid #d2e0f0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: 100%;
+  gap: 0;
+  background: #f7fbff;
+  border: 1px solid #d9e4ef;
   border-radius: 10px;
-  padding: 3px;
+  overflow: hidden;
 }
 
 .mode-btn {
-  border: 1px solid transparent;
+  border: none;
   background: transparent;
-  color: #2e4862;
-  border-radius: 7px;
+  color: #35516b;
   cursor: pointer;
-  padding: 5px 10px;
+  padding: 9px 8px;
+  min-height: 36px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .mode-btn:hover {
-  background: rgba(47, 142, 229, 0.12);
+  background: #edf5fd;
 }
 
 .mode-btn.active {
   background: #2f8ee5;
-  border-color: #2f8ee5;
   color: #ffffff;
 }
 
@@ -296,6 +299,11 @@ body {
   color: #9f2a2a;
 }
 
+.badge.priority-very_high {
+  background: #ffd7d7;
+  color: #7f1d1d;
+}
+
 .badge.priority-medium {
   background: #fff4d8;
   color: #856404;
@@ -304,6 +312,11 @@ body {
 .badge.priority-low {
   background: #e6f8ec;
   color: #2d6b45;
+}
+
+.badge.priority-very_low {
+  background: #dff3e6;
+  color: #1f5a36;
 }
 
 .badge.badge-type {

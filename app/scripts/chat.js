@@ -98,7 +98,10 @@ const ChatModule = (() => {
                 return;
             }
 
-            const response = await fetch('chat.html');
+            const response = await fetch('pages/chat.html');
+            if (!response.ok) {
+                throw new Error(`Falha ao carregar template do chat (HTTP ${response.status})`);
+            }
             const chatHTML = await response.text();
             
             // Adicionar ao DOM

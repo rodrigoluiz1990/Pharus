@@ -318,6 +318,10 @@ body.page-leaving .content {
     gap: 10px;
 }
 
+.task-modal-header h3 {
+    margin: 0;
+}
+
 .task-modal-header-actions {
     display: inline-flex;
     align-items: center;
@@ -417,6 +421,10 @@ body.page-leaving .content {
     padding-top: 0px;
 }
 
+#taskModal .modal-body {
+    padding-top: 8px;
+}
+
 .form-group {
     margin-bottom: 10px;
 }
@@ -486,6 +494,10 @@ textarea.form-control {
     flex-direction: column;
     align-self: start;    /* reforça o alinhamento no nível do item */
     margin-bottom: 0;    /* o espaço vertical agora ? controlado por row-gap */
+}
+
+#taskForm .form-row:first-child .form-group label {
+    margin-top: 0;
 }
 
 /* Campos que devem ocupar as duas colunas */

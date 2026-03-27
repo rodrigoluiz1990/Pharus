@@ -23,7 +23,7 @@ const SettingsPermissionsModule = (() => {
         { key: 'usuarios', label: 'Usuários', options: ['view', 'create', 'edit', 'delete', 'chat'] },
         { key: 'chat', label: 'Chat', options: ['view', 'send', 'attachment'] },
         { key: 'relatorios', label: 'Relatórios', options: ['view', 'create', 'edit', 'share', 'export'] },
-        { key: 'configuracoes', label: 'Configurações', options: ['view', 'project', 'permissions', 'table'] },
+        { key: 'configuracoes', label: 'Configurações', options: ['view', 'project', 'permissions', 'users', 'table'] },
     ];
 
     const OPTION_LABELS = {
@@ -42,6 +42,7 @@ const SettingsPermissionsModule = (() => {
         export: 'Exportar',
         project: 'Editar dados gerais',
         permissions: 'Gerenciar permissões',
+        users: 'Gerenciar usuários',
         table: 'Editar tabela',
     };
 
@@ -56,6 +57,13 @@ const SettingsPermissionsModule = (() => {
         if (window.UtilsModule && typeof window.UtilsModule.showNotification === 'function') {
             window.UtilsModule.showNotification(message, type);
         }
+    };
+    const showValidationModal = (message) => {
+        if (window.UtilsModule && typeof window.UtilsModule.showPermissionDeniedModal === 'function') {
+            window.UtilsModule.showPermissionDeniedModal(message);
+            return;
+        }
+        window.alert(String(message || 'Validação inválida.'));
     };
     const escapeHtml = (text) => {
         const div = document.createElement('div');
@@ -204,8 +212,22 @@ const SettingsPermissionsModule = (() => {
         const status = groupActiveEl?.checked ? 'active' : 'inactive';
         if (!name) {
             notify('Informe o nome do grupo.', 'warning');
-            return;
+            return false;
         }
+
+        const normalizedName = name.toLocaleLowerCase('pt-BR');
+        const duplicated = groups.some((group) => {
+            const sameId = selectedGroupId && String(group.id) === String(selectedGroupId);
+            if (sameId) return false;
+            return String(group.name || '').trim().toLocaleLowerCase('pt-BR') === normalizedName;
+        });
+
+        if (duplicated) {
+            showValidationModal('Já existe um grupo com esse nome. Use um nome diferente.');
+            return false;
+        }
+
+        setStatus(groupsStatusEl, '');
         if (selectedGroupId) {
             const { error } = await window.dbClient.from('permission_groups').update({ name, description: description || null, status }).eq('id', selectedGroupId);
             if (error) throw error;
@@ -220,6 +242,7 @@ const SettingsPermissionsModule = (() => {
         }
         await loadGroups();
         notify('Grupo salvo com sucesso.', 'success');
+        return true;
     };
 
     const deleteGroup = async () => {
@@ -283,10 +306,12 @@ const SettingsPermissionsModule = (() => {
             allowedKeys = new Set();
             renderGroups();
             renderMatrix();
-            setStatus(groupsStatusEl, 'Novo grupo: preencha os campos e salve.');
+            setStatus(groupsStatusEl, '');
         });
         if (saveGroupBtn) saveGroupBtn.addEventListener('click', () => void saveGroup()
-            .then(() => applySaveFeedback(saveGroupBtn))
+            .then((saved) => {
+                if (saved) applySaveFeedback(saveGroupBtn);
+            })
             .catch((e) => notify(`Falha ao salvar grupo: ${e.message || 'erro'}`, 'error')));
         if (deleteGroupBtn) deleteGroupBtn.addEventListener('click', () => void deleteGroup().catch((e) => notify(`Falha ao excluir grupo: ${e.message || 'erro'}`, 'error')));
         if (saveMatrixBtn) saveMatrixBtn.addEventListener('click', () => void saveMatrix()

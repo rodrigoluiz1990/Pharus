@@ -521,6 +521,7 @@
             display: grid;
             grid-template-columns: 280px 1fr;
             gap: 12px;
+            align-items: start;
         }
 
         .permission-groups-list {
@@ -573,6 +574,18 @@
         .permission-group-form {
             display: grid;
             gap: 10px;
+            align-content: start;
+        }
+
+        .permission-group-form .settings-actions {
+            align-self: start;
+            align-items: center;
+            align-content: flex-start;
+        }
+
+        .permission-group-form .settings-actions .btn {
+            flex: 0 0 auto;
+            white-space: nowrap;
         }
 
         .permission-group-checkbox {
