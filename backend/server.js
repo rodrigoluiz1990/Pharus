@@ -7,8 +7,11 @@ require('dotenv').config();
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
+const FRONTEND_ROOT = path.join(__dirname, '..', 'app');
 const CHAT_UPLOAD_DIR = path.join(__dirname, 'uploads', 'chat');
+const TASK_UPLOAD_DIR = path.join(__dirname, 'uploads', 'tasks');
 const MAX_CHAT_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+const MAX_TASK_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 const pool = new Pool({
   host: process.env.PGHOST || '127.0.0.1',
@@ -28,7 +31,7 @@ app.use((req, res, next) => {
   }
   next();
 });
-app.use(express.static(path.join(__dirname, '..')));
+app.use(express.static(FRONTEND_ROOT));
 
 const TABLE_COLUMNS = {
   app_users: [
@@ -75,7 +78,7 @@ const TABLE_COLUMNS = {
     'is_pinned',
     'focus_order',
     'type',
-    'column_id',
+    'board_column_id',
     'completed',
     'created_at',
     'updated_at',
@@ -226,7 +229,7 @@ function parseSimpleOr(orExpr, values, table) {
   if (table !== 'chat_messages') return null;
 
   const pattern =
-    /^and\(sender_id\.eq\.([a-f0-9-]+),receiver_id\.eq\.([a-f0-9-]+)\),and\(sender_id\.eq\.([a-f0-9-]+),receiver_id\.eq\.([a-f0-9-]+)\)$/i;
+    /^and\(sender_id\.eq\.([A-Za-z0-9_-]+),receiver_id\.eq\.([A-Za-z0-9_-]+)\),and\(sender_id\.eq\.([A-Za-z0-9_-]+),receiver_id\.eq\.([A-Za-z0-9_-]+)\)$/;
   const match = orExpr.trim().match(pattern);
   if (!match) return null;
 
@@ -273,9 +276,28 @@ function normalizeWriteValue(table, column, value) {
   return JSON.stringify(value);
 }
 
+function isNumericId(value) {
+  return /^[0-9]+$/.test(String(value ?? '').trim());
+}
+
+async function normalizeAgendaCreatedBy(value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (!isNumericId(value)) return null;
+  const id = Number(value);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  const exists = await pool.query('SELECT id FROM app_users WHERE id = $1 LIMIT 1', [id]);
+  return exists.rows?.[0]?.id != null ? id : null;
+}
+
 function ensureChatUploadDir() {
   if (!fs.existsSync(CHAT_UPLOAD_DIR)) {
     fs.mkdirSync(CHAT_UPLOAD_DIR, { recursive: true });
+  }
+}
+
+function ensureTaskUploadDir() {
+  if (!fs.existsSync(TASK_UPLOAD_DIR)) {
+    fs.mkdirSync(TASK_UPLOAD_DIR, { recursive: true });
   }
 }
 
@@ -570,6 +592,111 @@ app.get('/api/chat/attachment/:messageId', async (req, res) => {
   }
 });
 
+app.post('/api/tasks/upload', async (req, res) => {
+  const { fileName, mimeType, base64Data } = req.body || {};
+
+  if (!fileName || !mimeType || !base64Data) {
+    return res.status(400).json({ data: null, error: { message: 'Dados de anexo incompletos' } });
+  }
+
+  if (!validateAttachmentMime(mimeType)) {
+    return res.status(400).json({ data: null, error: { message: 'Tipo MIME de arquivo nao permitido' } });
+  }
+
+  if (!validateAttachmentExtension(fileName)) {
+    return res.status(400).json({
+      data: null,
+      error: {
+        message: 'Extensao nao permitida. Permitidos: .pdf .jpg .jpeg .png .webp .txt .zip .patch .diff .doc .docx .xls .xlsx .log .json .csv .xml .sql .ps1 .sh .md',
+      },
+    });
+  }
+
+  try {
+    const buffer = Buffer.from(String(base64Data), 'base64');
+    if (!buffer || !buffer.length) {
+      return res.status(400).json({ data: null, error: { message: 'Arquivo invalido' } });
+    }
+
+    if (buffer.length > MAX_TASK_ATTACHMENT_BYTES) {
+      return res.status(400).json({ data: null, error: { message: 'Arquivo excede o limite de 10 MB' } });
+    }
+
+    ensureTaskUploadDir();
+    const ext = detectExtension(mimeType, fileName);
+    const safeName = sanitizeFileName(fileName);
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext}`;
+    const absolutePath = path.join(TASK_UPLOAD_DIR, uniqueName);
+
+    await fsp.writeFile(absolutePath, buffer);
+
+    return res.json({
+      data: {
+        attachment_name: safeName,
+        attachment_path: uniqueName,
+        attachment_type: mimeType,
+        attachment_size: buffer.length,
+      },
+      error: null,
+    });
+  } catch (error) {
+    return res.status(500).json({ data: null, error: formatError(error) });
+  }
+});
+
+app.get('/api/tasks/attachment/:taskId', async (req, res) => {
+  const { taskId } = req.params || {};
+  if (!taskId) {
+    return res.status(400).json({ data: null, error: { message: 'taskId invalido' } });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT attachment_name, attachment_path, attachment_type, attachment_data
+       FROM tasks
+       WHERE id = $1
+       LIMIT 1`,
+      [String(taskId)]
+    );
+
+    const row = result.rows[0];
+    if (!row || !row.attachment_name) {
+      return res.status(404).json({ data: null, error: { message: 'Anexo nao encontrado' } });
+    }
+
+    if (row.attachment_path) {
+      const filePath = path.join(TASK_UPLOAD_DIR, row.attachment_path);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ data: null, error: { message: 'Arquivo do anexo nao encontrado' } });
+      }
+
+      res.setHeader('Content-Type', row.attachment_type || 'application/octet-stream');
+      res.setHeader(
+        'Content-Disposition',
+        `inline; filename="${sanitizeFileName(row.attachment_name || 'anexo')}"`
+      );
+      return res.sendFile(filePath);
+    }
+
+    if (!row.attachment_data || !String(row.attachment_data).includes(',')) {
+      return res.status(404).json({ data: null, error: { message: 'Conteudo do anexo nao encontrado' } });
+    }
+
+    const [metaPart, payloadPart] = String(row.attachment_data).split(',', 2);
+    const mimeFromData = /^data:([^;]+);base64$/i.exec(metaPart || '')?.[1] || row.attachment_type || 'application/octet-stream';
+    const buffer = Buffer.from(payloadPart || '', 'base64');
+
+    res.setHeader('Content-Type', mimeFromData);
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="${sanitizeFileName(row.attachment_name || 'anexo')}"`
+    );
+    return res.send(buffer);
+  } catch (error) {
+    return res.status(500).json({ data: null, error: formatError(error) });
+  }
+});
+
 app.post('/api/db/query', async (req, res) => {
   const {
     table: rawTable,
@@ -626,15 +753,20 @@ app.post('/api/db/query', async (req, res) => {
       }
 
       const values = [];
-      const valuesPlaceholders = rows
-        .map((row) => {
-          const placeholders = keys.map((k) => {
-            values.push(normalizeWriteValue(table, k, row[k]));
-            return isJsonColumn(table, k) ? `$${values.length}::jsonb` : `$${values.length}`;
-          });
-          return `(${placeholders.join(', ')})`;
-        })
-        .join(', ');
+      const valuesGroups = [];
+      for (const row of rows) {
+        const placeholders = [];
+        for (const k of keys) {
+          let writeValue = normalizeWriteValue(table, k, row[k]);
+          if (table === 'agenda_events' && k === 'created_by') {
+            writeValue = await normalizeAgendaCreatedBy(writeValue);
+          }
+          values.push(writeValue);
+          placeholders.push(isJsonColumn(table, k) ? `$${values.length}::jsonb` : `$${values.length}`);
+        }
+        valuesGroups.push(`(${placeholders.join(', ')})`);
+      }
+      const valuesPlaceholders = valuesGroups.join(', ');
 
       const returningSql = normalizeSelect(returning || '*', table);
       const sql = `INSERT INTO ${table} (${keys.join(', ')}) VALUES ${valuesPlaceholders} RETURNING ${returningSql}`;
@@ -652,12 +784,19 @@ app.post('/api/db/query', async (req, res) => {
       }
 
       const values = [];
-      const sets = keys.map((k) => {
-        values.push(normalizeWriteValue(table, k, payload[k]));
-        return isJsonColumn(table, k)
-          ? `${k} = $${values.length}::jsonb`
-          : `${k} = $${values.length}`;
-      });
+      const sets = [];
+      for (const k of keys) {
+        let writeValue = normalizeWriteValue(table, k, payload[k]);
+        if (table === 'agenda_events' && k === 'created_by') {
+          writeValue = await normalizeAgendaCreatedBy(writeValue);
+        }
+        values.push(writeValue);
+        sets.push(
+          isJsonColumn(table, k)
+            ? `${k} = $${values.length}::jsonb`
+            : `${k} = $${values.length}`
+        );
+      }
 
       const whereSql = buildWhere(filters, or, values, table);
       const returningSql = normalizeSelect(returning || '*', table);
@@ -784,9 +923,14 @@ app.post('/api/tasks/focus/update', async (req, res) => {
   }
 });
 
+// Chrome DevTools probe endpoint (avoid ENOENT noise in local server logs)
+app.get('/.well-known/appspecific/com.chrome.devtools.json', (_req, res) => {
+  return res.status(204).end();
+});
+
 app.get('*', (req, res) => {
   const normalized = req.path === '/' ? '/index.html' : req.path;
-  res.sendFile(path.join(__dirname, '..', normalized));
+  res.sendFile(path.join(FRONTEND_ROOT, normalized));
 });
 
 app.listen(PORT, () => {

@@ -1,0 +1,1113 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <base href="../">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharus - Configurações</title>
+    <link rel="icon" type="image/svg+xml" href="lighthouse-favicon.svg?v=20260321d">
+    <link rel="alternate icon" type="image/png" href="lighthouse-favicon-32.png?v=20260321d">
+    <link rel="shortcut icon" type="image/png" href="lighthouse-favicon-32.png?v=20260321d">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/sidebar.css">
+    <link rel="stylesheet" href="styles/users.css">
+    <style>
+        .settings-page {
+            padding: 0;
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 14px;
+            align-items: start;
+        }
+
+        .settings-tabs {
+            background: #fff;
+            border: 1px solid #dce3ec;
+            border-radius: 10px;
+            padding: 8px;
+            display: grid;
+            gap: 6px;
+            align-self: start;
+            margin-top: 0;
+            position: sticky;
+            top: 20px;
+        }
+
+        .settings-tab-btn {
+            border: 1px solid transparent;
+            background: #f6f9fc;
+            color: #2f465e;
+            border-radius: 8px;
+            min-height: 40px;
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .settings-tab-btn:hover {
+            background: #eef5fd;
+            border-color: #d7e3ef;
+        }
+
+        .settings-tab-btn.active {
+            background: #2f8ee5;
+            border-color: #2f8ee5;
+            color: #fff;
+        }
+
+        .settings-content {
+            min-width: 0;
+        }
+
+        .settings-tab-panel {
+            display: none;
+            gap: 16px;
+        }
+
+        .settings-tab-panel.active {
+            display: grid;
+        }
+
+        .settings-card {
+            background: #fff;
+            border: 1px solid #dce3ec;
+            border-radius: 10px;
+            padding: 16px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .settings-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .settings-card h3 {
+            margin: 0;
+            color: #253a50;
+        }
+
+        .settings-card-toggle {
+            border: 1px solid #d4deea;
+            background: #f6f9fc;
+            color: #3a5169;
+            border-radius: 8px;
+            padding: 6px 10px;
+            min-height: 32px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .settings-card-toggle:hover {
+            background: #eef5fd;
+            border-color: #c6d4e3;
+        }
+
+        .settings-card-body {
+            display: grid;
+            gap: 12px;
+        }
+
+        .settings-card-body.collapsed {
+            display: none;
+        }
+
+        .settings-card p {
+            margin: 0;
+            color: #4d6278;
+        }
+
+        .settings-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .settings-actions .btn {
+            min-height: 36px;
+        }
+
+        .settings-actions .btn.btn-copied {
+            background-color: #1f9d57 !important;
+            border-color: #1f9d57 !important;
+            color: #fff !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(31, 157, 87, 0.3);
+        }
+
+        .extension-steps {
+            margin: 0;
+            padding-left: 18px;
+            color: #334b63;
+            line-height: 1.5;
+            display: grid;
+            gap: 6px;
+        }
+
+        .path-box {
+            background: #f6f9fc;
+            border: 1px dashed #c8d5e4;
+            border-radius: 8px;
+            padding: 10px;
+            color: #243a51;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 13px;
+            word-break: break-word;
+        }
+
+        .status-hint {
+            font-size: 13px;
+            color: #4b6278;
+        }
+
+        .table-columns-order-list {
+            list-style: none;
+            margin: 0;
+            padding: 0 0 4px;
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 8px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: thin;
+        }
+
+        .table-columns-order-item {
+            border: 1px solid #d6e1ec;
+            background: #f8fbff;
+            border-radius: 8px;
+            padding: 8px 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            flex: 0 0 auto;
+        }
+
+        .table-columns-order-item .order-label {
+            color: #2b435c;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .table-columns-order-item .order-actions {
+            display: inline-flex;
+            gap: 6px;
+        }
+
+        .table-columns-order-item .order-actions .btn {
+            min-width: 32px;
+            min-height: 28px;
+            padding: 4px 8px;
+            font-size: 12px;
+            line-height: 1.1;
+        }
+
+        .table-columns-width-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+        }
+
+        .table-column-width-item {
+            border: 1px solid #d6e1ec;
+            background: #f8fbff;
+            border-radius: 8px;
+            padding: 10px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .table-column-width-item input {
+            width: 100%;
+            border: 1px solid #cbd7e4;
+            border-radius: 6px;
+            padding: 7px 8px;
+            font-size: 13px;
+            height: 35px;
+            min-height: 35px;
+            line-height: 1.2;
+            box-sizing: border-box;
+        }
+
+        .custom-menu-row {
+            display: grid;
+            grid-template-columns: minmax(220px, 1fr) auto;
+            gap: 10px;
+            align-items: stretch;
+        }
+
+        .custom-menu-icon-picker {
+            border: 1px solid #d6e1ec;
+            background: #f8fbff;
+            border-radius: 8px;
+            padding: 10px;
+            display: grid;
+            gap: 6px;
+            min-width: 220px;
+        }
+
+        .table-column-width-item label,
+        .custom-menu-icon-picker label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #2b435c;
+        }
+
+        .custom-menu-icon-config {
+            display: flex;
+            align-items: stretch;
+            gap: 10px;
+        }
+
+        .custom-menu-icon-preview {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #2f8ee5;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 4px 10px rgba(47, 142, 229, 0.28);
+            flex: 0 0 44px;
+        }
+
+        .custom-menu-icon-config select {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid #cbd7e4;
+            border-radius: 6px;
+            padding: 7px 8px;
+            font-size: 13px;
+            height: 35px;
+            min-height: 35px;
+            line-height: 1.2;
+            box-sizing: border-box;
+            margin-top: 4px;
+        }
+
+        .custom-menu-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #2b435c;
+            font-size: 13px;
+            font-weight: 600;
+            user-select: none;
+        }
+        .taxonomy-editor-section {
+            border: 1px solid #e3ebf5;
+            border-radius: 10px;
+            padding: 10px;
+            background: #fbfdff;
+            display: grid;
+            gap: 10px;
+            overflow: visible;
+        }
+        .taxonomy-editor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 8px 10px;
+            overflow: visible;
+        }
+        .taxonomy-editor-item {
+            border: 1px solid #dce6f2;
+            border-radius: 8px;
+            background: #ffffff;
+            overflow: visible;
+            position: relative;
+            z-index: 1;
+        }
+        .taxonomy-editor-item.expanded {
+            z-index: 25;
+        }
+        .taxonomy-editor-trigger {
+            width: 100%;
+            border: none;
+            background: #fff;
+            color: #29425a;
+            padding: 8px 10px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: center;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: left;
+        }
+        .taxonomy-editor-trigger:hover {
+            background: #f8fbff;
+        }
+        .taxonomy-editor-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+        .taxonomy-item-preview {
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 13px;
+            flex: 0 0 26px;
+        }
+        .taxonomy-editor-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .taxonomy-editor-chevron {
+            color: #54708a;
+            transition: transform .2s ease;
+        }
+        .taxonomy-editor-item.expanded .taxonomy-editor-chevron {
+            transform: rotate(180deg);
+        }
+        .taxonomy-editor-content {
+            display: none;
+            border-top: 1px solid #e8eff7;
+            padding: 9px 10px;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: center;
+        }
+        .taxonomy-editor-item.expanded .taxonomy-editor-content {
+            display: grid;
+        }
+        .taxonomy-icon-select {
+            width: 100%;
+            border: 1px solid #cbd7e4;
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 13px;
+            height: 34px;
+            background: #fff;
+        }
+        .taxonomy-icon-select.native-hidden {
+            display: none;
+        }
+        .taxonomy-icon-picker-inline {
+            position: relative;
+            width: 100%;
+        }
+        .taxonomy-icon-picker-btn {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            border: 1px solid #cbd7e4;
+            border-radius: 6px;
+            background: #fff;
+            min-height: 34px;
+            padding: 6px 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            color: #2d4660;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .taxonomy-icon-picker-btn:hover {
+            background: #f7fbff;
+            border-color: #b8cce0;
+        }
+        .taxonomy-icon-picker-btn .picker-selected {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+        .taxonomy-icon-picker-btn .picker-selected span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .taxonomy-icon-picker-panel {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            z-index: 20;
+            border: 1px solid #cfdcec;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 10px 28px rgba(25, 42, 61, 0.16);
+            padding: 8px;
+            display: none;
+            gap: 8px;
+        }
+        .taxonomy-icon-picker-panel.open {
+            display: grid;
+        }
+        .taxonomy-icon-picker-search {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            border: 1px solid #cbd7e4;
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 12px;
+            height: 30px;
+            box-sizing: border-box;
+        }
+        .taxonomy-icon-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+            gap: 6px;
+            max-height: 180px;
+            overflow: auto;
+            padding-right: 2px;
+        }
+        .taxonomy-icon-picker-option {
+            -webkit-appearance: none;
+            appearance: none;
+            font-family: inherit;
+            border: 1px solid #d9e4f1;
+            border-radius: 6px;
+            background: #fff;
+            color: #2d4660;
+            min-height: 30px;
+            padding: 4px 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .taxonomy-icon-picker-option:hover {
+            background: #f7fbff;
+            border-color: #b8cce0;
+        }
+        .taxonomy-color-input {
+            width: 42px;
+            height: 30px;
+            border: 1px solid #c8d6e6;
+            border-radius: 6px;
+            padding: 0;
+            background: #fff;
+            cursor: pointer;
+        }
+        .settings-actions-final {
+            justify-content: flex-end;
+        }
+@media (max-width: 820px) {
+            .custom-menu-row {
+                grid-template-columns: 1fr;
+            }
+
+            .custom-menu-icon-picker {
+                min-width: 0;
+            }
+        }
+
+        .permission-groups-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 12px;
+        }
+
+        .permission-groups-list {
+            border: 1px solid #e3ebf5;
+            border-radius: 10px;
+            background: #ffffff;
+            max-height: 360px;
+            overflow: auto;
+            padding: 8px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .permission-group-item {
+            border: 1px solid #edf2f8;
+            background: #ffffff;
+            color: #2e475f;
+            border-radius: 8px;
+            padding: 9px 10px;
+            text-align: left;
+            cursor: pointer;
+            display: grid;
+            gap: 2px;
+            transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+        }
+
+        .permission-group-item:hover {
+            border-color: #cdd9e8;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+            transform: translateY(-1px);
+        }
+
+        .permission-group-item.active {
+            border-color: #2f8ee5;
+            background: #f6faff;
+            box-shadow: 0 0 0 2px rgba(47, 142, 229, 0.12);
+        }
+
+        .permission-group-item .group-name {
+            font-weight: 700;
+            font-size: 13px;
+            color: #20354a;
+        }
+
+        .permission-group-item .group-meta {
+            font-size: 12px;
+            color: #567089;
+        }
+
+        .permission-group-form {
+            display: grid;
+            gap: 10px;
+        }
+
+        .permission-group-checkbox {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #2c455e;
+            font-weight: 600;
+        }
+
+        .permission-grid {
+            display: grid;
+            gap: 10px;
+        }
+
+        .permission-screen-card {
+            border: 1px solid #e6edf6;
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 10px 12px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .permission-screen-title {
+            margin: 0;
+            font-size: 14px;
+            color: #264059;
+            font-weight: 700;
+        }
+
+        .permission-options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+            gap: 8px;
+        }
+
+        .permission-option {
+            border: none;
+            background: #ffffff;
+            border-radius: 999px;
+            padding: 7px 10px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            width: 100%;
+            min-height: 40px;
+            color: #2f495f;
+            font-size: 13px;
+            transition: border-color .15s ease, background-color .15s ease;
+        }
+
+        .permission-option:hover {
+            background: #f9fbfe;
+        }
+
+        .permission-save-highlight {
+            animation: permission-save-pop 450ms ease-out;
+        }
+
+        @keyframes permission-save-pop {
+            0% { transform: scale(1); box-shadow: 0 0 0 rgba(47,142,229,0); }
+            45% { transform: scale(1.03); box-shadow: 0 0 0 8px rgba(47,142,229,0.16); }
+            100% { transform: scale(1); box-shadow: 0 0 0 rgba(47,142,229,0); }
+        }
+
+        @media (max-width: 960px) {
+            .settings-page {
+                grid-template-columns: 1fr;
+            }
+
+            .settings-tabs {
+                position: static;
+                display: flex;
+                flex-wrap: wrap;
+            }
+
+            .settings-tab-btn {
+                text-align: center;
+                justify-content: center;
+                flex: 1 1 180px;
+            }
+        }
+
+        #settingsPanelUsers .settings-card {
+            padding: 10px;
+        }
+
+        #settingsPanelPermissions .settings-card {
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="sidebar-container"></div>
+        <div class="content">
+            <div class="header">
+                <div class="project-title">
+                    <h2>Configurações</h2>
+                </div>
+            </div>
+
+            <div class="settings-page">
+                <aside class="settings-tabs" role="tablist" aria-label="Tipos de configuração">
+                    <button class="settings-tab-btn" id="settingsTabGeneral" data-tab="general" role="tab" aria-selected="false">
+                        <i class="fas fa-sliders-h"></i> Geral
+                    </button>
+                    <button class="settings-tab-btn" id="settingsTabPermissions" data-tab="permissions" role="tab" aria-selected="false">
+                        <i class="fas fa-user-shield"></i> Permissões
+                    </button>
+                    <button class="settings-tab-btn" id="settingsTabUsers" data-tab="users" role="tab" aria-selected="false">
+                        <i class="fas fa-users"></i> Usuários
+                    </button>
+                    <button class="settings-tab-btn active" id="settingsTabExtension" data-tab="extension" role="tab" aria-selected="true">
+                        <i class="fas fa-puzzle-piece"></i> Extensão
+                    </button>
+                    <button class="settings-tab-btn" id="settingsTabTable" data-tab="table" role="tab" aria-selected="false">
+                        <i class="fas fa-table"></i> Tabela
+                    </button>
+                </aside>
+
+                <div class="settings-content">
+                                        <section class="settings-tab-panel" id="settingsPanelGeneral" data-panel="general" role="tabpanel">
+                        <section class="settings-card">
+                            <div class="settings-card-header">
+                                <h3>Identidade do Projeto</h3>
+                                <button class="settings-card-toggle" type="button" data-card-toggle="card-general-project-name" aria-expanded="true">Esconder</button>
+                            </div>
+                            <div class="settings-card-body" id="card-general-project-name">
+                                <p>Defina o nome exibido no menu lateral, abaixo do bloco de usuário.</p>
+                                <div class="table-column-width-item">
+                                    <label for="projectDisplayNameInput">Nome do projeto</label>
+                                    <input id="projectDisplayNameInput" type="text" maxlength="40" placeholder="Ex: Pharus">
+                                </div>
+                                <div class="settings-actions">
+                                    <button class="btn btn-secondary" id="resetProjectDisplayNameBtn" type="button">
+                                        <i class="fas fa-undo"></i> Restaurar padrão
+                                    </button>
+                                </div>
+                                <p class="status-hint" id="projectDisplayNameStatus" aria-live="polite"></p>
+                                <hr style="border:none; border-top:1px solid #e3ebf5; margin: 2px 0;">
+                                <p>Configure um menu lateral personalizado para abrir uma página definida por URL.</p>
+                                <div class="custom-menu-row">
+                                    <div class="custom-menu-icon-picker">
+                                        <label for="customSidebarMenuIconInput">ícone do menu personalizado</label>
+                                        <div class="custom-menu-icon-config">
+                                            <div class="custom-menu-icon-preview" id="customSidebarMenuIconPreview" aria-hidden="true">
+                                                <i class="fas fa-link"></i>
+                                            </div>
+                                            <select id="customSidebarMenuIconInput" class="form-control">
+                                                <option value="fa-link">Link</option>
+                                                <option value="fa-globe">Globo</option>
+                                                <option value="fa-briefcase">Negócios</option>
+                                                <option value="fa-chart-line">Gráfico</option>
+                                                <option value="fa-file-alt">Documento</option>
+                                                <option value="fa-building">Empresa</option>
+                                                <option value="fa-cogs">Configurações</option>
+                                                <option value="fa-book">Manual</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="table-column-width-item">
+                                        <label for="customSidebarMenuNameInput">Nome do menu personalizado</label>
+                                        <input id="customSidebarMenuNameInput" type="text" maxlength="40" placeholder="Ex: Portal do Cliente">
+                                    </div>
+                                </div>
+                                <div class="table-column-width-item">
+                                    <label for="customSidebarMenuUrlInput">URL de destino</label>
+                                    <input id="customSidebarMenuUrlInput" type="text" maxlength="300" placeholder="Ex: https://portal.exemplo.com">
+                                </div>
+                                <label class="custom-menu-toggle" for="customSidebarMenuEnabledInput">
+                                    <input id="customSidebarMenuEnabledInput" type="checkbox" checked>
+                                    Ativar menu personalizado no menu lateral
+                                </label>
+                                <div class="settings-actions">
+                                    <button class="btn btn-secondary" id="resetCustomSidebarMenuBtn" type="button">
+                                        <i class="fas fa-undo"></i> Limpar menu personalizado
+                                    </button>
+                                </div>
+                                <p class="status-hint" id="customSidebarMenuStatus" aria-live="polite"></p>
+                                <hr style="border:none; border-top:1px solid #e3ebf5; margin: 2px 0;">
+                                <p>Clique na label para editar ícone e cor, com preview do resultado.</p>
+                                <section class="taxonomy-editor-section">
+                                    <h4 style="margin:0; color:#264059;">Prioridades</h4>
+                                    <div class="taxonomy-editor-grid">
+                                        <div class="taxonomy-editor-item" data-taxonomy-scope="priority" data-taxonomy-key="very_high"><button type="button" class="taxonomy-editor-trigger"><span class="taxonomy-editor-title"><span class="taxonomy-item-preview"><i class="fas fa-angles-up"></i></span><span class="taxonomy-editor-label">Muito alta</span></span><i class="fas fa-chevron-down taxonomy-editor-chevron"></i></button><div class="taxonomy-editor-content"><select id="priorityIconVeryHigh" class="taxonomy-icon-select" data-default-icon="fas fa-angles-up"></select><input type="color" id="priorityColorVeryHigh" class="taxonomy-color-input" value="#c62828"></div></div>
+                                        <div class="taxonomy-editor-item" data-taxonomy-scope="priority" data-taxonomy-key="high"><button type="button" class="taxonomy-editor-trigger"><span class="taxonomy-editor-title"><span class="taxonomy-item-preview"><i class="fas fa-arrow-up"></i></span><span class="taxonomy-editor-label">Alta</span></span><i class="fas fa-chevron-down taxonomy-editor-chevron"></i></button><div class="taxonomy-editor-content"><select id="priorityIconHigh" class="taxonomy-icon-select" data-default-icon="fas fa-arrow-up"></select><input type="color" id="priorityColorHigh" class="taxonomy-color-input" value="#ef5350"></div></div>
+                                        <div class="taxonomy-editor-item" data-taxonomy-scope="priority" data-taxonomy-key="medium"><button type="button" class="taxonomy-editor-trigger"><span class="taxonomy-editor-title"><span class="taxonomy-item-preview"><i class="fas fa-minus"></i></span><span class="taxonomy-editor-label">Média</span></span><i class="fas fa-chevron-down taxonomy-editor-chevron"></i></button><div class="taxonomy-editor-content"><select id="priorityIconMedium" class="taxonomy-icon-select" data-default-icon="fas fa-minus"></select><input type="color" id="priorityColorMedium" class="taxonomy-color-input" value="#f4b400"></div></div>
+                                        <div class="taxonomy-editor-item" data-taxonomy-scope="priority" data-taxonomy-key="low"><button type="button" class="taxonomy-editor-trigger"><span class="taxonomy-editor-title"><span class="taxonomy-item-preview"><i class="fas fa-arrow-down"></i></span><span class="taxonomy-editor-label">Baixa</span></span><i class="fas fa-chevron-down taxonomy-editor-chevron"></i></button><div class="taxonomy-editor-content"><select id="priorityIconLow" class="taxonomy-icon-select" data-default-icon="fas fa-arrow-down"></select><input type="color" id="priorityColorLow" class="taxonomy-color-input" value="#43a047"></div></div>
+                                        <div class="taxonomy-editor-item" data-taxonomy-scope="priority" data-taxonomy-key="very_low"><button type="button" class="taxonomy-editor-trigger"><span class="taxonomy-editor-title"><span class="taxonomy-item-preview"><i class="fas fa-angles-down"></i></span><span class="taxonomy-editor-label">Muito baixa</span></span><i class="fas fa-chevron-down taxonomy-editor-chevron"></i></button><div class="taxonomy-editor-content"><select id="priorityIconVeryLow" class="taxonomy-icon-select" data-default-icon="fas fa-angles-down"></select><input type="color" id="priorityColorVeryLow" class="taxonomy-color-input" value="#2e7d32"></div></div>
+                                    </div>
+                                </section>
+                                <section class="taxonomy-editor-section">
+                                    <h4 style="margin:0; color:#264059;">Tipos</h4>
+                                    <div class="taxonomy-editor-grid">
+                                        <div class="taxonomy-editor-item" data-taxonomy-scope="type" data-taxonomy-key="new"><button type="button" class="taxonomy-editor-trigger"><span class="taxonomy-editor-title"><span class="taxonomy-item-preview"><i class="fas fa-sparkles"></i></span><span class="taxonomy-editor-label">Novo</span></span><i class="fas fa-chevron-down taxonomy-editor-chevron"></i></button><div class="taxonomy-editor-content"><select id="typeIconNew" class="taxonomy-icon-select" data-default-icon="fas fa-sparkles"></select><input type="color" id="typeColorNew" class="taxonomy-color-input" value="#1e88e5"></div></div>
+                                        <div class="taxonomy-editor-item" data-taxonomy-scope="type" data-taxonomy-key="optimization"><button type="button" class="taxonomy-editor-trigger"><span class="taxonomy-editor-title"><span class="taxonomy-item-preview"><i class="fas fa-gauge-high"></i></span><span class="taxonomy-editor-label">Otimização</span></span><i class="fas fa-chevron-down taxonomy-editor-chevron"></i></button><div class="taxonomy-editor-content"><select id="typeIconOptimization" class="taxonomy-icon-select" data-default-icon="fas fa-gauge-high"></select><input type="color" id="typeColorOptimization" class="taxonomy-color-input" value="#00897b"></div></div>
+                                        <div class="taxonomy-editor-item" data-taxonomy-scope="type" data-taxonomy-key="improvement"><button type="button" class="taxonomy-editor-trigger"><span class="taxonomy-editor-title"><span class="taxonomy-item-preview"><i class="fas fa-wand-magic-sparkles"></i></span><span class="taxonomy-editor-label">Melhoria</span></span><i class="fas fa-chevron-down taxonomy-editor-chevron"></i></button><div class="taxonomy-editor-content"><select id="typeIconImprovement" class="taxonomy-icon-select" data-default-icon="fas fa-wand-magic-sparkles"></select><input type="color" id="typeColorImprovement" class="taxonomy-color-input" value="#43a047"></div></div>
+                                        <div class="taxonomy-editor-item" data-taxonomy-scope="type" data-taxonomy-key="discussion"><button type="button" class="taxonomy-editor-trigger"><span class="taxonomy-editor-title"><span class="taxonomy-item-preview"><i class="fas fa-comments"></i></span><span class="taxonomy-editor-label">Para discutir</span></span><i class="fas fa-chevron-down taxonomy-editor-chevron"></i></button><div class="taxonomy-editor-content"><select id="typeIconDiscussion" class="taxonomy-icon-select" data-default-icon="fas fa-comments"></select><input type="color" id="typeColorDiscussion" class="taxonomy-color-input" value="#8e24aa"></div></div>
+                                        <div class="taxonomy-editor-item" data-taxonomy-scope="type" data-taxonomy-key="suggestion"><button type="button" class="taxonomy-editor-trigger"><span class="taxonomy-editor-title"><span class="taxonomy-item-preview"><i class="fas fa-lightbulb"></i></span><span class="taxonomy-editor-label">Sugestão</span></span><i class="fas fa-chevron-down taxonomy-editor-chevron"></i></button><div class="taxonomy-editor-content"><select id="typeIconSuggestion" class="taxonomy-icon-select" data-default-icon="fas fa-lightbulb"></select><input type="color" id="typeColorSuggestion" class="taxonomy-color-input" value="#fb8c00"></div></div>
+                                        <div class="taxonomy-editor-item" data-taxonomy-scope="type" data-taxonomy-key="issue"><button type="button" class="taxonomy-editor-trigger"><span class="taxonomy-editor-title"><span class="taxonomy-item-preview"><i class="fas fa-triangle-exclamation"></i></span><span class="taxonomy-editor-label">Problema</span></span><i class="fas fa-chevron-down taxonomy-editor-chevron"></i></button><div class="taxonomy-editor-content"><select id="typeIconIssue" class="taxonomy-icon-select" data-default-icon="fas fa-triangle-exclamation"></select><input type="color" id="typeColorIssue" class="taxonomy-color-input" value="#e53935"></div></div>
+                                        <div class="taxonomy-editor-item" data-taxonomy-scope="type" data-taxonomy-key="epic"><button type="button" class="taxonomy-editor-trigger"><span class="taxonomy-editor-title"><span class="taxonomy-item-preview"><i class="fas fa-mountain"></i></span><span class="taxonomy-editor-label">Épico</span></span><i class="fas fa-chevron-down taxonomy-editor-chevron"></i></button><div class="taxonomy-editor-content"><select id="typeIconEpic" class="taxonomy-icon-select" data-default-icon="fas fa-mountain"></select><input type="color" id="typeColorEpic" class="taxonomy-color-input" value="#3949ab"></div></div>
+                                    </div>
+                                </section>
+                                <div class="settings-actions">
+                                    <button class="btn btn-secondary" id="resetTaskTaxonomyColorsBtn" type="button"><i class="fas fa-undo"></i> Restaurar cores padrão</button>
+                                    <button class="btn btn-secondary" id="resetTaskTaxonomyIconsBtn" type="button"><i class="fas fa-undo"></i> Restaurar ícones padrão</button>
+                                </div>
+                                <div class="settings-actions settings-actions-final">
+                                    <button class="btn btn-primary" id="saveGeneralSettingsBtn" type="button"><i class="fas fa-save"></i> Salvar configurações gerais</button>
+                                </div>
+                            </div>
+                        </section>
+                    </section>
+                    <section class="settings-tab-panel" id="settingsPanelPermissions" data-panel="permissions" role="tabpanel">
+                        <section class="settings-card">
+                            <div class="settings-card-header">
+                                <h3>Permissões</h3>
+                                <button class="settings-card-toggle" type="button" data-card-toggle="card-permissions-groups" aria-expanded="true">Esconder</button>
+                            </div>
+                            <div class="settings-card-body" id="card-permissions-groups">
+                                <p>Crie grupos para definir o que cada perfil pode acessar e executar no sistema.</p>
+
+                                <div class="permission-groups-layout">
+                                    <div>
+                                        <div id="permissionGroupsList" class="permission-groups-list"></div>
+                                        <p class="status-hint" id="permissionGroupsStatus" aria-live="polite"></p>
+                                    </div>
+
+                                    <form id="permissionGroupForm" class="permission-group-form">
+                                        <div class="table-column-width-item">
+                                            <label for="permissionGroupNameInput">Nome do grupo</label>
+                                            <input id="permissionGroupNameInput" type="text" maxlength="80" placeholder="Ex: Operação">
+                                        </div>
+                                        <div class="table-column-width-item">
+                                            <label for="permissionGroupDescriptionInput">Descrição</label>
+                                            <input id="permissionGroupDescriptionInput" type="text" maxlength="160" placeholder="Ex: Equipe que movimenta tarefas e clientes">
+                                        </div>
+                                        <label class="permission-group-checkbox" for="permissionGroupActiveInput">
+                                            <input id="permissionGroupActiveInput" type="checkbox" checked>
+                                            Grupo ativo
+                                        </label>
+
+                                        <div class="settings-actions">
+                                            <button class="btn btn-secondary" id="newPermissionGroupBtn" type="button">
+                                                <i class="fas fa-plus"></i> Novo grupo
+                                            </button>
+                                            <button class="btn btn-primary" id="savePermissionGroupBtn" type="button">
+                                                <i class="fas fa-save"></i> Salvar grupo
+                                            </button>
+                                            <button class="btn btn-secondary" id="deletePermissionGroupBtn" type="button">
+                                                <i class="fas fa-trash"></i> Excluir grupo
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="settings-card">
+                            <div class="settings-card-header">
+                                <h3>Matriz de permissões por tela</h3>
+                                <button class="settings-card-toggle" type="button" data-card-toggle="card-permissions-matrix" aria-expanded="true">Esconder</button>
+                            </div>
+                            <div class="settings-card-body" id="card-permissions-matrix">
+                                <p>Selecione as ações permitidas para o grupo selecionado.</p>
+
+                                <div class="settings-actions">
+                                    <button class="btn btn-secondary" id="markAllPermissionsBtn" type="button">
+                                        <i class="fas fa-check-double"></i> Marcar tudo
+                                    </button>
+                                    <button class="btn btn-secondary" id="clearAllPermissionsBtn" type="button">
+                                        <i class="fas fa-eraser"></i> Limpar tudo
+                                    </button>
+                                    <button class="btn btn-primary" id="savePermissionsMatrixBtn" type="button">
+                                        <i class="fas fa-save"></i> Salvar permissões
+                                    </button>
+                                </div>
+
+                                <div id="permissionMatrixGrid" class="permission-grid"></div>
+                                <p class="status-hint" id="permissionMatrixStatus" aria-live="polite"></p>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section class="settings-tab-panel" id="settingsPanelUsers" data-panel="users" role="tabpanel">
+                        <section class="settings-card">
+                            <div class="users-view">
+                                <div class="users-header">
+                                    <h3>Gerenciamento de Usuários</h3>
+                                    <button class="btn-add-user" id="addUserBtn">
+                                        <i class="fas fa-plus"></i> Novo Usuário
+                                    </button>
+                                </div>
+
+                                <div id="usersTableContainer">
+                                    <table class="users-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Nome</th>
+                                                <th>E-mail</th>
+                                                <th>Grupo de permissão</th>
+                                                <th>Status</th>
+                                                <th>Último Acesso</th>
+                                                <th>Criado em</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="usersTableBody">
+                                            <tr>
+                                                <td colspan="7" class="loading-users">
+                                                    <i class="fas fa-spinner fa-spin"></i> Carregando usuários...
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section class="settings-tab-panel active" id="settingsPanelExtension" data-panel="extension" role="tabpanel">
+                        <section class="settings-card">
+                            <div class="settings-card-header">
+                                <h3>Extensão Chrome (modo post-it)</h3>
+                                <button class="settings-card-toggle" type="button" data-card-toggle="card-extension" aria-expanded="true">Esconder</button>
+                            </div>
+                            <div class="settings-card-body" id="card-extension">
+                                <p>Instalação assistida para usar o Pharus na barra lateral do navegador.</p>
+
+                                <ol class="extension-steps">
+                                    <li>Abra <strong>chrome://extensions</strong> no Google Chrome.</li>
+                                    <li>Ative o botão <strong>Modo do desenvolvedor</strong> no canto superior direito.</li>
+                                    <li>Baixe o pacote da extensão e extraia o arquivo <strong>.zip</strong> no computador.</li>
+                                    <li>Clique em <strong>Carregar sem compactação</strong>.</li>
+                                    <li>Selecione a pasta <strong>chrome-extension</strong> extraída.</li>
+                                    <li>Clique no ícone da extensão para abrir o painel lateral.</li>
+                                </ol>
+
+                                <div class="path-box" id="extensionFolderPath">Pharus\chrome-extension</div>
+
+                                <div class="settings-actions">
+                                    <a class="btn btn-primary" id="downloadExtensionPackageBtn" href="assets/downloads/pharus-extensao.zip?v=20260324" download>
+                                        <i class="fas fa-download"></i> Baixar pacote da extensão (.zip)
+                                    </a>
+                                    <button class="btn btn-primary" id="openExtensionsBtn">
+                                        <i class="fas fa-puzzle-piece"></i> Copiar chrome://extensions
+                                    </button>
+                                    <button class="btn btn-secondary" id="copyFolderHintBtn">
+                                        <i class="fas fa-copy"></i> Copiar nome da pasta
+                                    </button>
+                                </div>
+
+                                <p class="status-hint" id="extensionInstallHint">
+                                    Dica: o Chrome não instala extensão direto do .zip. ? necessário extrair e usar "Carregar sem compactação".
+                                </p>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section class="settings-tab-panel" id="settingsPanelTable" data-panel="table" role="tabpanel">
+                        <section class="settings-card">
+                            <div class="settings-card-header">
+                                <h3>Ordem das colunas (modo tabela)</h3>
+                                <button class="settings-card-toggle" type="button" data-card-toggle="card-table-order" aria-expanded="true">Esconder</button>
+                            </div>
+                            <div class="settings-card-body" id="card-table-order">
+                                <p>Defina a ordem das colunas da tabela de tarefas. Use as setas para mover à esquerda/direita e salve.</p>
+
+                                <ul id="tableColumnsOrderList" class="table-columns-order-list"></ul>
+
+                                <div class="settings-actions">
+                                    <button class="btn btn-primary" id="saveTableColumnsOrderBtn">
+                                        <i class="fas fa-save"></i> Salvar ordem das colunas
+                                    </button>
+                                    <button class="btn btn-secondary" id="resetTableColumnsOrderBtn">
+                                        <i class="fas fa-undo"></i> Restaurar padrão
+                                    </button>
+                                </div>
+
+                                <p class="status-hint" id="tableColumnsOrderStatus" aria-live="polite"></p>
+                            </div>
+                        </section>
+
+                        <section class="settings-card">
+                            <div class="settings-card-header">
+                                <h3>Largura das colunas (modo tabela)</h3>
+                                <button class="settings-card-toggle" type="button" data-card-toggle="card-table-width" aria-expanded="true">Esconder</button>
+                            </div>
+                            <div class="settings-card-body" id="card-table-width">
+                                <p>Defina a largura em pixels para cada coluna da tabela de tarefas.</p>
+
+                                <div id="tableColumnsWidthGrid" class="table-columns-width-grid"></div>
+
+                                <div class="settings-actions">
+                                    <button class="btn btn-primary" id="saveTableColumnsWidthBtn">
+                                        <i class="fas fa-save"></i> Salvar largura das colunas
+                                    </button>
+                                    <button class="btn btn-secondary" id="resetTableColumnsWidthBtn">
+                                        <i class="fas fa-undo"></i> Restaurar largura padrão
+                                    </button>
+                                </div>
+
+                                <p class="status-hint" id="tableColumnsWidthStatus" aria-live="polite"></p>
+                            </div>
+                        </section>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay user-modal" id="userModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="userModalTitle">Novo Usuário</h3>
+                <button class="modal-close" id="closeUserModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm" class="user-form">
+                    <input type="hidden" id="userId">
+                    <div class="form-row">
+                        <div class="form-group avatar-form-group">
+                            <label>Avatar</label>
+                            <div class="user-avatar-config">
+                                <div class="user-avatar-preview" id="userAvatarPreview">U</div>
+                                <div class="user-avatar-controls">
+                                    <div class="user-avatar-control-row">
+                                        <label for="userAvatarColor">Cor</label>
+                                        <select id="userAvatarColor" class="form-control">
+                                            <option value="#3498db">Azul</option>
+                                            <option value="#4f46e5">Índigo</option>
+                                            <option value="#16a34a">Verde</option>
+                                            <option value="#f59e0b">Laranja</option>
+                                            <option value="#ef4444">Vermelho</option>
+                                            <option value="#0ea5e9">Ciano</option>
+                                            <option value="#a855f7">Roxo</option>
+                                            <option value="#334155">Grafite</option>
+                                        </select>
+                                    </div>
+                                    <div class="user-avatar-control-row">
+                                        <label for="userAvatarIcon">ícone</label>
+                                        <select id="userAvatarIcon" class="form-control">
+                                            <option value="">Iniciais do nome</option>
+                                            <option value="user">Usuário</option>
+                                            <option value="user-tie">Executivo</option>
+                                            <option value="headset">Suporte</option>
+                                            <option value="code">Dev</option>
+                                            <option value="wrench">Técnico</option>
+                                            <option value="briefcase">Negócios</option>
+                                            <option value="star">Estrela</option>
+                                            <option value="bolt">Raio</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="userName">Nome Completo *</label>
+                            <input type="text" id="userName" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="userEmail">E-mail *</label>
+                            <input type="email" id="userEmail" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="userPermissionGroup">Grupo de permissão</label>
+                            <select id="userPermissionGroup" class="form-control">
+                                <option value="">Sem grupo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="userStatus">Status *</label>
+                            <select id="userStatus" class="form-control" required>
+                                <option value="active">Ativo</option>
+                                <option value="inactive">Inativo</option>
+                                <option value="pending">Pendente</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="userPassword">Senha</label>
+                            <input type="password" id="userPassword" class="form-control"
+                                autocomplete="new-password" minlength="6">
+                            <small class="form-text">Deixe em branco para não alterar</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="userConfirmPassword">Confirmar Senha</label>
+                            <input type="password" id="userConfirmPassword" class="form-control"
+                                autocomplete="new-password">
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                        <button type="button" class="btn btn-danger" id="deleteUser" style="display: none;">Excluir</button>
+                        <button type="button" class="btn btn-secondary" id="cancelUser">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="globalLoading" class="loading-overlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+        </div>
+        <span>Carregando...</span>
+    </div>
+
+    <script src="scripts/local-db-client.js"></script>
+    <script src="scripts/db-client-config.js"></script>
+    <script src="scripts/auth.js"></script>
+    <script src="scripts/component-loader.js"></script>
+    <script src="scripts/page-bootstrap.js"></script>
+    <script src="scripts/utils.js"></script>
+    <script src="scripts/profile-modal.js"></script>
+    <script src="scripts/chat.js"></script>
+    <script src="scripts/settings.js"></script>
+    <script src="scripts/settings-permissions.js"></script>
+    <script src="scripts/users.js"></script>
+</body>
+</html>
+
+
+
+
+
+
