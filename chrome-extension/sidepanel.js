@@ -10,7 +10,7 @@
 const DETACHED_NOTES_KEY = 'pharus_detached_notes';
 const PROJECT_DISPLAY_NAME_KEY = 'pharus_project_display_name';
 const DEFAULT_PROJECT_DISPLAY_NAME = 'Projeto';
-const PARTY_EMOJI = '\uD83E\uDD73';
+const PARTY_EMOJI = '🥳';
 
 const els = {
   apiBaseInput: document.getElementById('apiBaseInput'),
@@ -78,9 +78,10 @@ function escapeHtml(value) {
 }
 
 function getPriorityLabel(priority) {
-  if (priority === 'high') return 'Alta';
-  if (priority === 'medium') return 'Média';
-  if (priority === 'low') return 'Baixa';
+  const safe = String(priority || '').toLowerCase();
+  if (safe === 'high' || safe === 'alta') return 'Alta';
+  if (safe === 'medium' || safe === 'media') return 'Média';
+  if (safe === 'low' || safe === 'baixa') return 'Baixa';
   return String(priority || '-');
 }
 
@@ -143,7 +144,9 @@ function renderTasks(tasks, settings) {
     const li = document.createElement('li');
     li.className = `task-item ${task.is_pinned ? 'pinned' : ''}`;
 
-    const safeTitle = escapeHtml(task.title || 'Sem título');
+    const id = Number(task?.id);
+    const refLabel = Number.isFinite(id) && id > 0 ? `#${id} ` : '';
+    const safeTitle = `${escapeHtml(refLabel)}${escapeHtml(task.title || 'Sem título')}`;
     const dueLabel = formatDueDate(task.due_date);
     const priority = String(task.priority || 'medium');
 
@@ -176,9 +179,10 @@ function isNoticeVisible(notice) {
 }
 
 function getNoticePriorityLabel(priority) {
-  if (priority === 'high') return 'Alta';
-  if (priority === 'medium') return 'Média';
-  if (priority === 'low') return 'Baixa';
+  const safe = String(priority || '').toLowerCase();
+  if (safe === 'high' || safe === 'alta') return 'Alta';
+  if (safe === 'medium' || safe === 'media') return 'Média';
+  if (safe === 'low' || safe === 'baixa') return 'Baixa';
   return String(priority || '-');
 }
 

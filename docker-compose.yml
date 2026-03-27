@@ -1,4 +1,4 @@
-services:
+﻿services:
   db:
     image: postgres:16-alpine
     container_name: pharus_db
@@ -42,3 +42,4 @@ services:
 volumes:
   pharus_pgdata:
   pharus_uploads:
+

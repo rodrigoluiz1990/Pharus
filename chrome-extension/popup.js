@@ -14,7 +14,7 @@ const els = {
   statusText: document.getElementById('statusText'),
   tasksList: document.getElementById('tasksList'),
 };
-const PARTY_EMOJI = '\uD83E\uDD73';
+const PARTY_EMOJI = '🥳';
 
 const normalizeBase = (value) => String(value || '').trim().replace(/\/+$/, '');
 
@@ -32,9 +32,10 @@ function escapeHtml(value) {
 }
 
 function getPriorityLabel(priority) {
-  if (priority === 'high') return 'Alta';
-  if (priority === 'medium') return 'Média';
-  if (priority === 'low') return 'Baixa';
+  const safe = String(priority || '').toLowerCase();
+  if (safe === 'high' || safe === 'alta') return 'Alta';
+  if (safe === 'medium' || safe === 'media') return 'Média';
+  if (safe === 'low' || safe === 'baixa') return 'Baixa';
   return String(priority || '-');
 }
 
@@ -61,7 +62,9 @@ function renderTasks(tasks, settings) {
     const li = document.createElement('li');
     li.className = `task-item ${task.is_pinned ? 'pinned' : ''}`;
 
-    const safeTitle = escapeHtml(task.title || 'Sem título');
+    const id = Number(task?.id);
+    const refLabel = Number.isFinite(id) && id > 0 ? `#${id} ` : '';
+    const safeTitle = `${escapeHtml(refLabel)}${escapeHtml(task.title || 'Sem título')}`;
     const dueLabel = formatDueDate(task.due_date);
     const priority = String(task.priority || 'medium');
 

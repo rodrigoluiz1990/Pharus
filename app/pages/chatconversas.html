@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <base href="../">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharus - Chat</title>
+    <link rel="icon" type="image/svg+xml" href="lighthouse-favicon.svg?v=20260321d">
+    <link rel="alternate icon" type="image/png" href="lighthouse-favicon-32.png?v=20260321d">
+    <link rel="shortcut icon" type="image/png" href="lighthouse-favicon-32.png?v=20260321d">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/sidebar.css">
+    <link rel="stylesheet" href="styles/chat-page.css">
+</head>
+<body>
+    <div class="container">
+        <div id="sidebar-container"></div>
+
+        <div class="content">
+            <div class="header">
+                <div class="project-title">
+                    <h2>Chat</h2>
+                </div>
+            </div>
+
+            <div class="chat-page">
+                <aside class="chat-page-contacts">
+                    <div class="chat-page-search">
+                        <i class="fas fa-search"></i>
+                        <input id="chatContactSearch" type="text" placeholder="Buscar contato...">
+                    </div>
+                    <div id="chatContactsList" class="chat-page-contacts-list"></div>
+                </aside>
+
+                <section class="chat-page-conversation">
+                    <div id="chatConversationEmpty" class="chat-page-empty">
+                        <i class="fas fa-comments"></i>
+                        <h3>Selecione um contato</h3>
+                        <p>Escolha uma pessoa na lista para abrir a conversa.</p>
+                    </div>
+
+                    <div id="chatConversationPanel" class="chat-page-panel hidden">
+                        <header class="chat-page-panel-header">
+                            <div class="chat-page-contact-summary">
+                                <div id="chatConversationAvatar" class="chat-page-avatar">?</div>
+                                <div>
+                                    <div id="chatConversationName" class="chat-page-contact-name">Contato</div>
+                                    <div id="chatConversationStatus" class="chat-page-contact-status">Offline</div>
+                                </div>
+                            </div>
+                        </header>
+
+                        <main id="chatConversationMessages" class="chat-page-messages">
+                            <div class="chat-page-status">Carregando mensagens...</div>
+                        </main>
+
+                        <footer class="chat-page-input-wrap">
+                            <div id="chatPageSelectedAttachment" class="chat-page-selected-attachment hidden"></div>
+                            <div class="chat-page-input-bar">
+                                <div class="chat-page-input-actions">
+                                    <button id="chatConversationAttachBtn" class="chat-page-icon-btn" type="button" title="Anexar arquivo">
+                                        <i class="fas fa-paperclip"></i>
+                                    </button>
+                                    <button id="chatConversationEmojiBtn" class="chat-page-icon-btn" type="button" title="Emojis">
+                                        <i class="fas fa-face-smile"></i>
+                                    </button>
+                                </div>
+                                <input id="chatConversationInput" type="text" placeholder="Digite uma mensagem...">
+                                <input id="chatConversationAttachmentInput" type="file" class="hidden">
+                                <button id="chatConversationSendBtn" class="chat-send-btn" type="button" title="Enviar">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                                <div id="chatConversationEmojiPicker" class="chat-page-emoji-picker hidden" aria-hidden="true"></div>
+                            </div>
+                        </footer>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/local-db-client.js"></script>
+    <script src="scripts/db-client-config.js"></script>
+    <script src="scripts/component-loader.js"></script>
+    <script src="scripts/profile-modal.js"></script>
+    <script src="scripts/chat-page.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+

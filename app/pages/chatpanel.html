@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <base href="../">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharus - Chat</title>
+    <link rel="icon" type="image/svg+xml" href="lighthouse-favicon.svg?v=20260321d">
+    <link rel="alternate icon" type="image/png" href="lighthouse-favicon-32.png?v=20260321d">
+    <link rel="shortcut icon" type="image/png" href="lighthouse-favicon-32.png?v=20260321d">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --chat-primary: #2f8ee5;
+            --chat-primary-dark: #1f78d1;
+            --chat-bg: #ffffff;
+            --chat-border: #dbe5f0;
+            --chat-text: #2a3e52;
+            --chat-text-light: #6b7f94;
+            --chat-hover: #eef5fc;
+        }
+
+        html, body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #f4f7fb;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        #chatContainer {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            bottom: 0 !important;
+            right: 0 !important;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif !important;
+        }
+
+        #chatToggle {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <script src="scripts/local-db-client.js"></script>
+    <script src="scripts/db-client-config.js"></script>
+    <script src="scripts/chat.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+

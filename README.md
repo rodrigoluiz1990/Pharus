@@ -1,4 +1,4 @@
-# Pharus - Sistema de Controle de Tarefas
+﻿# Pharus - Sistema de Controle de Tarefas
 
 Sistema de gerenciamento de tarefas estilo Monday.com com autenticacao de usuarios e persistencia em PostgreSQL local.
 
@@ -15,7 +15,7 @@ Sistema de gerenciamento de tarefas estilo Monday.com com autenticacao de usuari
 - Frontend: HTML, CSS, JavaScript
 - Backend local: Node.js + Express
 - Banco de dados: PostgreSQL
-- Cliente de dados no frontend: shim compativel com API de Supabase (`scripts/local-supabase-client.js`)
+- Cliente de dados no frontend: shim local para PostgreSQL (`app/scripts/local-db-client.js`)
 
 ## Execucao local com PostgreSQL
 
@@ -163,6 +163,13 @@ docker compose -f docker-compose.client.yml up -d
 ## Estrutura relevante
 
 - `backend/server.js` - API local + servidor de arquivos estaticos
-- `sql/pharus_local.sql` - schema/tabelas/views/seeds
-- `scripts/local-supabase-client.js` - cliente compativel para o frontend
-- `login.html`, `quadrodetarefas.html`, `users.html` - paginas principais
+- `sql/pharus_local.sql` - schema único e atualizado do sistema
+
+- `app/scripts/local-db-client.js` - cliente local do banco para o frontend
+- `pages/*.html` - paginas principais organizadas por pasta
+- `*.html` na raiz - wrappers de redirecionamento para manter compatibilidade de URLs antigas
+
+
+
+
+
