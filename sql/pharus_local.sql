@@ -353,7 +353,7 @@ SET permission_group_id = (
   SELECT id FROM permission_groups WHERE name = 'Administradores' LIMIT 1
 )
 WHERE role = 'admin'
-  AND permission_group_id IS NULL;
+   OR LOWER(email) = 'admin@pharus.local';
 
 DO $$
 DECLARE
