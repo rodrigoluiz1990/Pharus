@@ -39,6 +39,21 @@
     box-shadow: 0 6px 16px rgba(34, 59, 84, 0.18);
 }
 
+.logo-full-wrap {
+    padding-bottom: 20px;
+}
+
+.login-logo-full-image {
+    width: min(100%, 440px);
+    max-height: 300px;
+    height: auto;
+    margin: 0 auto;
+    display: block;
+    object-fit: contain;
+    border-radius: 0;
+    box-shadow: none;
+}
+
 .login-box .logo h1 {
     font-size: 32px;
     margin-bottom: 8px;
