@@ -86,6 +86,8 @@ const RelatoriosModule = (() => {
         share: true,
         export: true,
     };
+    let currentPreviewReportId = null;
+    let currentViewReportId = null;
     let builderSelectedColumns = [...DEFAULT_DEFINITION.columns];
     let initialized = false;
 
@@ -228,7 +230,10 @@ const RelatoriosModule = (() => {
     const openEditorModal = () => { if (reportEditorModal) reportEditorModal.style.display = 'flex'; };
     const closeEditorModal = () => { if (reportEditorModal) reportEditorModal.style.display = 'none'; };
     const openViewModal = () => { if (reportViewModal) reportViewModal.style.display = 'flex'; };
-    const closeViewModal = () => { if (reportViewModal) reportViewModal.style.display = 'none'; };
+    const closeViewModal = () => {
+        if (reportViewModal) reportViewModal.style.display = 'none';
+        currentViewReportId = null;
+    };
 
     const loadContext = async () => {
         const { data: sessionData, error: sessionError } = await window.dbClient.auth.getSession();
@@ -493,6 +498,7 @@ const loadReports = async () => {
             showLoading('Gerando preview do relatorio...');
             const { filteredRows, selectedColumns } = await getReportDataset(report);
             renderPreview(report, filteredRows, selectedColumns);
+            currentPreviewReportId = String(report.id || reportId || '');
             if (switchToBuilder) setActiveTab('builder');
         } catch (error) {
             console.error('Erro ao gerar preview:', error);
@@ -543,6 +549,7 @@ const loadReports = async () => {
             showLoading('Abrindo relatorio...');
             const { filteredRows, selectedColumns } = await getReportDataset(report);
             renderReportView(report, filteredRows, selectedColumns);
+            currentViewReportId = String(report.id || reportId || '');
             openViewModal();
         } catch (error) {
             console.error('Erro ao abrir relatorio:', error);
@@ -940,6 +947,7 @@ const renderColumnsGrid = () => {
 
             await syncReportShares(reportId, payload.visibility === 'groups' ? payload.selectedGroups : []);
             await refreshData();
+            await refreshOpenedReportViews(reportId);
             closeEditorModal();
             resetBuilder();
             notify('Relatório salvo com sucesso.', 'success');
@@ -1014,6 +1022,23 @@ const renderColumnsGrid = () => {
     const refreshData = async () => {
         await Promise.all([loadReports(), loadShares()]);
         refreshView();
+    };
+
+    const refreshOpenedReportViews = async (reportId) => {
+        const safeId = String(reportId || '');
+        if (!safeId) return;
+
+        if (String(currentPreviewReportId || '') === safeId) {
+            await openPreviewForReport(safeId);
+        }
+
+        const isViewOpen = reportViewModal && reportViewModal.style.display === 'flex';
+        if (isViewOpen && String(currentViewReportId || '') === safeId) {
+            const report = reports.find((r) => String(r.id) === safeId);
+            if (!report || !canViewReport(report)) return;
+            const { filteredRows, selectedColumns } = await getReportDataset(report);
+            renderReportView(report, filteredRows, selectedColumns);
+        }
     };
 
     const bindEvents = () => {
