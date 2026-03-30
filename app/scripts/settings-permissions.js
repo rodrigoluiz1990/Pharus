@@ -23,7 +23,7 @@ const SettingsPermissionsModule = (() => {
         { key: 'usuarios', label: 'Usuários', options: ['view', 'create', 'edit', 'delete', 'chat'] },
         { key: 'chat', label: 'Chat', options: ['view', 'send', 'attachment'] },
         { key: 'relatorios', label: 'Relatórios', options: ['view', 'create', 'edit', 'share', 'export'] },
-        { key: 'configuracoes', label: 'Configurações', options: ['view', 'project', 'permissions', 'users', 'table', 'extension'] },
+        { key: 'configuracoes', label: 'Configurações', options: ['view', 'project', 'permissions', 'users', 'table', 'extension', 'maintenance'] },
     ];
 
     const OPTION_LABELS = {
@@ -48,6 +48,7 @@ const SettingsPermissionsModule = (() => {
         users: 'Gerenciar usuários',
         table: 'Editar tabela',
         extension: 'Configurar extensão',
+        maintenance: 'Atualização e backup',
     };
 
     let groups = [];

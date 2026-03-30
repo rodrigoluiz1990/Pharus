@@ -168,6 +168,27 @@
             font-size: 13px;
             color: #4b6278;
         }
+        .maintenance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+            align-items: end;
+        }
+        .maintenance-log {
+            background: #0f172a;
+            color: #dbeafe;
+            border-radius: 8px;
+            border: 1px solid #1f2a44;
+            min-height: 120px;
+            max-height: 220px;
+            overflow: auto;
+            padding: 10px;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 12px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
 
         .table-columns-order-list {
             list-style: none;
@@ -707,6 +728,9 @@
                     <button class="settings-tab-btn" id="settingsTabTable" data-tab="table" role="tab" aria-selected="false">
                         <i class="fas fa-table"></i> Tabela
                     </button>
+                    <button class="settings-tab-btn" id="settingsTabMaintenance" data-tab="maintenance" role="tab" aria-selected="false">
+                        <i class="fas fa-arrows-rotate"></i> Atualização e Backup
+                    </button>
                 </aside>
 
                 <div class="settings-content">
@@ -934,6 +958,42 @@
                                 <p class="status-hint" id="extensionInstallHint">
                                     Dica: o Chrome não instala extensão direto do .zip. ? necessário extrair e usar "Carregar sem compactação".
                                 </p>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section class="settings-tab-panel" id="settingsPanelMaintenance" data-panel="maintenance" role="tabpanel">
+                        <section class="settings-card">
+                            <div class="settings-card-header">
+                                <h3>Atualizações e Backup</h3>
+                                <button class="settings-card-toggle" type="button" data-card-toggle="card-maintenance-main" aria-expanded="true">Esconder</button>
+                            </div>
+                            <div class="settings-card-body" id="card-maintenance-main">
+                                <p>Use estes botões para verificar versões, gerar backup do banco e iniciar atualização automática via Docker.</p>
+                                <div class="maintenance-grid">
+                                    <div class="table-column-width-item">
+                                        <label>Versão atual</label>
+                                        <input id="maintenanceCurrentVersion" type="text" value="-" readonly>
+                                    </div>
+                                    <div class="table-column-width-item">
+                                        <label>Última versão</label>
+                                        <input id="maintenanceLatestVersion" type="text" value="-" readonly>
+                                    </div>
+                                    <div class="table-column-width-item">
+                                        <label for="maintenanceBackupFormat">Formato do backup</label>
+                                        <select id="maintenanceBackupFormat" class="form-control">
+                                            <option value="sql">SQL (.sql)</option>
+                                            <option value="json">JSON (.json)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="settings-actions">
+                                    <button class="btn btn-secondary" id="checkSystemUpdatesBtn" type="button"><i class="fas fa-rotate"></i> Verificar atualizações</button>
+                                    <button class="btn btn-secondary" id="createSystemBackupBtn" type="button"><i class="fas fa-database"></i> Gerar backup agora</button>
+                                    <button class="btn btn-primary" id="runSystemUpdateBtn" type="button"><i class="fas fa-download"></i> Atualizar sistema</button>
+                                </div>
+                                <p class="status-hint" id="maintenanceStatusHint" aria-live="polite"></p>
+                                <div class="maintenance-log" id="maintenanceLogBox">Aguardando ações de manutenção...</div>
                             </div>
                         </section>
                     </section>

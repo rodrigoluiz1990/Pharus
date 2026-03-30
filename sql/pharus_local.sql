@@ -329,7 +329,8 @@ CROSS JOIN (
     ('configuracoes', 'permissions'),
     ('configuracoes', 'users'),
     ('configuracoes', 'table'),
-    ('configuracoes', 'extension')
+    ('configuracoes', 'extension'),
+    ('configuracoes', 'maintenance')
 ) AS perms(screen_key, option_key)
 WHERE pg.name = 'Administradores'
 ON CONFLICT (group_id, screen_key, option_key)

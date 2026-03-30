@@ -14,7 +14,7 @@ const PermissionService = (() => {
         'users.html': 'usuarios',
     };
 
-    const CONFIG_OPTIONS = ['view', 'project', 'permissions', 'users', 'table', 'extension'];
+    const CONFIG_OPTIONS = ['view', 'project', 'permissions', 'users', 'table', 'extension', 'maintenance'];
     const state = {
         loaded: false,
         userId: null,

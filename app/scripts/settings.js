@@ -61,6 +61,14 @@ const SettingsModule = (() => {
     const saveTableColumnsWidthBtn = document.getElementById('saveTableColumnsWidthBtn');
     const resetTableColumnsWidthBtn = document.getElementById('resetTableColumnsWidthBtn');
     const tableColumnsWidthStatus = document.getElementById('tableColumnsWidthStatus');
+    const checkSystemUpdatesBtn = document.getElementById('checkSystemUpdatesBtn');
+    const createSystemBackupBtn = document.getElementById('createSystemBackupBtn');
+    const runSystemUpdateBtn = document.getElementById('runSystemUpdateBtn');
+    const maintenanceCurrentVersionInput = document.getElementById('maintenanceCurrentVersion');
+    const maintenanceLatestVersionInput = document.getElementById('maintenanceLatestVersion');
+    const maintenanceBackupFormatInput = document.getElementById('maintenanceBackupFormat');
+    const maintenanceStatusHint = document.getElementById('maintenanceStatusHint');
+    const maintenanceLogBox = document.getElementById('maintenanceLogBox');
     const settingsTabButtons = Array.from(document.querySelectorAll('.settings-tab-btn[data-tab]'));
     const settingsTabPanels = Array.from(document.querySelectorAll('.settings-tab-panel[data-panel]'));
     const settingsCardToggleButtons = Array.from(document.querySelectorAll('.settings-card-toggle[data-card-toggle]'));
@@ -77,13 +85,14 @@ const SettingsModule = (() => {
     const SETTINGS_ACTIVE_TAB_KEY = 'pharus_settings_active_tab';
     const SETTINGS_CARDS_STATE_KEY = 'pharus_settings_cards_state';
     const DEFAULT_TABLE_COLUMNS_ORDER = ['pin', 'title', 'assignee', 'request_date', 'due_date', 'status', 'priority', 'client', 'type', 'actions'];
-    const ALLOWED_SETTINGS_TABS = new Set(['general', 'permissions', 'users', 'extension', 'table']);
+    const ALLOWED_SETTINGS_TABS = new Set(['general', 'permissions', 'users', 'extension', 'table', 'maintenance']);
     const SETTINGS_TAB_PERMISSION_MAP = {
         general: 'project',
         permissions: 'permissions',
         users: 'users',
         extension: 'extension',
         table: 'table',
+        maintenance: 'maintenance',
     };
     const DEFAULT_TABLE_COLUMNS_WIDTHS = {
         pin: 56,
@@ -161,6 +170,7 @@ const SettingsModule = (() => {
         { value: 'fas fa-comments-dollar', label: 'Comercial' },
     ];
     const taxonomyIconPickerPanels = [];
+    let maintenancePollingTimer = null;
 
     const hideStatusHint = (element) => {
         if (!element) return;
@@ -648,6 +658,32 @@ const SettingsModule = (() => {
         }, 1400);
     };
 
+    const showButtonStatusFeedback = (button, originalHtml, label, type = 'success') => {
+        if (!button) return;
+        const text = String(label || '').trim() || 'Concluído';
+        const success = type !== 'warning';
+        button.classList.remove('btn-copied');
+        button.style.backgroundColor = success ? '#1f9d57' : '#b7791f';
+        button.style.borderColor = success ? '#1f9d57' : '#b7791f';
+        button.style.color = '#ffffff';
+        button.style.transform = 'translateY(-1px)';
+        button.style.boxShadow = success
+            ? '0 2px 8px rgba(31, 157, 87, 0.3)'
+            : '0 2px 8px rgba(183, 121, 31, 0.3)';
+        button.innerHTML = success
+            ? `<i class="fas fa-check"></i> ${text}`
+            : `<i class="fas fa-exclamation-triangle"></i> ${text}`;
+
+        setTimeout(() => {
+            button.style.backgroundColor = '';
+            button.style.borderColor = '';
+            button.style.color = '';
+            button.style.transform = '';
+            button.style.boxShadow = '';
+            button.innerHTML = originalHtml;
+        }, 1400);
+    };
+
     const notify = (message, type = 'info') => {
         if (typeof UtilsModule !== 'undefined' && typeof UtilsModule.showNotification === 'function') {
             UtilsModule.showNotification(message, type);
@@ -656,6 +692,91 @@ const SettingsModule = (() => {
         if (extensionInstallHint) {
             extensionInstallHint.textContent = message;
         }
+    };
+
+    const setMaintenanceStatus = (message) => {
+        if (!maintenanceStatusHint) return;
+        maintenanceStatusHint.textContent = String(message || '');
+        maintenanceStatusHint.style.display = message ? 'block' : 'none';
+    };
+
+    const setMaintenanceLog = (logs) => {
+        if (!maintenanceLogBox) return;
+        const safeLogs = Array.isArray(logs) ? logs : [];
+        maintenanceLogBox.textContent = safeLogs.length
+            ? safeLogs.join('\n')
+            : 'Aguardando ações de manutenção...';
+        maintenanceLogBox.scrollTop = maintenanceLogBox.scrollHeight;
+    };
+
+    const getMaintenanceAuthPayload = async () => {
+        try {
+            const { data, error } = await window.dbClient.auth.getSession();
+            if (error) throw error;
+            const user = data?.session?.user || null;
+            return {
+                auth_user_id: user?.id || null,
+                auth_email: user?.email || null,
+            };
+        } catch (_error) {
+            return { auth_user_id: null, auth_email: null };
+        }
+    };
+
+    const callMaintenanceApi = async (path, payload = {}) => {
+        const response = await fetch(path, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload || {}),
+        });
+        const json = await response.json().catch(() => ({ data: null, error: { message: 'Resposta inválida da API de manutenção.' } }));
+        if (!response.ok || json?.error) {
+            throw new Error(String(json?.error?.message || `Falha na requisição ${path}`));
+        }
+        return json.data || null;
+    };
+
+    const hasMaintenancePermission = () => hasSettingsPermission('maintenance') || hasSettingsPermission('project');
+
+    const ensureMaintenancePermission = () => {
+        if (hasMaintenancePermission()) return true;
+        return ensureSettingsPermission('project', 'Você não tem permissão para executar atualização e backup.');
+    };
+
+    const applyMaintenanceButtonsState = (running) => {
+        const disabled = Boolean(running);
+        if (checkSystemUpdatesBtn) checkSystemUpdatesBtn.disabled = disabled;
+        if (createSystemBackupBtn) createSystemBackupBtn.disabled = disabled;
+        if (runSystemUpdateBtn) runSystemUpdateBtn.disabled = disabled;
+    };
+
+    const stopMaintenancePolling = () => {
+        if (!maintenancePollingTimer) return;
+        window.clearInterval(maintenancePollingTimer);
+        maintenancePollingTimer = null;
+    };
+
+    const refreshMaintenanceStatus = async () => {
+        if (!maintenanceLogBox) return;
+        const auth = await getMaintenanceAuthPayload();
+        const status = await callMaintenanceApi('/api/system/maintenance/status', auth);
+        if (maintenanceCurrentVersionInput) maintenanceCurrentVersionInput.value = status?.currentVersion || '-';
+        setMaintenanceLog(status?.logs || []);
+        setMaintenanceStatus(status?.message || (status?.running ? 'Operação em andamento...' : ''));
+        applyMaintenanceButtonsState(Boolean(status?.running));
+        if (!status?.running) {
+            stopMaintenancePolling();
+        }
+    };
+
+    const startMaintenancePolling = () => {
+        stopMaintenancePolling();
+        maintenancePollingTimer = window.setInterval(() => {
+            refreshMaintenanceStatus().catch((error) => {
+                console.error('Erro ao consultar status da manutenção:', error);
+                setMaintenanceStatus(error?.message || 'Falha ao atualizar status da manutenção.');
+            });
+        }, 1800);
     };
 
     const normalizeColumnWidth = (value, fallbackValue) => {
@@ -734,7 +855,9 @@ const SettingsModule = (() => {
             const tabId = String(button.dataset.tab || '').trim();
             const optionKey = SETTINGS_TAB_PERMISSION_MAP[tabId];
             if (!optionKey) return;
-            let allowed = hasSettingsPermission(optionKey);
+            let allowed = tabId === 'maintenance'
+                ? hasMaintenancePermission()
+                : hasSettingsPermission(optionKey);
             if (tabId === 'users') {
                 allowed = allowed && hasUsersScreenViewPermission();
             }
@@ -773,6 +896,15 @@ const SettingsModule = (() => {
         loadTableColumnsWidths();
         renderTableColumnsOrderList();
         renderTableColumnsWidthGrid();
+        if (maintenanceCurrentVersionInput) {
+            maintenanceCurrentVersionInput.value = 'Carregando...';
+        }
+        if (maintenanceLatestVersionInput) {
+            maintenanceLatestVersionInput.value = '-';
+        }
+        setMaintenanceStatus('');
+        setMaintenanceLog([]);
+        applyMaintenanceButtonsState(false);
 
         if (openExtensionsBtn) {
             openExtensionsBtn.addEventListener('click', async (event) => {
@@ -919,6 +1051,90 @@ const SettingsModule = (() => {
             });
         }
 
+        if (checkSystemUpdatesBtn) {
+            checkSystemUpdatesBtn.addEventListener('click', async (event) => {
+                event.preventDefault();
+                if (!ensureMaintenancePermission()) return;
+                const originalHtml = checkSystemUpdatesBtn.innerHTML;
+                try {
+                    applyMaintenanceButtonsState(true);
+                    setMaintenanceStatus('Verificando atualizações...');
+                    const auth = await getMaintenanceAuthPayload();
+                    const data = await callMaintenanceApi('/api/system/maintenance/check', auth);
+                    if (maintenanceCurrentVersionInput) maintenanceCurrentVersionInput.value = data?.currentVersion || '-';
+                    if (maintenanceLatestVersionInput) maintenanceLatestVersionInput.value = data?.latestVersion || '-';
+                    const updateAvailable = Boolean(data?.updateAvailable);
+                    const manifestMsg = data?.message ? ` (${data.message})` : '';
+                    setMaintenanceStatus(updateAvailable
+                        ? `Atualização disponível para versão ${data?.latestVersion || '-'}.${manifestMsg}`
+                        : `Sistema já está atualizado.${manifestMsg}`);
+                    notify(updateAvailable ? 'Nova versão disponível.' : 'Sistema já está atualizado.', updateAvailable ? 'warning' : 'success');
+                    showButtonStatusFeedback(checkSystemUpdatesBtn, originalHtml, 'Verificado', updateAvailable ? 'warning' : 'success');
+                } catch (error) {
+                    console.error('Erro ao verificar atualizações:', error);
+                    setMaintenanceStatus(error?.message || 'Falha ao verificar atualizações.');
+                    notify(error?.message || 'Falha ao verificar atualizações.', 'error');
+                } finally {
+                    applyMaintenanceButtonsState(false);
+                    refreshMaintenanceStatus().catch(() => {});
+                }
+            });
+        }
+
+        if (createSystemBackupBtn) {
+            createSystemBackupBtn.addEventListener('click', async (event) => {
+                event.preventDefault();
+                if (!ensureMaintenancePermission()) return;
+                const originalHtml = createSystemBackupBtn.innerHTML;
+                try {
+                    const backupFormat = String(maintenanceBackupFormatInput?.value || 'sql').trim().toLowerCase();
+                    applyMaintenanceButtonsState(true);
+                    setMaintenanceStatus(`Gerando backup em formato ${backupFormat.toUpperCase()}...`);
+                    const auth = await getMaintenanceAuthPayload();
+                    const data = await callMaintenanceApi('/api/system/maintenance/backup', {
+                        ...auth,
+                        format: backupFormat,
+                    });
+                    const backupPath = String(data?.backupFile || '').trim();
+                    setMaintenanceStatus(backupPath ? `Backup concluído: ${backupPath}` : 'Backup concluído com sucesso.');
+                    notify('Backup gerado com sucesso.', 'success');
+                    showButtonStatusFeedback(createSystemBackupBtn, originalHtml, 'Concluído', 'success');
+                } catch (error) {
+                    console.error('Erro ao gerar backup:', error);
+                    setMaintenanceStatus(error?.message || 'Falha ao gerar backup.');
+                    notify(error?.message || 'Falha ao gerar backup.', 'error');
+                } finally {
+                    applyMaintenanceButtonsState(false);
+                    refreshMaintenanceStatus().catch(() => {});
+                }
+            });
+        }
+
+        if (runSystemUpdateBtn) {
+            runSystemUpdateBtn.addEventListener('click', async (event) => {
+                event.preventDefault();
+                if (!ensureMaintenancePermission()) return;
+                const shouldProceed = window.confirm('Deseja iniciar a atualização automática agora? O sistema pode ficar indisponível por alguns instantes.');
+                if (!shouldProceed) return;
+                const originalHtml = runSystemUpdateBtn.innerHTML;
+                try {
+                    applyMaintenanceButtonsState(true);
+                    setMaintenanceStatus('Iniciando atualização...');
+                    const auth = await getMaintenanceAuthPayload();
+                    await callMaintenanceApi('/api/system/maintenance/update', auth);
+                    notify('Atualização iniciada. Acompanhe o log abaixo.', 'success');
+                    showButtonStatusFeedback(runSystemUpdateBtn, originalHtml, 'Iniciado', 'success');
+                    startMaintenancePolling();
+                    await refreshMaintenanceStatus();
+                } catch (error) {
+                    console.error('Erro ao iniciar atualização:', error);
+                    setMaintenanceStatus(error?.message || 'Falha ao iniciar atualização.');
+                    notify(error?.message || 'Falha ao iniciar atualização.', 'error');
+                    applyMaintenanceButtonsState(false);
+                }
+            });
+        }
+
         if (copyFolderHintBtn && extensionFolderPath) {
             copyFolderHintBtn.addEventListener('click', async (event) => {
                 event.preventDefault();
@@ -978,13 +1194,28 @@ const SettingsModule = (() => {
                 showButtonActionFeedback(resetTableColumnsWidthBtn, originalHtml, 'success');
             });
         }
+
+        if (hasMaintenancePermission()) {
+            refreshMaintenanceStatus().catch((error) => {
+                console.error('Erro ao carregar status de manutenção:', error);
+                setMaintenanceStatus(error?.message || 'Falha ao carregar status de manutenção.');
+            });
+        } else {
+            applyMaintenanceButtonsState(true);
+            setMaintenanceStatus('Sem permissão para atualização e backup.');
+        }
+
+        window.addEventListener('beforeunload', () => {
+            stopMaintenancePolling();
+        });
     };
 
     const normalizeTab = (tabId) => {
         const cleaned = String(tabId || '').trim();
         if (ALLOWED_SETTINGS_TABS.has(cleaned)) {
             const optionKey = SETTINGS_TAB_PERMISSION_MAP[cleaned];
-            const hasOptionPermission = !optionKey || hasSettingsPermission(optionKey);
+            const hasOptionPermission = !optionKey
+                || (cleaned === 'maintenance' ? hasMaintenancePermission() : hasSettingsPermission(optionKey));
             const hasUsersPermission = cleaned !== 'users' || hasUsersScreenViewPermission();
             if (hasOptionPermission && hasUsersPermission) return cleaned;
         }
@@ -992,7 +1223,10 @@ const SettingsModule = (() => {
             .map((button) => String(button.dataset.tab || '').trim())
             .find((tab) => {
                 const optionKey = SETTINGS_TAB_PERMISSION_MAP[tab];
-                if (!optionKey || !hasSettingsPermission(optionKey)) return false;
+                const allowed = tab === 'maintenance'
+                    ? hasMaintenancePermission()
+                    : hasSettingsPermission(optionKey);
+                if (!optionKey || !allowed) return false;
                 if (tab === 'users' && !hasUsersScreenViewPermission()) return false;
                 return true;
             });

@@ -42,6 +42,7 @@
                         <button class="manual-nav-item" data-target="manual-chat"><i class="fas fa-comment"></i> Chat</button>
                         <button class="manual-nav-item" data-target="manual-relatorios"><i class="fas fa-file-alt"></i> Relatórios</button>
                         <button class="manual-nav-item" data-target="manual-configuracoes"><i class="fas fa-cog"></i> Configurações</button>
+                        <button class="manual-nav-item" data-target="manual-atualizacao-backup"><i class="fas fa-arrows-rotate"></i> Atualização e Backup</button>
                     </nav>
                 </aside>
 
@@ -273,6 +274,48 @@
                             <article class="manual-card">
                                 <h4>Importante</h4>
                                 <p>Se algo ficar inacessível, valide primeiro as permissões do grupo do usuário logado.</p>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="manual-section" id="manual-atualizacao-backup" data-keywords="atualizacao backup versao sistema docker configuracoes">
+                        <header>
+                            <h3>Atualização e Backup</h3>
+                            <p>Como verificar versão, criar backup e iniciar atualização do sistema.</p>
+                        </header>
+                        <div class="manual-grid">
+                            <article class="manual-card">
+                                <h4>Onde fica</h4>
+                                <p>Entre em <strong>Configurações</strong> e abra a aba <strong>Atualização e Backup</strong>.</p>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Verificar atualização</h4>
+                                <ol>
+                                    <li>Clique em <strong>Verificar atualizações</strong>.</li>
+                                    <li>Compare <strong>Versão atual</strong> e <strong>Última versão</strong>.</li>
+                                    <li>Se houver nova versão, siga para atualização.</li>
+                                </ol>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Gerar backup</h4>
+                                <ol>
+                                    <li>Clique em <strong>Gerar backup agora</strong>.</li>
+                                    <li>Aguarde a confirmação no status e no log.</li>
+                                    <li>Guarde o caminho do arquivo de backup informado na tela.</li>
+                                </ol>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Atualizar sistema</h4>
+                                <ol>
+                                    <li>Clique em <strong>Atualizar sistema</strong>.</li>
+                                    <li>Confirme a execução quando o sistema pedir.</li>
+                                    <li>Acompanhe o andamento no bloco de log.</li>
+                                    <li>Ao finalizar, atualize o navegador (Ctrl+F5).</li>
+                                </ol>
+                            </article>
+                            <article class="manual-card">
+                                <h4>Observação importante</h4>
+                                <p>Somente usuários com permissão de manutenção podem usar essa aba.</p>
                             </article>
                         </div>
                     </section>

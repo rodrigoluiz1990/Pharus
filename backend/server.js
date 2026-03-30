@@ -2,6 +2,7 @@
 const fs = require('fs');
 const fsp = require('fs/promises');
 const express = require('express');
+const { spawn } = require('child_process');
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -10,6 +11,18 @@ const PORT = Number(process.env.PORT || 3000);
 const FRONTEND_ROOT = path.join(__dirname, '..', 'app');
 const CHAT_UPLOAD_DIR = path.join(__dirname, 'uploads', 'chat');
 const TASK_UPLOAD_DIR = path.join(__dirname, 'uploads', 'tasks');
+const BACKUP_DIR = process.env.PHARUS_BACKUP_DIR
+  ? path.resolve(process.env.PHARUS_BACKUP_DIR)
+  : path.join(__dirname, 'backups');
+const MAINTENANCE_WORKDIR = process.env.PHARUS_MAINTENANCE_WORKDIR
+  ? path.resolve(process.env.PHARUS_MAINTENANCE_WORKDIR)
+  : path.join(__dirname, '..');
+const DEFAULT_UPDATE_COMMAND =
+  process.env.PHARUS_UPDATE_COMMAND
+  || 'docker compose -f docker-compose.client.yml -p pharus_cliente pull && docker compose -f docker-compose.client.yml -p pharus_cliente up -d --force-recreate';
+const PG_DUMP_COMMAND = String(process.env.PHARUS_PGDUMP_COMMAND || 'pg_dump').trim();
+const UPDATE_MANIFEST_URL = String(process.env.PHARUS_UPDATE_MANIFEST_URL || '').trim();
+const APP_VERSION = String(process.env.APP_VERSION || process.env.IMAGE_TAG || 'local-dev').trim();
 const MAX_CHAT_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 const MAX_TASK_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
@@ -217,6 +230,60 @@ const SELECT_PERMISSION_BY_TABLE = {
   task_report_group_shares: { screen: 'relatorios', option: 'view' },
 };
 
+const BACKUP_TABLES = [
+  'permission_groups',
+  'permission_group_rules',
+  'app_users',
+  'columns',
+  'tasks',
+  'clients',
+  'agenda_events',
+  'notice_board_posts',
+  'task_report_definitions',
+  'task_report_group_shares',
+  'chat_messages',
+];
+
+const maintenanceState = {
+  running: false,
+  operation: '',
+  startedAt: '',
+  endedAt: '',
+  success: null,
+  message: '',
+  logs: [],
+  lastBackupFile: '',
+};
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function pushMaintenanceLog(message) {
+  const line = `[${nowIso()}] ${String(message || '').trim()}`;
+  maintenanceState.logs.push(line);
+  if (maintenanceState.logs.length > 400) {
+    maintenanceState.logs = maintenanceState.logs.slice(-400);
+  }
+}
+
+function resetMaintenanceState(operation) {
+  maintenanceState.running = true;
+  maintenanceState.operation = operation;
+  maintenanceState.startedAt = nowIso();
+  maintenanceState.endedAt = '';
+  maintenanceState.success = null;
+  maintenanceState.message = '';
+  maintenanceState.logs = [];
+}
+
+function finishMaintenanceState(success, message) {
+  maintenanceState.running = false;
+  maintenanceState.endedAt = nowIso();
+  maintenanceState.success = Boolean(success);
+  maintenanceState.message = String(message || '');
+}
+
 function normalizeTable(table) {
   if (!table || typeof table !== 'string') return null;
   return Object.prototype.hasOwnProperty.call(TABLE_COLUMNS, table) ? table : null;
@@ -314,6 +381,25 @@ async function hasUserPermission(userId, screenKey, optionKey) {
     [groupId, String(screenKey), String(optionKey)]
   );
   return ruleResult.rows.length > 0;
+}
+
+async function resolveAuthUserId(authUserIdRaw, authEmailRaw) {
+  if (isNumericId(authUserIdRaw)) return Number(authUserIdRaw);
+  const authEmail = String(authEmailRaw || '').trim().toLowerCase();
+  if (!authEmail) return null;
+  const mappedUser = await pool.query(
+    'SELECT id FROM app_users WHERE LOWER(email) = $1 LIMIT 1',
+    [authEmail]
+  );
+  const mappedId = mappedUser.rows?.[0]?.id;
+  return isNumericId(mappedId) ? Number(mappedId) : null;
+}
+
+async function hasConfigMaintenancePermission(userId) {
+  if (!isNumericId(userId)) return false;
+  const canMaintenance = await hasUserPermission(userId, 'configuracoes', 'maintenance');
+  if (canMaintenance) return true;
+  return hasUserPermission(userId, 'configuracoes', 'project');
 }
 
 function hasOnlyKeys(payload, allowedKeys) {
@@ -427,6 +513,158 @@ function ensureTaskUploadDir() {
   }
 }
 
+async function buildJsonDatabaseBackup() {
+  await fsp.mkdir(BACKUP_DIR, { recursive: true });
+  const stamp = nowIso().replace(/[:.]/g, '-');
+  const fileName = `pharus-backup-${stamp}.json`;
+  const filePath = path.join(BACKUP_DIR, fileName);
+  const backupPayload = {
+    meta: {
+      generated_at: nowIso(),
+      app_version: APP_VERSION,
+      database: String(process.env.PGDATABASE || 'pharus'),
+      host: String(process.env.PGHOST || '127.0.0.1'),
+    },
+    tables: {},
+  };
+
+  for (const tableName of BACKUP_TABLES) {
+    pushMaintenanceLog(`Lendo tabela ${tableName}...`);
+    const result = await pool.query(`SELECT * FROM ${tableName} ORDER BY id ASC`);
+    backupPayload.tables[tableName] = Array.isArray(result.rows) ? result.rows : [];
+  }
+
+  await fsp.writeFile(filePath, JSON.stringify(backupPayload, null, 2), 'utf8');
+  maintenanceState.lastBackupFile = filePath;
+  return filePath;
+}
+
+async function buildSqlDatabaseBackup() {
+  await fsp.mkdir(BACKUP_DIR, { recursive: true });
+  const stamp = nowIso().replace(/[:.]/g, '-');
+  const fileName = `pharus-backup-${stamp}.sql`;
+  const filePath = path.join(BACKUP_DIR, fileName);
+
+  pushMaintenanceLog('Executando pg_dump...');
+  const pgDumpArgs = [
+    '-h', String(process.env.PGHOST || '127.0.0.1'),
+    '-p', String(process.env.PGPORT || 5432),
+    '-U', String(process.env.PGUSER || 'postgres'),
+    '-d', String(process.env.PGDATABASE || 'pharus'),
+    '-F', 'p',
+    '-f', filePath,
+  ];
+
+  await new Promise((resolve, reject) => {
+    const child = spawn(PG_DUMP_COMMAND, pgDumpArgs, {
+      env: {
+        ...process.env,
+        PGPASSWORD: String(process.env.PGPASSWORD || ''),
+      },
+      shell: false,
+    });
+
+    child.stdout?.on('data', (chunk) => {
+      const text = String(chunk || '').trim();
+      if (!text) return;
+      text.split(/\r?\n/).forEach((line) => pushMaintenanceLog(line));
+    });
+    child.stderr?.on('data', (chunk) => {
+      const text = String(chunk || '').trim();
+      if (!text) return;
+      text.split(/\r?\n/).forEach((line) => pushMaintenanceLog(`[pg_dump] ${line}`));
+    });
+    child.on('error', (error) => {
+      reject(new Error(`Falha ao executar pg_dump. Verifique se "${PG_DUMP_COMMAND}" está disponível no servidor. Detalhe: ${error?.message || 'erro desconhecido'}`));
+    });
+    child.on('close', (code) => {
+      if (Number(code) === 0) {
+        resolve();
+        return;
+      }
+      reject(new Error(`pg_dump finalizado com erro (code=${code}).`));
+    });
+  });
+
+  maintenanceState.lastBackupFile = filePath;
+  return filePath;
+}
+
+function runShellCommandWithLogs(command, options = {}) {
+  return new Promise((resolve) => {
+    const child = spawn(command, {
+      shell: true,
+      cwd: options.cwd || MAINTENANCE_WORKDIR,
+      env: { ...process.env, ...(options.env || {}) },
+    });
+
+    let finished = false;
+    const finish = (code, signal) => {
+      if (finished) return;
+      finished = true;
+      resolve({ code, signal });
+    };
+
+    child.stdout?.on('data', (chunk) => {
+      const text = String(chunk || '').trim();
+      if (!text) return;
+      text.split(/\r?\n/).forEach((line) => pushMaintenanceLog(line));
+    });
+    child.stderr?.on('data', (chunk) => {
+      const text = String(chunk || '').trim();
+      if (!text) return;
+      text.split(/\r?\n/).forEach((line) => pushMaintenanceLog(`[erro] ${line}`));
+    });
+    child.on('error', (error) => {
+      pushMaintenanceLog(`[erro] ${error?.message || 'Falha ao executar comando'}`);
+      finish(-1, null);
+    });
+    child.on('close', (code, signal) => {
+      finish(code, signal);
+    });
+  });
+}
+
+async function fetchLatestVersionInfo() {
+  if (!UPDATE_MANIFEST_URL) {
+    return {
+      latestVersion: APP_VERSION,
+      updateAvailable: false,
+      source: 'local',
+      message: 'Manifesto de atualização não configurado.',
+      manifestUrl: '',
+      notesUrl: '',
+    };
+  }
+
+  try {
+    const response = await fetch(UPDATE_MANIFEST_URL, { method: 'GET' });
+    if (!response.ok) {
+      throw new Error(`Falha ao consultar manifesto (${response.status})`);
+    }
+    const manifest = await response.json();
+    const latestVersion = String(manifest?.version || '').trim() || APP_VERSION;
+    const notesUrl = String(manifest?.notes_url || '').trim();
+    return {
+      latestVersion,
+      updateAvailable: latestVersion !== APP_VERSION,
+      source: 'manifest',
+      message: '',
+      manifestUrl: UPDATE_MANIFEST_URL,
+      notesUrl,
+    };
+  } catch (error) {
+    return {
+      latestVersion: APP_VERSION,
+      updateAvailable: false,
+      source: 'manifest_error',
+      message: String(error?.message || 'Falha ao consultar atualização'),
+      manifestUrl: UPDATE_MANIFEST_URL,
+      notesUrl: '',
+    };
+  }
+}
+
 function sanitizeFileName(fileName) {
   const base = String(fileName || 'arquivo')
     .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
@@ -520,6 +758,153 @@ function toClientUser(user) {
     last_sign_in_at: user.last_sign_in_at,
   };
 }
+
+app.post('/api/system/maintenance/check', async (req, res) => {
+  try {
+    const authUserId = await resolveAuthUserId(
+      req.body?.auth_user_id ?? req.headers['x-auth-user-id'],
+      req.body?.auth_email ?? req.headers['x-auth-email']
+    );
+    const allowed = await hasConfigMaintenancePermission(authUserId);
+    if (!allowed) {
+      return res.status(403).json({ data: null, error: { message: 'Permissão negada para configuracoes.maintenance' } });
+    }
+
+    const versionInfo = await fetchLatestVersionInfo();
+    return res.json({
+      data: {
+        currentVersion: APP_VERSION,
+        ...versionInfo,
+      },
+      error: null,
+    });
+  } catch (error) {
+    return res.status(500).json({ data: null, error: formatError(error) });
+  }
+});
+
+app.post('/api/system/maintenance/backup', async (req, res) => {
+  try {
+    if (maintenanceState.running) {
+      return res.status(409).json({
+        data: null,
+        error: { message: `Operação em andamento: ${maintenanceState.operation}` },
+      });
+    }
+
+    const authUserId = await resolveAuthUserId(
+      req.body?.auth_user_id ?? req.headers['x-auth-user-id'],
+      req.body?.auth_email ?? req.headers['x-auth-email']
+    );
+    const allowed = await hasConfigMaintenancePermission(authUserId);
+    if (!allowed) {
+      return res.status(403).json({ data: null, error: { message: 'Permissão negada para configuracoes.maintenance' } });
+    }
+
+    const formatRaw = String(req.body?.format || 'sql').trim().toLowerCase();
+    const format = formatRaw === 'json' ? 'json' : 'sql';
+    resetMaintenanceState('backup');
+    pushMaintenanceLog(`Iniciando backup do banco em formato ${format.toUpperCase()}...`);
+    const backupFile = format === 'json'
+      ? await buildJsonDatabaseBackup()
+      : await buildSqlDatabaseBackup();
+    pushMaintenanceLog(`Backup finalizado: ${backupFile}`);
+    finishMaintenanceState(true, 'Backup concluído com sucesso.');
+    return res.json({
+      data: {
+        ok: true,
+        format,
+        backupFile,
+      },
+      error: null,
+    });
+  } catch (error) {
+    pushMaintenanceLog(`[erro] ${error?.message || 'Falha no backup'}`);
+    finishMaintenanceState(false, error?.message || 'Falha ao gerar backup.');
+    return res.status(500).json({ data: null, error: formatError(error) });
+  }
+});
+
+app.post('/api/system/maintenance/update', async (req, res) => {
+  try {
+    if (maintenanceState.running) {
+      return res.status(409).json({
+        data: null,
+        error: { message: `Operação em andamento: ${maintenanceState.operation}` },
+      });
+    }
+
+    const authUserId = await resolveAuthUserId(
+      req.body?.auth_user_id ?? req.headers['x-auth-user-id'],
+      req.body?.auth_email ?? req.headers['x-auth-email']
+    );
+    const allowed = await hasConfigMaintenancePermission(authUserId);
+    if (!allowed) {
+      return res.status(403).json({ data: null, error: { message: 'Permissão negada para configuracoes.maintenance' } });
+    }
+
+    resetMaintenanceState('update');
+    pushMaintenanceLog(`Diretório de execução: ${MAINTENANCE_WORKDIR}`);
+    pushMaintenanceLog(`Comando: ${DEFAULT_UPDATE_COMMAND}`);
+    pushMaintenanceLog('Atualização iniciada...');
+
+    runShellCommandWithLogs(DEFAULT_UPDATE_COMMAND, { cwd: MAINTENANCE_WORKDIR })
+      .then((result) => {
+        const code = Number(result?.code ?? -1);
+        if (code === 0) {
+          pushMaintenanceLog('Atualização concluída com sucesso.');
+          finishMaintenanceState(true, 'Atualização concluída com sucesso.');
+          return;
+        }
+        pushMaintenanceLog(`Atualização finalizada com erro (code=${code}).`);
+        finishMaintenanceState(false, `Atualização finalizada com erro (code=${code}).`);
+      })
+      .catch((error) => {
+        pushMaintenanceLog(`[erro] ${error?.message || 'Falha ao atualizar'}`);
+        finishMaintenanceState(false, error?.message || 'Falha ao atualizar.');
+      });
+
+    return res.json({
+      data: {
+        started: true,
+        operation: 'update',
+      },
+      error: null,
+    });
+  } catch (error) {
+    return res.status(500).json({ data: null, error: formatError(error) });
+  }
+});
+
+app.post('/api/system/maintenance/status', async (req, res) => {
+  try {
+    const authUserId = await resolveAuthUserId(
+      req.body?.auth_user_id ?? req.headers['x-auth-user-id'],
+      req.body?.auth_email ?? req.headers['x-auth-email']
+    );
+    const allowed = await hasConfigMaintenancePermission(authUserId);
+    if (!allowed) {
+      return res.status(403).json({ data: null, error: { message: 'Permissão negada para configuracoes.maintenance' } });
+    }
+
+    return res.json({
+      data: {
+        running: maintenanceState.running,
+        operation: maintenanceState.operation,
+        startedAt: maintenanceState.startedAt,
+        endedAt: maintenanceState.endedAt,
+        success: maintenanceState.success,
+        message: maintenanceState.message,
+        logs: maintenanceState.logs,
+        lastBackupFile: maintenanceState.lastBackupFile,
+        currentVersion: APP_VERSION,
+      },
+      error: null,
+    });
+  } catch (error) {
+    return res.status(500).json({ data: null, error: formatError(error) });
+  }
+});
 
 app.get('/api/health', async (_req, res) => {
   try {
