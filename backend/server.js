@@ -963,6 +963,111 @@ app.post('/api/system/maintenance/status', async (req, res) => {
   }
 });
 
+app.post('/api/permissions/group-rules/replace', async (req, res) => {
+  const authUserIdRaw = req.body?.auth_user_id ?? req.headers['x-auth-user-id'];
+  const authEmailRaw = req.body?.auth_email ?? req.headers['x-auth-email'];
+  const groupIdRaw = req.body?.group_id;
+  const rulesRaw = Array.isArray(req.body?.rules) ? req.body.rules : [];
+
+  try {
+    const authUserId = await resolveAuthUserId(authUserIdRaw, authEmailRaw);
+    const allowed = await hasUserPermission(authUserId, 'configuracoes', 'permissions');
+    if (!allowed) {
+      return res.status(403).json({ data: null, error: { message: 'Permissão negada para configuracoes.permissions' } });
+    }
+
+    if (!isNumericId(groupIdRaw)) {
+      return res.status(400).json({ data: null, error: { message: 'group_id inválido' } });
+    }
+    const groupId = Number(groupIdRaw);
+
+    const normalizedRules = rulesRaw
+      .map((rule) => ({
+        screen_key: String(rule?.screen_key || '').trim(),
+        option_key: String(rule?.option_key || '').trim(),
+      }))
+      .filter((rule) => rule.screen_key && rule.option_key);
+
+    const dedupe = new Set();
+    const uniqueRules = normalizedRules.filter((rule) => {
+      const key = `${rule.screen_key}|${rule.option_key}`;
+      if (dedupe.has(key)) return false;
+      dedupe.add(key);
+      return true;
+    });
+
+    const desiredKeySet = new Set(
+      uniqueRules.map((rule) => `${rule.screen_key}|${rule.option_key}`)
+    );
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const currentRowsResult = await client.query(
+        `SELECT screen_key, option_key
+           FROM permission_group_rules
+          WHERE group_id = $1`,
+        [groupId]
+      );
+      const currentRows = Array.isArray(currentRowsResult.rows) ? currentRowsResult.rows : [];
+
+      const currentKeySet = new Set(
+        currentRows.map((row) => `${String(row.screen_key || '').trim()}|${String(row.option_key || '').trim()}`)
+      );
+
+      const toInsert = uniqueRules.filter((rule) => {
+        const key = `${rule.screen_key}|${rule.option_key}`;
+        return !currentKeySet.has(key);
+      });
+
+      const toDelete = currentRows.filter((row) => {
+        const key = `${String(row.screen_key || '').trim()}|${String(row.option_key || '').trim()}`;
+        return !desiredKeySet.has(key);
+      });
+
+      for (const row of toDelete) {
+        await client.query(
+          `DELETE FROM permission_group_rules
+            WHERE group_id = $1
+              AND screen_key = $2
+              AND option_key = $3`,
+          [groupId, String(row.screen_key || '').trim(), String(row.option_key || '').trim()]
+        );
+      }
+
+      for (const rule of toInsert) {
+        await client.query(
+          `INSERT INTO permission_group_rules (group_id, screen_key, option_key, allowed)
+           VALUES ($1, $2, $3, TRUE)
+           ON CONFLICT (group_id, screen_key, option_key)
+           DO UPDATE SET allowed = TRUE`,
+          [groupId, rule.screen_key, rule.option_key]
+        );
+      }
+      await client.query('COMMIT');
+
+      return res.json({
+        data: {
+          group_id: groupId,
+          total_rules: uniqueRules.length,
+          inserted: toInsert.length,
+          removed: toDelete.length,
+          unchanged: Math.max(0, uniqueRules.length - toInsert.length),
+        },
+        error: null,
+      });
+    } catch (txError) {
+      await client.query('ROLLBACK');
+      throw txError;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    return res.status(500).json({ data: null, error: formatError(error) });
+  }
+});
+
 app.get('/api/health', async (_req, res) => {
   try {
     await pool.query('SELECT 1');

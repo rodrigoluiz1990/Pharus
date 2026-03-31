@@ -270,17 +270,31 @@ const SettingsPermissionsModule = (() => {
             notify('Selecione um grupo antes de salvar permissões.', 'warning');
             return;
         }
-        const { error: deleteError } = await window.dbClient.from('permission_group_rules').delete().eq('group_id', selectedGroupId);
-        if (deleteError) throw deleteError;
-
         const rows = Array.from(allowedKeys).map((k) => {
             const [screen, option] = k.split('|');
-            return { group_id: selectedGroupId, screen_key: screen, option_key: option, allowed: true };
+            return { screen_key: screen, option_key: option };
         });
-        if (rows.length) {
-            const { error: insertError } = await window.dbClient.from('permission_group_rules').insert(rows);
-            if (insertError) throw insertError;
+
+        const { data: sessionData, error: sessionError } = await window.dbClient.auth.getSession();
+        if (sessionError) throw sessionError;
+        const authUser = sessionData?.session?.user || null;
+
+        const response = await fetch('/api/permissions/group-rules/replace', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                auth_user_id: authUser?.id || null,
+                auth_email: authUser?.email || null,
+                group_id: selectedGroupId,
+                rules: rows,
+            }),
+        });
+
+        const payload = await response.json().catch(() => ({ data: null, error: { message: 'Resposta inválida do servidor.' } }));
+        if (!response.ok || payload?.error) {
+            throw new Error(String(payload?.error?.message || 'Falha ao salvar permissões.'));
         }
+
         setStatus(matrixStatusEl, `Permissões salvas (${rows.length} regra(s)).`);
         notify('Permissões salvas com sucesso.', 'success');
     };
@@ -339,17 +353,32 @@ const SettingsPermissionsModule = (() => {
         if (!button) return;
         const originalHtml = button.getAttribute(SAVE_FEEDBACK_ATTR) || button.innerHTML;
         button.setAttribute(SAVE_FEEDBACK_ATTR, originalHtml);
+        const originalBg = button.style.backgroundColor || '';
+        const originalBorder = button.style.borderColor || '';
+        const originalColor = button.style.color || '';
+        const originalShadow = button.style.boxShadow || '';
+        const originalTransform = button.style.transform || '';
         button.classList.add('save-success-feedback');
         button.classList.remove('permission-save-highlight');
         void button.offsetWidth;
         button.classList.add('permission-save-highlight');
         button.innerHTML = 'Salvo';
+        button.style.backgroundColor = '#16a34a';
+        button.style.borderColor = '#16a34a';
+        button.style.color = '#ffffff';
+        button.style.boxShadow = '0 6px 18px rgba(22, 163, 74, 0.28)';
+        button.style.transform = 'translateY(-1px)';
 
         setTimeout(() => {
             const restore = button.getAttribute(SAVE_FEEDBACK_ATTR) || originalHtml;
             button.classList.remove('save-success-feedback');
             button.classList.remove('permission-save-highlight');
             button.innerHTML = restore;
+            button.style.backgroundColor = originalBg;
+            button.style.borderColor = originalBorder;
+            button.style.color = originalColor;
+            button.style.boxShadow = originalShadow;
+            button.style.transform = originalTransform;
             button.removeAttribute(SAVE_FEEDBACK_ATTR);
         }, 1500);
     };
