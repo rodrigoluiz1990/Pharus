@@ -1214,8 +1214,8 @@ const ChatModule = (() => {
         }
     };
 
-    const clearSelectedAttachment = () => {
-        if (isSendingAttachment) return;
+    const clearSelectedAttachment = (force = false) => {
+        if (isSendingAttachment && !force) return;
         selectedAttachment = null;
         if (elements.chatAttachmentInput) {
             elements.chatAttachmentInput.value = '';
@@ -1344,7 +1344,8 @@ const ChatModule = (() => {
 
             if (error) throw error;
 
-            clearSelectedAttachment();
+            isSendingAttachment = false;
+            clearSelectedAttachment(true);
 
             if (elements.messageInput) {
                 elements.messageInput.value = '';

@@ -85,6 +85,27 @@ body {
   padding: 4px 8px;
 }
 
+.chat-icon-btn {
+  position: relative;
+}
+
+.chat-notification-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #e53935;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  box-shadow: 0 0 0 2px #fff;
+}
+
 .settings {
   display: grid;
   gap: 8px;

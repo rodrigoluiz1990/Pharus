@@ -736,11 +736,11 @@ const SettingsModule = (() => {
         return json.data || null;
     };
 
-    const hasMaintenancePermission = () => hasSettingsPermission('maintenance') || hasSettingsPermission('project');
+    const hasMaintenancePermission = () => hasSettingsPermission('maintenance');
 
     const ensureMaintenancePermission = () => {
         if (hasMaintenancePermission()) return true;
-        return ensureSettingsPermission('project', 'Você não tem permissão para executar atualização e backup.');
+        return ensureSettingsPermission('maintenance', 'Você não tem permissão para executar atualização e backup.');
     };
 
     const applyMaintenanceButtonsState = (running) => {

@@ -201,7 +201,9 @@
             return data.map(user => ({
                 id: user.id,
                 name: user.raw_user_meta_data?.full_name || user.email,
-                email: user.email
+                email: user.email,
+                avatar_color: user.raw_user_meta_data?.avatar_color || null,
+                avatar_icon: user.raw_user_meta_data?.avatar_icon || null,
             }));
         } catch (error) {
             console.error('Erro ao buscar usuários:', error);

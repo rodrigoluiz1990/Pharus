@@ -122,6 +122,13 @@
     padding: 20px;
 }
 
+.empty-clients {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
 .client-modal .modal {
     width: 100%;
     max-width: 760px;

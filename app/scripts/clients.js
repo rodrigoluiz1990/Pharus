@@ -43,6 +43,25 @@ const ClientsModule = (() => {
     };
 
     const digitsOnly = (value) => String(value || '').replace(/\D+/g, '');
+    const isValidCnpj = (value) => {
+        const cnpj = digitsOnly(value);
+        if (cnpj.length !== 14) return false;
+        if (/^(\d)\1{13}$/.test(cnpj)) return false;
+
+        const calcDigit = (base, factors) => {
+            const total = base
+                .split('')
+                .reduce((sum, digit, index) => sum + (Number(digit) * factors[index]), 0);
+            const mod = total % 11;
+            return mod < 2 ? 0 : 11 - mod;
+        };
+
+        const base12 = cnpj.slice(0, 12);
+        const d1 = calcDigit(base12, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+        const d2 = calcDigit(`${base12}${d1}`, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+
+        return cnpj === `${base12}${d1}${d2}`;
+    };
 
     const getRemoteConnectionFormValues = () => ({
         tool: document.getElementById('clientRemoteTool').value.trim() || null,
@@ -421,27 +440,31 @@ const ClientsModule = (() => {
         const cnpjRaw = document.getElementById('clientCnpj').value.trim();
 
         if (!name) {
-            notify('Nome do cliente e obrigatorio.', 'error');
+            notify('Nome do cliente é obrigatório.', 'error');
             return false;
         }
 
         if (email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email.includes('@') || !email.includes('.')) {
+                notify('E-mail inválido. Informe no formato nome@dominio.com.', 'error');
+                return false;
+            }
             if (!emailRegex.test(email)) {
-                notify('Email invalido.', 'error');
+                notify('E-mail inválido. Informe no formato nome@dominio.com.', 'error');
                 return false;
             }
         }
 
         if (acronym.length > 20) {
-            notify('A sigla deve ter no maximo 20 caracteres.', 'error');
+            notify('A sigla deve ter no máximo 20 caracteres.', 'error');
             return false;
         }
 
         if (cnpjRaw) {
             const cnpjDigits = digitsOnly(cnpjRaw);
-            if (cnpjDigits.length !== 14) {
-                notify('CNPJ invalido. Informe 14 digitos.', 'error');
+            if (cnpjDigits.length !== 14 || !isValidCnpj(cnpjDigits)) {
+                notify('CNPJ inválido. Verifique os dígitos informados.', 'error');
                 return false;
             }
         }

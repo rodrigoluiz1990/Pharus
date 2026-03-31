@@ -404,7 +404,8 @@
             }
 
             elements.messageInput.value = '';
-            clearSelectedAttachment();
+            state.isSendingAttachment = false;
+            clearSelectedAttachment(true);
             await loadMessages({ forceRender: true, autoScroll: true });
             await loadContacts({ forceRender: true });
         } catch (error) {
@@ -505,8 +506,8 @@
         }
     };
 
-    const clearSelectedAttachment = () => {
-        if (state.isSendingAttachment) return;
+    const clearSelectedAttachment = (force = false) => {
+        if (state.isSendingAttachment && !force) return;
         state.selectedAttachment = null;
         if (elements.attachmentInput) {
             elements.attachmentInput.value = '';
@@ -733,6 +734,9 @@ if (document.readyState === 'loading') {
 } else {
     ChatPageModule.init();
 }
+
+
+
 
 
 

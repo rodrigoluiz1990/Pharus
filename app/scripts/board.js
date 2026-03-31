@@ -331,14 +331,14 @@ const BoardModule = (() => {
         const clientDisplayLabel = clientLabel === '-' ? 'Sem cliente' : clientLabel;
         const safeClient = escapeHtml(clientDisplayLabel);
         const safeClientTooltip = escapeHtml(getClientTooltipForTask(task.client, clientDisplayLabel));
-        const assigneeInitials = escapeHtml(getInitials(assignee ? assignee.name : "NA"));
+        const assigneeAvatarHtml = renderAssigneeAvatarHtml(assignee || { name: "Não atribuído" });
 
         taskElement.style.setProperty('--task-left-accent', typeInfo.color || '#dfe5ee');
 
         taskElement.innerHTML = `
             <div class="task-layout">
                 <div class="task-left-stack">
-                    <span class="task-assignee-avatar" title="${safeAssigneeName}">${assigneeInitials}</span>
+                    ${assigneeAvatarHtml}
                     <span class="task-icon-badge" style="${priorityInfo.style}" title="Prioridade: ${priorityInfo.text}">
                         <i class="${priorityInfo.icon}"></i>
                     </span>
@@ -414,7 +414,7 @@ const BoardModule = (() => {
                                 ? `
                                     <span class="table-title-text">
                                         <span class="table-title-icons">
-                                            <span class="task-assignee-avatar" title="${safeAssigneeName}">${escapeHtml(getInitials(assignee ? assignee.name : "NA"))}</span>
+                                            ${renderAssigneeAvatarHtml(assignee || { name: "Não atribuído" })}
                                             <span class="task-icon-badge" style="${priorityInfo.style}" title="Prioridade: ${priorityInfo.text}">
                                                 <i class="${priorityInfo.icon}"></i>
                                             </span>
@@ -709,6 +709,28 @@ const BoardModule = (() => {
         return `${parts[0][0] || ''}${parts[parts.length - 1][0] || ''}`.toUpperCase();
     };
 
+    const normalizeAvatarColor = (value) => {
+        const color = String(value || '').trim();
+        return /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#3498db';
+    };
+
+    const normalizeAvatarIcon = (value) => {
+        const icon = String(value || '').trim().toLowerCase();
+        const allowed = new Set(['user', 'user-tie', 'headset', 'briefcase', 'screwdriver-wrench', 'chart-line']);
+        return allowed.has(icon) ? icon : '';
+    };
+
+    const renderAssigneeAvatarHtml = (user) => {
+        const name = user?.name || 'Não atribuído';
+        const initials = escapeHtml(getInitials(name));
+        const color = normalizeAvatarColor(user?.avatar_color);
+        const icon = normalizeAvatarIcon(user?.avatar_icon);
+        if (icon) {
+            return `<span class="task-assignee-avatar" style="background:${escapeHtml(color)};" title="${escapeHtml(name)}"><i class="fas fa-${icon}"></i></span>`;
+        }
+        return `<span class="task-assignee-avatar" style="background:${escapeHtml(color)};" title="${escapeHtml(name)}">${initials}</span>`;
+    };
+
     const formatTaskRefLabel = (task) => {
         const rawId = String(task?.id || '').trim();
         if (!rawId) return '#-';
@@ -991,6 +1013,8 @@ const BoardModule = (() => {
         window.addEventListener("tasksUpdated", handleTasksUpdated);
         window.addEventListener("pharus:task-taxonomy-icons-updated", rerenderCurrentView);
         window.addEventListener("pharus:task-taxonomy-colors-updated", rerenderCurrentView);
+        window.addEventListener("pharus:user-profile-updated", handleTasksUpdated);
+        window.addEventListener("pharus:users-updated", handleTasksUpdated);
         window.addEventListener("storage", (event) => {
             if (!event) return;
             if (event.key === "pharus_task_taxonomy_icons" || event.key === "pharus_task_taxonomy_colors") {

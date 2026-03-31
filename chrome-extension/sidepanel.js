@@ -18,6 +18,7 @@ const AUTH_STATE_KEY = 'pharus_extension_auth';
 const PARTY_EMOJI = '🥳';
 const INVALID_EXTENSION_EMAIL_MESSAGE = 'Configure a extensão para continuar.';
 const LOAD_FAILURE_MESSAGE = 'Não foi possível carregar agora. Verifique a API e tente novamente.';
+const CHAT_BADGE_POLL_MS = 12000;
 const TASK_TYPE_FILTER_VALUES = ['all', 'new', 'optimization', 'improvement', 'discussion', 'suggestion', 'issue', 'epic'];
 const TASK_PRIORITY_FILTER_VALUES = ['all', 'very_high', 'high', 'medium', 'low', 'very_low'];
 
@@ -103,6 +104,7 @@ const els = {
   modeNoticesBtn: document.getElementById('modeNoticesBtn'),
   modeDetachedBtn: document.getElementById('modeDetachedBtn'),
   openChatBtn: document.getElementById('openChatBtn'),
+  chatNotificationBadge: document.getElementById('chatNotificationBadge'),
   focusTasksSection: document.getElementById('focusTasksSection'),
   agendaSection: document.getElementById('agendaSection'),
   agendaStatusText: document.getElementById('agendaStatusText'),
@@ -128,6 +130,7 @@ let detachedNotes = [];
 let emailValidationCacheKey = '';
 let emailValidationCache = null;
 let authState = { ...DEFAULT_AUTH_STATE };
+let chatBadgeInterval = null;
 
 const normalizeBase = (value) => String(value || '').trim().replace(/\/+$/, '');
 const normalizeKey = (value) => String(value || '')
@@ -163,6 +166,26 @@ function setAuthStatus(text, type = 'info') {
 function setElementVisible(element, visible) {
   if (!element) return;
   element.classList.toggle('hidden', !visible);
+}
+
+function setChatBadge(count) {
+  const safeCount = Number.isFinite(Number(count)) ? Math.max(0, Math.floor(Number(count))) : 0;
+  if (els.chatNotificationBadge) {
+    if (safeCount > 0) {
+      els.chatNotificationBadge.textContent = safeCount > 99 ? '99+' : String(safeCount);
+      els.chatNotificationBadge.classList.remove('hidden');
+    } else {
+      els.chatNotificationBadge.textContent = '0';
+      els.chatNotificationBadge.classList.add('hidden');
+    }
+  }
+
+  if (!chrome?.action || typeof chrome.action.setBadgeText !== 'function') return;
+  const text = safeCount > 0 ? (safeCount > 99 ? '99+' : String(safeCount)) : '';
+  chrome.action.setBadgeText({ text }, () => {});
+  if (safeCount > 0 && typeof chrome.action.setBadgeBackgroundColor === 'function') {
+    chrome.action.setBadgeBackgroundColor({ color: '#e53935' }, () => {});
+  }
 }
 
 function normalizeAuthState(raw) {
@@ -320,8 +343,64 @@ async function logoutExtension() {
   if (els.tasksList) els.tasksList.innerHTML = '';
   if (els.agendaList) els.agendaList.innerHTML = '';
   if (els.noticesList) els.noticesList.innerHTML = '';
+  setChatBadge(0);
   setAuthStatus('Faça login para carregar tarefas, agenda e avisos.', 'info');
   applyAuthUI();
+}
+
+async function fetchUnreadChatCount(settings) {
+  const authUserIdRaw = settings?.authUserId;
+  const authUserId = authUserIdRaw == null ? '' : String(authUserIdRaw).trim();
+  if (!/^[0-9]+$/.test(authUserId)) return 0;
+
+  const response = await fetch(`${settings.apiBase}/api/db/query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(buildDbQueryPayload(settings, {
+      table: 'chat_messages',
+      action: 'select',
+      select: 'id',
+      filters: [
+        { column: 'receiver_id', op: 'eq', value: Number(authUserId) },
+        { column: 'is_read', op: 'eq', value: false },
+      ],
+      limit: 500,
+    })),
+  });
+  const payload = await parseApiJsonResponse(response);
+  return Array.isArray(payload.data) ? payload.data.length : 0;
+}
+
+async function refreshChatBadge(options = {}) {
+  const { silent = true } = options;
+  const settings = getFormSettings();
+  if (!settings.authenticated) {
+    setChatBadge(0);
+    return;
+  }
+
+  try {
+    const unreadCount = await fetchUnreadChatCount(settings);
+    setChatBadge(unreadCount);
+  } catch (_error) {
+    if (!silent) {
+      setChatBadge(0);
+    }
+  }
+}
+
+function startChatBadgePolling() {
+  if (chatBadgeInterval) {
+    clearInterval(chatBadgeInterval);
+    chatBadgeInterval = null;
+  }
+  chatBadgeInterval = setInterval(() => {
+    if (!isExtensionAuthenticated()) {
+      setChatBadge(0);
+      return;
+    }
+    refreshChatBadge();
+  }, CHAT_BADGE_POLL_MS);
 }
 
 function renderInvalidEmailMessage(listElement) {
@@ -865,6 +944,7 @@ function setMode(mode, options = {}) {
 
   if (modeValue === 'chat') {
     openChatOverlay();
+    refreshChatBadge();
     if (!keepStatus) setStatus('Chat aberto no painel.');
     return;
   }
@@ -1112,6 +1192,7 @@ async function refreshAgenda(options = {}) {
 }
 
 function refreshCurrentMode(options = {}) {
+  refreshChatBadge();
   if (currentMode === 'agenda') return refreshAgenda(options);
   if (currentMode === 'notices') return refreshNotices(options);
   return refreshTasks(options);
@@ -1254,7 +1335,9 @@ async function init() {
     await refreshCurrentMode({ force: true });
   } else {
     setAuthStatus('Faça login para carregar tarefas, agenda e avisos.', 'info');
+    setChatBadge(0);
   }
+  startChatBadgePolling();
   setInterval(() => {
     if (isExtensionAuthenticated()) {
       refreshCurrentMode();

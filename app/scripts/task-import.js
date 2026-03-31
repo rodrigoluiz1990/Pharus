@@ -651,7 +651,7 @@ const TaskImportModule = (() => {
         const total = previewRows.length;
         const invalid = previewRows.filter((row) => row.error).length;
         const valid = total - invalid;
-        previewSummaryEl.textContent = `${total} registro(s) carregado(s): ${valid} valido(s) e ${invalid} com ajuste pendente.`;
+        previewSummaryEl.textContent = `${total} registro(s) carregado(s): ${valid} válido(s) e ${invalid} com ajuste pendente.`;
     };
 
     const buildSelectOptions = (current, options) => {
@@ -855,7 +855,7 @@ const TaskImportModule = (() => {
 
         const invalid = previewRows.filter((row) => row.error);
         if (invalid.length > 0) {
-            UtilsModule.showNotification('Existem registros com erro. Corrija antes de confirmar a importacao.', 'warning');
+            window.alert(`Existem ${invalid.length} registro(s) com erro. Corrija os erros na pré-visualização antes de confirmar a importação.`);
             return;
         }
 

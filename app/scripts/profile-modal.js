@@ -246,10 +246,35 @@ const ProfileModule = (() => {
                 console.log('Perfil atualizado com sucesso:', updatedUser);
             }
 
+            const { error: syncProfileError } = await dbApi
+                .from('app_users')
+                .update({
+                    email,
+                    raw_user_meta_data: {
+                        ...user.user_metadata,
+                        full_name: name,
+                        avatar_color: avatarColor,
+                        avatar_icon: avatarIcon,
+                        avatar_emoji_code: ''
+                    },
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', user.id);
+            if (syncProfileError) throw syncProfileError;
+
             alert('Perfil atualizado com sucesso!');
             
             // Atualizar informações no sidebar
             updateSidebarUserInfo(name, email, avatarColor, avatarIcon);
+            window.dispatchEvent(new CustomEvent('pharus:user-profile-updated', {
+                detail: {
+                    userId: String(user.id || ''),
+                    name,
+                    email,
+                    avatar_color: avatarColor,
+                    avatar_icon: avatarIcon,
+                }
+            }));
             
             hideProfileModal();
 

@@ -397,9 +397,7 @@ async function resolveAuthUserId(authUserIdRaw, authEmailRaw) {
 
 async function hasConfigMaintenancePermission(userId) {
   if (!isNumericId(userId)) return false;
-  const canMaintenance = await hasUserPermission(userId, 'configuracoes', 'maintenance');
-  if (canMaintenance) return true;
-  return hasUserPermission(userId, 'configuracoes', 'project');
+  return hasUserPermission(userId, 'configuracoes', 'maintenance');
 }
 
 function hasOnlyKeys(payload, allowedKeys) {
@@ -625,6 +623,60 @@ function runShellCommandWithLogs(command, options = {}) {
   });
 }
 
+function probeShellCommand(command, options = {}) {
+  return new Promise((resolve) => {
+    const child = spawn(command, {
+      shell: true,
+      cwd: options.cwd || MAINTENANCE_WORKDIR,
+      env: { ...process.env, ...(options.env || {}) },
+      stdio: 'ignore',
+    });
+
+    let finished = false;
+    const finish = (ok) => {
+      if (finished) return;
+      finished = true;
+      resolve(Boolean(ok));
+    };
+
+    const timeout = setTimeout(() => {
+      try {
+        child.kill();
+      } catch (_error) {
+        // ignore
+      }
+      finish(false);
+    }, 8000);
+
+    child.on('error', () => {
+      clearTimeout(timeout);
+      finish(false);
+    });
+    child.on('close', (code) => {
+      clearTimeout(timeout);
+      finish(Number(code) === 0);
+    });
+  });
+}
+
+async function canRunDockerUpdate() {
+  const hasDocker = await probeShellCommand('docker --version');
+  if (!hasDocker) {
+    return {
+      ok: false,
+      message: 'Atualização automática indisponível: comando "docker" não encontrado no ambiente da API. Execute a atualização no host (PowerShell): docker compose -f docker-compose.client.yml -p pharus_cliente pull && docker compose -f docker-compose.client.yml -p pharus_cliente up -d --force-recreate',
+    };
+  }
+  const hasCompose = await probeShellCommand('docker compose version');
+  if (!hasCompose) {
+    return {
+      ok: false,
+      message: 'Atualização automática indisponível: "docker compose" não está disponível no ambiente da API.',
+    };
+  }
+  return { ok: true, message: '' };
+}
+
 async function fetchLatestVersionInfo() {
   if (!UPDATE_MANIFEST_URL) {
     return {
@@ -841,6 +893,11 @@ app.post('/api/system/maintenance/update', async (req, res) => {
     const allowed = await hasConfigMaintenancePermission(authUserId);
     if (!allowed) {
       return res.status(403).json({ data: null, error: { message: 'Permissão negada para configuracoes.maintenance' } });
+    }
+
+    const dockerUpdateCheck = await canRunDockerUpdate();
+    if (!dockerUpdateCheck.ok) {
+      return res.status(400).json({ data: null, error: { message: dockerUpdateCheck.message } });
     }
 
     resetMaintenanceState('update');

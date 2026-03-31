@@ -400,6 +400,7 @@ const UsersModule = (() => {
 
             UtilsModule.hideLoading();
             UtilsModule.showNotification('Usuário criado com sucesso!', 'success');
+            window.dispatchEvent(new CustomEvent('pharus:users-updated'));
 
             loadUsers();
             closeModal();
@@ -464,6 +465,12 @@ const UsersModule = (() => {
                         role: userData.role,
                         status: userData.status,
                         permission_group_id: userData.permission_group_id || null,
+                        raw_user_meta_data: {
+                            full_name: userData.name,
+                            role: userData.role,
+                            avatar_color: userData.avatar_color,
+                            avatar_icon: userData.avatar_icon,
+                        },
                     })
                     .eq('id', userId);
                 if (profileError) throw profileError;
@@ -501,6 +508,7 @@ const UsersModule = (() => {
                 UtilsModule.hideLoading();
                 UtilsModule.showNotification('Usuário atualizado com sucesso!', 'success');
             }
+            window.dispatchEvent(new CustomEvent('pharus:users-updated'));
 
             loadUsers();
             closeModal();
