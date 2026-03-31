@@ -865,6 +865,12 @@ const SettingsModule = (() => {
         });
     };
 
+    const refreshSettingsPermissionsUi = () => {
+        applySettingsTabPermissions();
+        const activeTab = settingsTabButtons.find((button) => button.classList.contains('active'))?.dataset.tab || 'general';
+        setActiveTab(activeTab);
+    };
+
     const init = async () => {
         if (typeof PermissionService !== 'undefined' && typeof PermissionService.init === 'function') {
             await PermissionService.init();
@@ -1207,6 +1213,13 @@ const SettingsModule = (() => {
 
         window.addEventListener('beforeunload', () => {
             stopMaintenancePolling();
+        });
+
+        document.addEventListener('pharus:permissions-updated', () => {
+            refreshSettingsPermissionsUi();
+        });
+        document.addEventListener('pharus:permissions-loaded', () => {
+            refreshSettingsPermissionsUi();
         });
     };
 

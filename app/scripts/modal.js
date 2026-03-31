@@ -499,6 +499,9 @@ const ModalModule = (() => {
         const submitBtn = taskForm.querySelector('button[type="submit"]');
         if (!submitBtn) return;
         const originalText = submitBtn.innerHTML;
+        const originalBackground = submitBtn.style.backgroundColor;
+        const originalBorderColor = submitBtn.style.borderColor;
+        const originalColor = submitBtn.style.color;
         isSavingTask = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
         submitBtn.disabled = true;
@@ -570,6 +573,12 @@ const ModalModule = (() => {
                 throw new Error('Falha na operação');
             }
 
+            submitBtn.innerHTML = '<i class="fas fa-check"></i> Salvo';
+            submitBtn.style.backgroundColor = '#16a34a';
+            submitBtn.style.borderColor = '#16a34a';
+            submitBtn.style.color = '#ffffff';
+            submitBtn.disabled = true;
+            await new Promise((resolve) => setTimeout(resolve, 650));
             hideModal();
             UtilsModule.showNotification(taskId ? 'Tarefa atualizada com sucesso!' : 'Tarefa criada com sucesso!', 'success');
             window.dispatchEvent(new CustomEvent('tasksUpdated'));
@@ -579,6 +588,9 @@ const ModalModule = (() => {
         } finally {
             updateAttachmentInfo();
             submitBtn.innerHTML = originalText;
+            submitBtn.style.backgroundColor = originalBackground;
+            submitBtn.style.borderColor = originalBorderColor;
+            submitBtn.style.color = originalColor;
             submitBtn.disabled = false;
             isSavingTask = false;
         }
@@ -634,6 +646,7 @@ const ModalModule = (() => {
         }
 
         if (taskForm) {
+            taskForm.noValidate = true;
             taskForm.addEventListener('submit', saveTask);
             taskForm.addEventListener('keydown', (e) => {
                 if (e.key !== 'Enter') return;

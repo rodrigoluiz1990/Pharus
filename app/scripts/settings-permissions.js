@@ -341,7 +341,10 @@ const SettingsPermissionsModule = (() => {
             .catch((e) => notify(`Falha ao salvar grupo: ${e.message || 'erro'}`, 'error')));
         if (deleteGroupBtn) deleteGroupBtn.addEventListener('click', () => void deleteGroup().catch((e) => notify(`Falha ao excluir grupo: ${e.message || 'erro'}`, 'error')));
         if (saveMatrixBtn) saveMatrixBtn.addEventListener('click', () => void saveMatrix()
-            .then(() => applySaveFeedback(saveMatrixBtn))
+            .then(async () => {
+                applySaveFeedback(saveMatrixBtn);
+                await refreshRuntimePermissions();
+            })
             .catch((e) => notify(`Falha ao salvar permissões: ${e.message || 'erro'}`, 'error')));
         if (markAllBtn) markAllBtn.addEventListener('click', () => toggleAll(true));
         if (clearAllBtn) clearAllBtn.addEventListener('click', () => toggleAll(false));
@@ -381,6 +384,20 @@ const SettingsPermissionsModule = (() => {
             button.style.transform = originalTransform;
             button.removeAttribute(SAVE_FEEDBACK_ATTR);
         }, 1500);
+    };
+
+    const refreshRuntimePermissions = async () => {
+        if (typeof PermissionService === 'undefined') return;
+        if (typeof PermissionService.init === 'function') {
+            await PermissionService.init(true);
+        }
+        if (typeof PermissionService.applySidebarVisibility === 'function') {
+            PermissionService.applySidebarVisibility();
+        }
+        if (typeof PermissionService.guardPageAccess === 'function') {
+            PermissionService.guardPageAccess();
+        }
+        document.dispatchEvent(new CustomEvent('pharus:permissions-updated'));
     };
 
     return { init };

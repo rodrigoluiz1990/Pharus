@@ -615,6 +615,9 @@ const ClientsModule = (() => {
     };
 
     const attachEvents = () => {
+        if (clientForm) {
+            clientForm.noValidate = true;
+        }
         if (addClientBtn) {
             const canCreate = typeof PermissionService === 'undefined' || typeof PermissionService.has !== 'function'
                 ? true
