@@ -83,6 +83,29 @@ body {
   border-radius: 6px;
   cursor: pointer;
   padding: 4px 8px;
+  min-width: 32px;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.icon-btn i {
+  font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "Segoe UI Symbol", sans-serif;
+  font-weight: 900;
+  font-style: normal;
+  font-size: 13px;
+}
+
+/* Fallback visual caso a fonte Font Awesome nao esteja disponivel */
+.icon-btn .fa-comments::before { content: "\1F4AC"; }
+.icon-btn .fa-rotate-right::before { content: "\21BB"; }
+.icon-btn .fa-gear::before { content: "\2699"; }
+.icon-btn .fa-right-from-bracket::before { content: "\21AA"; }
+
+.icon-btn:hover {
+  background: #f2f7fc;
 }
 
 .chat-icon-btn {

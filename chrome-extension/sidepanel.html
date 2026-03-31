@@ -12,13 +12,19 @@
       <div class="header-top">
         <h1 id="projectHeaderTitle">Pharus - Projeto</h1>
         <div class="header-actions">
-          <button id="logoutBtn" class="icon-btn hidden" title="Sair" aria-label="Sair">⎋</button>
           <button id="openChatBtn" class="icon-btn chat-icon-btn" title="Abrir chat" aria-label="Abrir chat">
-            💬
+            <i class="fas fa-comments" aria-hidden="true"></i>
             <span id="chatNotificationBadge" class="chat-notification-badge hidden">0</span>
           </button>
-          <button id="refreshBtn" class="icon-btn" title="Atualizar">↻</button>
-          <button id="settingsToggleBtn" class="icon-btn" title="Configurações">⚙</button>
+          <button id="refreshBtn" class="icon-btn" title="Atualizar" aria-label="Atualizar">
+            <i class="fas fa-rotate-right" aria-hidden="true"></i>
+          </button>
+          <button id="settingsToggleBtn" class="icon-btn" title="Configurações" aria-label="Configurações">
+            <i class="fas fa-gear" aria-hidden="true"></i>
+          </button>
+          <button id="logoutBtn" class="icon-btn hidden" title="Sair da extensão" aria-label="Sair da extensão">
+            <i class="fas fa-right-from-bracket" aria-hidden="true"></i>
+          </button>
         </div>
       </div>
       <div id="modeSwitch" class="mode-switch" role="tablist" aria-label="Modo de visualização">

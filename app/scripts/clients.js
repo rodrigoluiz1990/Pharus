@@ -231,6 +231,33 @@ const ClientsModule = (() => {
         return div.innerHTML;
     };
 
+    const markFieldInvalid = (field, message) => {
+        if (!field) return false;
+        field.classList.add('field-invalid');
+        if (typeof field.setCustomValidity === 'function') {
+            field.setCustomValidity(message || 'Campo inválido.');
+        }
+        if (typeof field.reportValidity === 'function') {
+            field.reportValidity();
+        }
+        field.focus();
+        notify(message, 'error');
+        return false;
+    };
+
+    const clearFieldError = (field) => {
+        if (!field) return;
+        field.classList.remove('field-invalid');
+        if (typeof field.setCustomValidity === 'function') {
+            field.setCustomValidity('');
+        }
+    };
+
+    const clearClientFormErrors = () => {
+        if (!clientForm) return;
+        clientForm.querySelectorAll('.field-invalid').forEach((el) => el.classList.remove('field-invalid'));
+    };
+
     const formatDate = (value) => {
         if (!value) return '-';
         const date = new Date(value);
@@ -434,38 +461,45 @@ const ClientsModule = (() => {
     };
 
     const validateForm = () => {
-        const name = document.getElementById('clientName').value.trim();
-        const acronym = document.getElementById('clientAcronym').value.trim();
-        const email = document.getElementById('clientEmail').value.trim();
-        const cnpjRaw = document.getElementById('clientCnpj').value.trim();
+        const nameField = document.getElementById('clientName');
+        const acronymField = document.getElementById('clientAcronym');
+        const emailField = document.getElementById('clientEmail');
+        const cnpjField = document.getElementById('clientCnpj');
+
+        const name = nameField?.value.trim() || '';
+        const acronym = acronymField?.value.trim() || '';
+        const email = emailField?.value.trim() || '';
+        const cnpjRaw = cnpjField?.value.trim() || '';
+
+        clearClientFormErrors();
 
         if (!name) {
-            notify('Nome do cliente é obrigatório.', 'error');
-            return false;
+            return markFieldInvalid(nameField, 'Preencha o campo obrigatório: Nome.');
         }
 
         if (email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!email.includes('@') || !email.includes('.')) {
-                notify('E-mail inválido. Informe no formato nome@dominio.com.', 'error');
-                return false;
+            const atIndex = email.indexOf('@');
+            const dotAfterAt = atIndex > -1 ? email.indexOf('.', atIndex) : -1;
+            if (atIndex <= 0 || dotAfterAt <= atIndex + 1 || dotAfterAt === email.length - 1) {
+                return markFieldInvalid(emailField, 'E-mail incompleto. Informe no formato nome@dominio.com.');
             }
             if (!emailRegex.test(email)) {
-                notify('E-mail inválido. Informe no formato nome@dominio.com.', 'error');
-                return false;
+                return markFieldInvalid(emailField, 'E-mail inválido. Informe no formato nome@dominio.com.');
             }
         }
 
         if (acronym.length > 20) {
-            notify('A sigla deve ter no máximo 20 caracteres.', 'error');
-            return false;
+            return markFieldInvalid(acronymField, 'A sigla deve ter no máximo 20 caracteres.');
         }
 
         if (cnpjRaw) {
             const cnpjDigits = digitsOnly(cnpjRaw);
-            if (cnpjDigits.length !== 14 || !isValidCnpj(cnpjDigits)) {
-                notify('CNPJ inválido. Verifique os dígitos informados.', 'error');
-                return false;
+            if (cnpjDigits.length < 14) {
+                return markFieldInvalid(cnpjField, 'CNPJ incompleto. Preencha os 14 dígitos.');
+            }
+            if (!isValidCnpj(cnpjDigits)) {
+                return markFieldInvalid(cnpjField, 'CNPJ inválido. Verifique os dígitos informados.');
             }
         }
 
@@ -561,6 +595,7 @@ const ClientsModule = (() => {
 
             hideLoading();
             notify('Cliente salvo com sucesso.', 'success');
+            await new Promise((resolve) => setTimeout(resolve, 650));
             closeModal();
             await loadClients();
         } catch (error) {
@@ -642,6 +677,7 @@ const ClientsModule = (() => {
         const cnpjField = document.getElementById('clientCnpj');
         if (cnpjField) {
             cnpjField.addEventListener('input', () => {
+                clearFieldError(cnpjField);
                 const digits = digitsOnly(cnpjField.value).slice(0, 14);
                 cnpjField.value = digits
                     .replace(/^(\d{2})(\d)/, '$1.$2')
@@ -649,6 +685,16 @@ const ClientsModule = (() => {
                     .replace(/\.(\d{3})(\d)/, '.$1/$2')
                     .replace(/(\d{4})(\d)/, '$1-$2');
             });
+        }
+
+        const clientEmailField = document.getElementById('clientEmail');
+        if (clientEmailField) {
+            clientEmailField.addEventListener('input', () => clearFieldError(clientEmailField));
+        }
+
+        const clientNameField = document.getElementById('clientName');
+        if (clientNameField) {
+            clientNameField.addEventListener('input', () => clearFieldError(clientNameField));
         }
 
         const cepField = document.getElementById('clientAddressZipCode');

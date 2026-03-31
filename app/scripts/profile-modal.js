@@ -164,6 +164,9 @@ const ProfileModule = (() => {
         if (!submitBtn) return;
 
         const originalText = submitBtn.innerHTML;
+        const originalBackground = submitBtn.style.backgroundColor;
+        const originalBorderColor = submitBtn.style.borderColor;
+        const originalColor = submitBtn.style.color;
 
         try {
             // Mostrar loading
@@ -262,7 +265,16 @@ const ProfileModule = (() => {
                 .eq('id', user.id);
             if (syncProfileError) throw syncProfileError;
 
-            alert('Perfil atualizado com sucesso!');
+            if (window.UtilsModule && typeof window.UtilsModule.showNotification === 'function') {
+                window.UtilsModule.showNotification('Perfil atualizado com sucesso!', 'success');
+            }
+
+            submitBtn.innerHTML = '<i class="fas fa-check"></i> Salvo';
+            submitBtn.style.backgroundColor = '#16a34a';
+            submitBtn.style.borderColor = '#16a34a';
+            submitBtn.style.color = '#ffffff';
+            submitBtn.disabled = true;
+            await new Promise((resolve) => setTimeout(resolve, 650));
             
             // Atualizar informações no sidebar
             updateSidebarUserInfo(name, email, avatarColor, avatarIcon);
@@ -295,6 +307,9 @@ const ProfileModule = (() => {
         } finally {
             // Restaurar botão
             submitBtn.innerHTML = originalText;
+            submitBtn.style.backgroundColor = originalBackground;
+            submitBtn.style.borderColor = originalBorderColor;
+            submitBtn.style.color = originalColor;
             submitBtn.disabled = false;
         }
     };

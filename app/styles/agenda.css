@@ -157,7 +157,10 @@
     border: 1px solid #e3ebf4;
     border-radius: 12px;
     padding: 10px;
-    display: grid;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
     gap: 10px;
     background: #ffffff;
     cursor: pointer;
@@ -186,9 +189,11 @@
 }
 
 .agenda-day-panel-events {
-    display: grid;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
     gap: 5px;
-    align-content: start;
 }
 
 .agenda-day:hover {

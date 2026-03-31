@@ -305,11 +305,26 @@
         return `${date.toLocaleDateString('pt-BR')} ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
     };
 
+    const eventOccursOnDay = (event, dayDate) => {
+        if (!event || !dayDate) return false;
+        const eventStart = parseDateSafe(event.start_at);
+        if (!eventStart) return false;
+
+        const parsedEnd = parseDateSafe(event.end_at || event.start_at);
+        const eventEnd = parsedEnd && parsedEnd >= eventStart ? parsedEnd : eventStart;
+
+        const dayStart = startOfDay(dayDate);
+        const dayEnd = new Date(dayStart);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        return eventStart <= dayEnd && eventEnd >= dayStart;
+    };
+
     const getEventsForDay = (dayDate) => {
         const dateKey = toDateKey(dayDate);
         const holidays = holidayEventsByDate.get(dateKey) || [];
         const persisted = agendaEvents
-            .filter((event) => isSameDay(event.start_at, dayDate))
+            .filter((event) => eventOccursOnDay(event, dayDate))
             ;
 
         return [...holidays, ...persisted].sort((a, b) => {
@@ -320,6 +335,18 @@
     };
 
     const hasHolidayEvent = (events) => (Array.isArray(events) ? events : []).some((event) => String(event?.event_type || '') === 'holiday');
+    const isIntermediateSpanDay = (event, dayDate) => {
+        if (!event || !dayDate) return false;
+        const start = parseDateSafe(event.start_at);
+        const end = parseDateSafe(event.end_at || event.start_at);
+        if (!start || !end || end <= start) return false;
+
+        const dayKey = startOfDay(dayDate).getTime();
+        const startKey = startOfDay(start).getTime();
+        const endKey = startOfDay(end).getTime();
+
+        return dayKey > startKey && dayKey < endKey;
+    };
 
     const getPeriodLabel = () => {
         if (currentView === VIEW_DAY) {
@@ -363,16 +390,18 @@
         weekdaysEl.innerHTML = WEEKDAY_SHORT.map((name) => `<span>${name}</span>`).join('');
     };
 
-    const buildEventChip = (event) => {
+    const buildEventChip = (event, dayDate = null) => {
         const typeClass = event.event_type === 'task'
             ? 'chip-task'
             : event.event_type === 'holiday'
                 ? 'chip-holiday'
                 : 'chip-event';
         const statusClass = `chip-status-${event.status}`;
+        const intermediateDay = isIntermediateSpanDay(event, dayDate);
+        const showAllDayLabel = Boolean(event.is_all_day) || intermediateDay;
         const chipTime = event.event_type === 'holiday'
             ? ''
-            : `<span class="chip-time">${escapeHtml(formatDayTime(event.start_at, event.is_all_day))}</span>`;
+            : `<span class="chip-time">${escapeHtml(formatDayTime(event.start_at, showAllDayLabel))}</span>`;
         const customColorStyle = event.event_type !== 'holiday' && event.event_color
             ? ` style="--event-color:${escapeHtml(normalizeEventColor(event.event_color))};"`
             : '';
@@ -436,7 +465,7 @@
             const holidayClass = hasHolidayEvent(events) ? 'has-holiday' : '';
             cell.className = `agenda-day ${inCurrentMonth ? '' : 'is-outside-month'} ${isSameDay(today.toISOString(), dayDate) ? 'is-today' : ''} ${holidayClass}`.trim();
 
-            const chips = events.slice(0, 3).map(buildEventChip).join('');
+            const chips = events.slice(0, 3).map((event) => buildEventChip(event, dayDate)).join('');
             const remaining = events.length > 3 ? `<div class="agenda-more">+${events.length - 3} item(ns)</div>` : '';
 
             cell.innerHTML = `
@@ -471,7 +500,7 @@
             cell.innerHTML = `
                 <div class="agenda-week-day-header">${WEEKDAY_SHORT[dayDate.getDay()]} ${String(dayDate.getDate()).padStart(2, '0')}</div>
                 <div class="agenda-week-day-events">
-                    ${events.length ? events.map(buildEventChip).join('') : '<div class="agenda-week-empty">🥳 Sem eventos</div>'}
+                    ${events.length ? events.map((event) => buildEventChip(event, dayDate)).join('') : '<div class="agenda-week-empty">🥳 Sem eventos</div>'}
                 </div>
             `;
 
@@ -496,7 +525,7 @@
                     ${currentCursor.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
                 </header>
                 <div class="agenda-day-panel-events">
-                    ${dayEvents.length ? dayEvents.map(buildEventChip).join('') : '<div class="agenda-day-empty">🥳 Nenhum evento para este dia.</div>'}
+                    ${dayEvents.length ? dayEvents.map((event) => buildEventChip(event, currentCursor)).join('') : '<div class="agenda-day-empty">🥳 Nenhum evento para este dia.</div>'}
                 </div>
             </section>
         `;

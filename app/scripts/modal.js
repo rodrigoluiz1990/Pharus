@@ -30,6 +30,26 @@ const ModalModule = (() => {
     };
 
     const getTaskIdFromForm = () => String(document.getElementById('taskId')?.value || '').trim();
+    const clearTaskFormErrors = () => {
+        if (!taskForm) return;
+        taskForm.querySelectorAll('.field-invalid').forEach((el) => el.classList.remove('field-invalid'));
+        taskForm.querySelectorAll('input, select, textarea').forEach((el) => {
+            if (typeof el.setCustomValidity === 'function') {
+                el.setCustomValidity('');
+            }
+        });
+    };
+    const markTaskFieldInvalid = (field, message) => {
+        if (!field) return;
+        field.classList.add('field-invalid');
+        if (typeof field.setCustomValidity === 'function') {
+            field.setCustomValidity(message || 'Campo inválido.');
+        }
+        if (typeof field.reportValidity === 'function') {
+            field.reportValidity();
+        }
+        field.focus();
+    };
 
     const normalizePriorityValue = (value) => {
         if (window.UtilsModule && typeof window.UtilsModule.normalizePriorityKey === 'function') {
@@ -459,16 +479,23 @@ const ModalModule = (() => {
         if (!ensureTaskPermission(permissionKey, taskId ? 'Você não tem permissão para editar tarefas.' : 'Você não tem permissão para criar tarefas.')) {
             return;
         }
-        const title = document.getElementById('taskTitle').value;
-
-        if (!title) {
-            UtilsModule.showNotification('O título da tarefa é obrigatório!', 'error');
+        clearTaskFormErrors();
+        const requiredFields = Array.from(taskForm.querySelectorAll('[required]'));
+        const missingFields = requiredFields.filter((field) => !String(field.value || '').trim());
+        if (missingFields.length > 0) {
+            const firstMissingField = missingFields[0];
+            const id = firstMissingField.getAttribute('id');
+            const label = id ? taskForm.querySelector(`label[for="${id}"]`) : null;
+            const fieldName = String(label?.textContent || 'campo obrigatório').replace('*', '').trim();
+            markTaskFieldInvalid(firstMissingField, `Preencha o campo obrigatório: ${fieldName}.`);
             return;
         }
+        const title = String(document.getElementById('taskTitle').value || '').trim();
 
         if (taskIsPinned && taskIsPinned.checked && taskFocusOrder && taskFocusOrder.value) {
             const parsedFocusOrder = Number(taskFocusOrder.value);
             if (!Number.isFinite(parsedFocusOrder) || parsedFocusOrder < 1) {
+                markTaskFieldInvalid(taskFocusOrder, 'A ordem do post-it deve ser um número maior que zero.');
                 UtilsModule.showNotification('A ordem do post-it deve ser um número maior que zero.', 'error');
                 return;
             }
@@ -648,6 +675,16 @@ const ModalModule = (() => {
         if (taskForm) {
             taskForm.noValidate = true;
             taskForm.addEventListener('submit', saveTask);
+            taskForm.addEventListener('input', (e) => {
+                const target = e.target;
+                if (!target || !(target instanceof HTMLElement)) return;
+                if (target.classList.contains('field-invalid')) {
+                    target.classList.remove('field-invalid');
+                }
+                if (typeof target.setCustomValidity === 'function') {
+                    target.setCustomValidity('');
+                }
+            });
             taskForm.addEventListener('keydown', (e) => {
                 if (e.key !== 'Enter') return;
                 const target = e.target;
