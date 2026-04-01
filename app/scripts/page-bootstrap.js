@@ -192,6 +192,7 @@ const PageBootstrap = (() => {
         await loadScripts([
             'scripts/permission-service.js',
             'scripts/utils.js',
+            'scripts/update-notifier.js',
         ]);
 
         if (typeof PermissionService !== 'undefined' && typeof PermissionService.init === 'function') {
@@ -201,6 +202,10 @@ const PageBootstrap = (() => {
 
         if (typeof ComponentLoader !== 'undefined' && typeof ComponentLoader.loadAllComponents === 'function') {
             await ComponentLoader.loadAllComponents();
+        }
+
+        if (typeof UpdateNotifier !== 'undefined' && typeof UpdateNotifier.init === 'function') {
+            UpdateNotifier.init();
         }
 
         await initByPage();

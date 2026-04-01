@@ -34,6 +34,7 @@
       PGUSER: postgres
       PGPASSWORD: postgres
       PGDATABASE: pharus
+      PHARUS_UPDATE_REPO: rodrigoluiz1990/pharus
     ports:
       - "3000:3000"
     volumes:

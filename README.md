@@ -113,7 +113,11 @@ Quando voce publicar as imagens, o cliente precisa apenas de:
 
 No seu ambiente de build, build e push da imagem da aplicacao:
 ```bash
-docker build -t ghcr.io/<SEU_USUARIO_GITHUB>/pharus-app:latest -f Dockerfile .
+docker build --build-arg APP_VERSION=<TAG_DA_VERSAO> -t ghcr.io/<SEU_USUARIO_GITHUB>/pharus-app:<TAG_DA_VERSAO> -f Dockerfile .
+docker push ghcr.io/<SEU_USUARIO_GITHUB>/pharus-app:<TAG_DA_VERSAO>
+
+# opcional: manter latest apontando para a mesma versao
+docker tag ghcr.io/<SEU_USUARIO_GITHUB>/pharus-app:<TAG_DA_VERSAO> ghcr.io/<SEU_USUARIO_GITHUB>/pharus-app:latest
 docker push ghcr.io/<SEU_USUARIO_GITHUB>/pharus-app:latest
 ```
 
@@ -149,6 +153,10 @@ http://localhost:3000
 ### Observacoes importantes
 
 - O SQL de inicializacao do banco roda apenas na primeira criacao do volume.
+- Para checagem automatica de novas versoes na interface:
+  - publique imagens do app com tag de versao (ex.: `v1.9.13-2026-04-01.1`)
+  - configure no ambiente do app `PHARUS_UPDATE_REPO=<owner>/<repo>` (ex.: `rodrigoluiz1990/pharus`)
+  - opcional para repositorio privado/rate limit: `PHARUS_UPDATE_GITHUB_TOKEN=<token>`
 - Para resetar banco no cliente:
 ```bash
 docker compose -f docker-compose.client.yml down -v

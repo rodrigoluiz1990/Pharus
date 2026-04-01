@@ -23,6 +23,10 @@ const DEFAULT_UPDATE_COMMAND =
 const PG_DUMP_COMMAND = String(process.env.PHARUS_PGDUMP_COMMAND || 'pg_dump').trim();
 const UPDATE_MANIFEST_URL = String(process.env.PHARUS_UPDATE_MANIFEST_URL || '').trim();
 const APP_VERSION = String(process.env.APP_VERSION || process.env.IMAGE_TAG || 'local-dev').trim();
+const UPDATE_REPO = String(process.env.PHARUS_UPDATE_REPO || process.env.GITHUB_REPOSITORY || '').trim();
+const UPDATE_GITHUB_TOKEN = String(process.env.PHARUS_UPDATE_GITHUB_TOKEN || process.env.GITHUB_TOKEN || '').trim();
+const UPDATE_CHECK_TIMEOUT_MS = Number(process.env.PHARUS_UPDATE_CHECK_TIMEOUT_MS || 8000);
+const UPDATE_CACHE_TTL_MS = Math.max(15000, Number(process.env.PHARUS_UPDATE_CACHE_TTL_MS || 120000));
 const MAX_CHAT_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 const MAX_TASK_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
@@ -308,6 +312,11 @@ const maintenanceState = {
   message: '',
   logs: [],
   lastBackupFile: '',
+};
+
+const updateInfoCache = {
+  fetchedAt: 0,
+  data: null,
 };
 
 function nowIso() {
@@ -747,43 +756,174 @@ async function canRunDockerUpdate() {
   return { ok: true, message: '' };
 }
 
-async function fetchLatestVersionInfo() {
-  if (!UPDATE_MANIFEST_URL) {
-    return {
-      latestVersion: APP_VERSION,
-      updateAvailable: false,
-      source: 'local',
-      message: 'Manifesto de atualização não configurado.',
-      manifestUrl: '',
-      notesUrl: '',
-    };
+function normalizeVersionTag(value) {
+  return String(value || '')
+    .trim()
+    .replace(/^refs\/tags\//i, '')
+    .replace(/\s+/g, '');
+}
+
+function compareVersionTags(leftRaw, rightRaw) {
+  const left = normalizeVersionTag(leftRaw);
+  const right = normalizeVersionTag(rightRaw);
+  if (!left && !right) return 0;
+  if (!left) return -1;
+  if (!right) return 1;
+
+  const leftTokens = (left.match(/\d+/g) || []).map((part) => Number(part));
+  const rightTokens = (right.match(/\d+/g) || []).map((part) => Number(part));
+  const maxLength = Math.max(leftTokens.length, rightTokens.length);
+
+  for (let idx = 0; idx < maxLength; idx += 1) {
+    const a = Number.isFinite(leftTokens[idx]) ? leftTokens[idx] : 0;
+    const b = Number.isFinite(rightTokens[idx]) ? rightTokens[idx] : 0;
+    if (a > b) return 1;
+    if (a < b) return -1;
+  }
+
+  const leftNormalized = left.toLowerCase().replace(/^v/, '');
+  const rightNormalized = right.toLowerCase().replace(/^v/, '');
+  return leftNormalized.localeCompare(rightNormalized, 'en', { numeric: true, sensitivity: 'base' });
+}
+
+function buildVersionPayload({
+  latestVersion,
+  source,
+  message = '',
+  manifestUrl = '',
+  notesUrl = '',
+}) {
+  const normalizedLatest = normalizeVersionTag(latestVersion || APP_VERSION) || APP_VERSION;
+  const normalizedCurrent = normalizeVersionTag(APP_VERSION) || APP_VERSION;
+  const compareResult = compareVersionTags(normalizedLatest, normalizedCurrent);
+  return {
+    latestVersion: normalizedLatest,
+    updateAvailable: compareResult > 0,
+    source: String(source || 'local'),
+    message: String(message || ''),
+    manifestUrl: String(manifestUrl || ''),
+    notesUrl: String(notesUrl || ''),
+  };
+}
+
+async function fetchJsonWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), UPDATE_CHECK_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error(`Falha ao consultar atualização (${response.status})`);
+    }
+    return response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchLatestVersionFromManifest() {
+  if (!UPDATE_MANIFEST_URL) return null;
+  const manifest = await fetchJsonWithTimeout(UPDATE_MANIFEST_URL, { method: 'GET' });
+  return buildVersionPayload({
+    latestVersion: String(manifest?.version || '').trim() || APP_VERSION,
+    source: 'manifest',
+    manifestUrl: UPDATE_MANIFEST_URL,
+    notesUrl: String(manifest?.notes_url || '').trim(),
+  });
+}
+
+async function fetchLatestVersionFromGitHub() {
+  if (!UPDATE_REPO) return null;
+  const headers = {
+    'Accept': 'application/vnd.github+json',
+    'User-Agent': 'pharus-update-checker',
+  };
+  if (UPDATE_GITHUB_TOKEN) {
+    headers.Authorization = `Bearer ${UPDATE_GITHUB_TOKEN}`;
   }
 
   try {
-    const response = await fetch(UPDATE_MANIFEST_URL, { method: 'GET' });
-    if (!response.ok) {
-      throw new Error(`Falha ao consultar manifesto (${response.status})`);
+    const release = await fetchJsonWithTimeout(
+      `https://api.github.com/repos/${UPDATE_REPO}/releases/latest`,
+      { method: 'GET', headers }
+    );
+    const latestFromRelease = normalizeVersionTag(release?.tag_name || '');
+    if (latestFromRelease) {
+      return buildVersionPayload({
+        latestVersion: latestFromRelease,
+        source: 'github_release',
+        notesUrl: String(release?.html_url || '').trim(),
+      });
     }
-    const manifest = await response.json();
-    const latestVersion = String(manifest?.version || '').trim() || APP_VERSION;
-    const notesUrl = String(manifest?.notes_url || '').trim();
-    return {
-      latestVersion,
-      updateAvailable: latestVersion !== APP_VERSION,
-      source: 'manifest',
-      message: '',
-      manifestUrl: UPDATE_MANIFEST_URL,
-      notesUrl,
-    };
-  } catch (error) {
-    return {
+  } catch (_releaseError) {
+    // Fallback para tags quando o repositório não usa releases.
+  }
+
+  const tags = await fetchJsonWithTimeout(
+    `https://api.github.com/repos/${UPDATE_REPO}/tags?per_page=10`,
+    { method: 'GET', headers }
+  );
+  const tagNames = Array.isArray(tags)
+    ? tags
+      .map((tag) => normalizeVersionTag(tag?.name || ''))
+      .filter(Boolean)
+    : [];
+
+  const latestTag = tagNames.reduce((best, candidate) => {
+    if (!best) return candidate;
+    return compareVersionTags(candidate, best) > 0 ? candidate : best;
+  }, '');
+
+  return buildVersionPayload({
+    latestVersion: latestTag || APP_VERSION,
+    source: 'github_tags',
+    notesUrl: latestTag ? `https://github.com/${UPDATE_REPO}/releases/tag/${latestTag}` : '',
+  });
+}
+
+async function fetchLatestVersionInfo() {
+  const now = Date.now();
+  if (updateInfoCache.data && (now - updateInfoCache.fetchedAt) < UPDATE_CACHE_TTL_MS) {
+    return updateInfoCache.data;
+  }
+
+  try {
+    if (UPDATE_MANIFEST_URL) {
+      const manifestInfo = await fetchLatestVersionFromManifest();
+      if (manifestInfo) {
+        updateInfoCache.fetchedAt = now;
+        updateInfoCache.data = manifestInfo;
+        return manifestInfo;
+      }
+    }
+
+    const gitHubInfo = await fetchLatestVersionFromGitHub();
+    if (gitHubInfo) {
+      updateInfoCache.fetchedAt = now;
+      updateInfoCache.data = gitHubInfo;
+      return gitHubInfo;
+    }
+
+    const fallback = buildVersionPayload({
       latestVersion: APP_VERSION,
-      updateAvailable: false,
-      source: 'manifest_error',
+      source: 'local',
+      message: 'Verificação remota não configurada. Defina PHARUS_UPDATE_REPO ou PHARUS_UPDATE_MANIFEST_URL.',
+    });
+    updateInfoCache.fetchedAt = now;
+    updateInfoCache.data = fallback;
+    return fallback;
+  } catch (error) {
+    const fallbackError = buildVersionPayload({
+      latestVersion: APP_VERSION,
+      source: 'check_error',
       message: String(error?.message || 'Falha ao consultar atualização'),
       manifestUrl: UPDATE_MANIFEST_URL,
-      notesUrl: '',
-    };
+    });
+    updateInfoCache.fetchedAt = now;
+    updateInfoCache.data = fallbackError;
+    return fallbackError;
   }
 }
 
@@ -896,6 +1036,38 @@ app.post('/api/system/maintenance/check', async (req, res) => {
     return res.json({
       data: {
         currentVersion: APP_VERSION,
+        ...versionInfo,
+      },
+      error: null,
+    });
+  } catch (error) {
+    return res.status(500).json({ data: null, error: formatError(error) });
+  }
+});
+
+app.get('/api/system/version', async (_req, res) => {
+  try {
+    const versionInfo = await fetchLatestVersionInfo();
+    return res.json({
+      data: {
+        currentVersion: APP_VERSION,
+        checkedAt: nowIso(),
+        ...versionInfo,
+      },
+      error: null,
+    });
+  } catch (error) {
+    return res.status(500).json({ data: null, error: formatError(error) });
+  }
+});
+
+app.get('/api/system/update-check', async (_req, res) => {
+  try {
+    const versionInfo = await fetchLatestVersionInfo();
+    return res.json({
+      data: {
+        currentVersion: APP_VERSION,
+        checkedAt: nowIso(),
         ...versionInfo,
       },
       error: null,

@@ -79,6 +79,7 @@ class SidebarManager {
         this.setupProjectNameListeners();
         this.setupCustomSidebarMenuListeners();
         this.setupSidebarChatUnreadBadge();
+        this.setupUpdateNotifier();
         this.setupChatMenuItem(); // MOVER para depois do setupNavigation
         this.applyPermissionsInSidebar();
 
@@ -394,6 +395,29 @@ class SidebarManager {
         this.sidebarUnreadInterval = setInterval(() => {
             this.refreshSidebarUnreadFromApi();
         }, 15000);
+    }
+
+    setupUpdateNotifier() {
+        if (window.UpdateNotifier && typeof window.UpdateNotifier.init === 'function') {
+            window.UpdateNotifier.init();
+            return;
+        }
+
+        if (document.querySelector('script[src="scripts/update-notifier.js"]')) {
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'scripts/update-notifier.js';
+        script.onload = () => {
+            if (window.UpdateNotifier && typeof window.UpdateNotifier.init === 'function') {
+                window.UpdateNotifier.init();
+            }
+        };
+        script.onerror = () => {
+            console.warn('Falha ao carregar o verificador de atualizacoes.');
+        };
+        document.head.appendChild(script);
     }
 
     applySidebarUnreadCount(unreadCount) {
