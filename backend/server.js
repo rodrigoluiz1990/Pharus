@@ -123,6 +123,46 @@ const TABLE_COLUMNS = {
     'created_at',
     'updated_at',
   ],
+  atendimentos: [
+    'id',
+    'title',
+    'description',
+    'client_id',
+    'status',
+    'priority',
+    'created_by',
+    'created_at',
+    'updated_at',
+  ],
+  atendimento_responsibles: [
+    'id',
+    'atendimento_id',
+    'user_id',
+    'created_at',
+  ],
+  atendimento_task_links: [
+    'id',
+    'atendimento_id',
+    'task_id',
+    'created_at',
+  ],
+  atendimento_comments: [
+    'id',
+    'atendimento_id',
+    'author_id',
+    'comment_text',
+    'created_at',
+  ],
+  atendimento_attachments: [
+    'id',
+    'atendimento_id',
+    'file_name',
+    'file_type',
+    'file_size',
+    'data_url',
+    'uploaded_by',
+    'created_at',
+  ],
   chat_messages: [
     'id',
     'sender_id',
@@ -209,6 +249,11 @@ const MUTABLE_TABLES = new Set([
   'columns',
   'tasks',
   'clients',
+  'atendimentos',
+  'atendimento_responsibles',
+  'atendimento_task_links',
+  'atendimento_comments',
+  'atendimento_attachments',
   'chat_messages',
   'permission_groups',
   'permission_group_rules',
@@ -223,6 +268,11 @@ const SELECT_PERMISSION_BY_TABLE = {
   columns: { screen: 'quadro_tarefas', option: 'view' },
   tasks: { screen: 'quadro_tarefas', option: 'view' },
   clients: { screen: 'clientes', option: 'view' },
+  atendimentos: { screen: 'atendimento', option: 'view' },
+  atendimento_responsibles: { screen: 'atendimento', option: 'view' },
+  atendimento_task_links: { screen: 'atendimento', option: 'view' },
+  atendimento_comments: { screen: 'atendimento', option: 'view' },
+  atendimento_attachments: { screen: 'atendimento', option: 'view' },
   chat_messages: { screen: 'chat', option: 'view' },
   agenda_events: { screen: 'agenda', option: 'view' },
   notice_board_posts: { screen: 'avisos', option: 'view' },
@@ -237,6 +287,11 @@ const BACKUP_TABLES = [
   'columns',
   'tasks',
   'clients',
+  'atendimentos',
+  'atendimento_responsibles',
+  'atendimento_task_links',
+  'atendimento_comments',
+  'atendimento_attachments',
   'agenda_events',
   'notice_board_posts',
   'task_report_definitions',
@@ -413,6 +468,11 @@ function resolvePermissionForDbQuery(table, action, data) {
   if (action === 'insert') {
     if (table === 'tasks') return { screen: 'quadro_tarefas', option: 'create' };
     if (table === 'clients') return { screen: 'clientes', option: 'create' };
+    if (table === 'atendimentos') return { screen: 'atendimento', option: 'create' };
+    if (table === 'atendimento_responsibles') return { screen: 'atendimento', option: 'assign' };
+    if (table === 'atendimento_task_links') return { screen: 'atendimento', option: 'link_task' };
+    if (table === 'atendimento_comments') return { screen: 'atendimento', option: 'comment' };
+    if (table === 'atendimento_attachments') return { screen: 'atendimento', option: 'attachment' };
     if (table === 'agenda_events') return { screen: 'agenda', option: 'create' };
     if (table === 'notice_board_posts') return { screen: 'avisos', option: 'create' };
     if (table === 'chat_messages') return { screen: 'chat', option: 'send' };
@@ -437,6 +497,11 @@ function resolvePermissionForDbQuery(table, action, data) {
       return { screen: 'quadro_tarefas', option: 'edit' };
     }
     if (table === 'clients') return { screen: 'clientes', option: 'edit' };
+    if (table === 'atendimentos') return { screen: 'atendimento', option: 'edit' };
+    if (table === 'atendimento_responsibles') return { screen: 'atendimento', option: 'assign' };
+    if (table === 'atendimento_task_links') return { screen: 'atendimento', option: 'link_task' };
+    if (table === 'atendimento_comments') return { screen: 'atendimento', option: 'comment' };
+    if (table === 'atendimento_attachments') return { screen: 'atendimento', option: 'attachment' };
     if (table === 'agenda_events') return { screen: 'agenda', option: 'edit' };
     if (table === 'notice_board_posts') {
       const isArchiveOnly = String(payload.status || '').toLowerCase() === 'archived'
@@ -455,6 +520,11 @@ function resolvePermissionForDbQuery(table, action, data) {
   if (action === 'delete') {
     if (table === 'tasks') return { screen: 'quadro_tarefas', option: 'delete' };
     if (table === 'clients') return { screen: 'clientes', option: 'delete' };
+    if (table === 'atendimentos') return { screen: 'atendimento', option: 'delete' };
+    if (table === 'atendimento_responsibles') return { screen: 'atendimento', option: 'assign' };
+    if (table === 'atendimento_task_links') return { screen: 'atendimento', option: 'link_task' };
+    if (table === 'atendimento_comments') return { screen: 'atendimento', option: 'comment' };
+    if (table === 'atendimento_attachments') return { screen: 'atendimento', option: 'attachment' };
     if (table === 'agenda_events') return { screen: 'agenda', option: 'delete' };
     if (table === 'notice_board_posts') return { screen: 'avisos', option: 'delete' };
     if (table === 'app_users') return { screen: 'usuarios', option: 'delete' };

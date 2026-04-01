@@ -128,6 +128,17 @@ const PageBootstrap = (() => {
         }
     };
 
+    const initAttendancePage = async () => {
+        await loadScripts([
+            'scripts/utils.js',
+            'scripts/atendimentos.js'
+        ]);
+
+        if (typeof AtendimentoModule !== 'undefined' && typeof AtendimentoModule.init === 'function') {
+            AtendimentoModule.init();
+        }
+    };
+
     const initNoticesPage = async () => {
         await loadScripts([
             'scripts/utils.js',
@@ -159,6 +170,11 @@ const PageBootstrap = (() => {
 
         if (page === 'agenda.html') {
             await initAgendaPage();
+            return;
+        }
+
+        if (page === 'atendimentos.html') {
+            await initAttendancePage();
             return;
         }
 
