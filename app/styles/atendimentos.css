@@ -433,7 +433,25 @@
 .attendance-comment-compose {
     margin-top: 8px;
     display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
     gap: 8px;
+}
+
+.attendance-comment-compose .form-control {
+    min-height: 44px;
+    max-height: 96px;
+    resize: vertical;
+}
+
+#attendanceAddCommentBtn {
+    height: 44px;
+    padding: 0 14px;
+    border-radius: 10px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 @media (max-width: 1020px) {

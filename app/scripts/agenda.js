@@ -780,7 +780,44 @@
         setModalVisible(false);
     };
 
+    const clearFieldValidation = (field) => {
+        if (!field) return;
+        field.classList.remove('field-invalid');
+        if (typeof field.setCustomValidity === 'function') {
+            field.setCustomValidity('');
+        }
+    };
+
+    const markFieldInvalid = (field, message) => {
+        if (!field) return;
+        field.classList.add('field-invalid');
+        if (typeof field.setCustomValidity === 'function') {
+            field.setCustomValidity(message || 'Valor invalido.');
+        }
+    };
+
+    const showFieldValidationTooltip = (field) => {
+        if (!field) return;
+        if (typeof field.focus === 'function') {
+            try {
+                field.focus({ preventScroll: true });
+            } catch (_error) {
+                field.focus();
+            }
+        }
+        if (typeof field.reportValidity === 'function') {
+            field.reportValidity();
+        }
+    };
+
+    const clearDateRangeValidation = () => {
+        clearFieldValidation(startAtEl);
+        clearFieldValidation(endAtEl);
+    };
+
     const getPayloadFromForm = async () => {
+        clearDateRangeValidation();
+
         const title = String(titleEl.value || '').trim();
         if (!title) {
             notify('Informe o titulo.', 'warning');
@@ -789,6 +826,8 @@
 
         const startIsoRaw = toIsoFromInput(startAtEl.value);
         if (!startIsoRaw) {
+            markFieldInvalid(startAtEl, 'Informe uma data de inicio valida.');
+            showFieldValidationTooltip(startAtEl);
             notify('Informe uma data de inicio valida.', 'warning');
             return null;
         }
@@ -808,6 +847,9 @@
         }
 
         if (endIso && new Date(endIso) < new Date(startIso)) {
+            markFieldInvalid(startAtEl, 'A data de inicio deve ser menor ou igual ao fim.');
+            markFieldInvalid(endAtEl, 'A data de fim deve ser maior ou igual ao inicio.');
+            showFieldValidationTooltip(endAtEl);
             notify('A data de fim deve ser maior ou igual ao inicio.', 'warning');
             return null;
         }
@@ -1066,10 +1108,19 @@
         if (allDayEl) {
             allDayEl.addEventListener('change', () => {
                 applyAllDayMode(Boolean(allDayEl.checked));
+                clearDateRangeValidation();
             });
         }
         if (repeatTypeEl) {
             repeatTypeEl.addEventListener('change', syncRepeatFields);
+        }
+        if (startAtEl) {
+            startAtEl.addEventListener('input', clearDateRangeValidation);
+            startAtEl.addEventListener('change', clearDateRangeValidation);
+        }
+        if (endAtEl) {
+            endAtEl.addEventListener('input', clearDateRangeValidation);
+            endAtEl.addEventListener('change', clearDateRangeValidation);
         }
 
         if (modalEl) {

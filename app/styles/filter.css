@@ -493,7 +493,7 @@
 }
 
 .sort-priority-item.manual-mode .sort-priority-right {
-    margin-top: -1px;
+    margin-top: 1px;
 }
 
 .sort-manual-list {
