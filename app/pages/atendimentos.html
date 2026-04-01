@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <base href="../">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharus - Atendimento</title>
+    <link rel="icon" type="image/svg+xml" href="lighthouse-favicon.svg?v=20260321d">
+    <link rel="alternate icon" type="image/png" href="lighthouse-favicon-32.png?v=20260321d">
+    <link rel="shortcut icon" type="image/png" href="lighthouse-favicon-32.png?v=20260321d">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/sidebar.css">
+    <link rel="stylesheet" href="styles/atendimentos.css">
+</head>
+<body>
+    <div class="container">
+        <div id="sidebar-container"></div>
+        <div class="content">
+            <div class="header">
+                <div class="project-title">
+                    <h2>Atendimento</h2>
+                </div>
+                <div class="project-actions">
+                    <button class="action-btn" id="newAttendanceBtn" type="button">
+                        <i class="fas fa-plus"></i> Novo atendimento
+                    </button>
+                </div>
+            </div>
+
+            <div class="attendance-view">
+                <div class="attendance-filters">
+                    <input type="text" id="attendanceSearch" class="form-control" placeholder="Buscar por titulo, descricao, cliente ou responsavel...">
+                    <select id="attendanceStatusFilter" class="form-control">
+                        <option value="">Todos os status</option>
+                        <option value="open">Aberto</option>
+                        <option value="in_progress">Em andamento</option>
+                        <option value="waiting_customer">Aguardando cliente</option>
+                        <option value="resolved">Resolvido</option>
+                        <option value="closed">Cancelado</option>
+                    </select>
+                </div>
+
+                <div class="attendance-table-wrap">
+                    <table class="attendance-table">
+                        <thead>
+                            <tr>
+                                <th>Titulo</th>
+                                <th>Cliente</th>
+                                <th>Status</th>
+                                <th>Prioridade</th>
+                                <th>Responsaveis</th>
+                                <th>Atualizado em</th>
+                                <th>Acoes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTableBody">
+                            <tr>
+                                <td colspan="7" class="loading-attendance">
+                                    <i class="fas fa-spinner fa-spin"></i> Carregando atendimentos...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="attendanceModal">
+        <div class="modal attendance-modal">
+            <div class="modal-header">
+                <h3 id="attendanceModalTitle">Novo atendimento</h3>
+                <button type="button" class="modal-close" id="closeAttendanceModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="attendanceForm" novalidate>
+                    <input type="hidden" id="attendanceId">
+
+                    <div class="form-row">
+                        <div class="form-group full-row">
+                            <label for="attendanceTitle">Titulo *</label>
+                            <input type="text" id="attendanceTitle" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="attendanceClient">Cliente</label>
+                            <select id="attendanceClient" class="form-control"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="attendanceStatus">Status</label>
+                            <select id="attendanceStatus" class="form-control">
+                                <option value="open">Aberto</option>
+                                <option value="in_progress">Em andamento</option>
+                                <option value="waiting_customer">Aguardando cliente</option>
+                                <option value="resolved">Resolvido</option>
+                                <option value="closed">Cancelado</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="attendancePriority">Prioridade</label>
+                            <select id="attendancePriority" class="form-control">
+                                <option value="urgent">Urgente</option>
+                                <option value="high">Alta</option>
+                                <option value="medium" selected>Media</option>
+                                <option value="low">Baixa</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group full-row">
+                            <label for="attendanceDescription">Descricao</label>
+                            <textarea id="attendanceDescription" class="form-control" rows="4"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-row attendance-links-row">
+                        <div class="form-group">
+                            <label>Responsaveis</label>
+                            <div class="attendance-multi-combo" id="attendanceResponsiblesCombo">
+                                <button type="button" class="attendance-multi-toggle" id="attendanceResponsiblesToggle">
+                                    <span id="attendanceResponsiblesSummary">Selecionar responsaveis</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div class="attendance-multi-panel" id="attendanceResponsiblesPanel" style="display:none;">
+                                    <div class="attendance-selector" id="attendanceResponsiblesOptions"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="attendanceTaskSearch">Tarefas vinculadas</label>
+                            <div class="attendance-task-picker">
+                                <div class="attendance-task-input-row">
+                                    <input type="text" id="attendanceTaskSearch" class="form-control" placeholder="Digite para buscar tarefa...">
+                                    <label class="attendance-create-task-check">
+                                        <input type="checkbox" id="attendanceCreateTaskFromData">
+                                        <span>Criar nova tarefa</span>
+                                    </label>
+                                </div>
+                                <div id="attendanceTaskSuggestions" class="attendance-task-suggestions" style="display:none;"></div>
+                                <div id="attendanceTaskSelected" class="attendance-task-selected"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group full-row">
+                            <label for="attendanceAttachments">Anexos</label>
+                            <input type="file" id="attendanceAttachments" class="form-control" multiple>
+                            <div id="attendanceNewAttachments" class="attendance-files-list"></div>
+                            <div id="attendanceSavedAttachments" class="attendance-files-list"></div>
+                        </div>
+                    </div>
+
+                    <section id="attendanceCommentsSection" class="attendance-comments" style="display:none;">
+                        <h4>Comentarios</h4>
+                        <div id="attendanceCommentsList" class="attendance-comments-list"></div>
+                        <div class="attendance-comment-compose">
+                            <textarea id="attendanceCommentInput" class="form-control" rows="2" placeholder="Escreva um comentario..."></textarea>
+                            <button type="button" class="btn btn-secondary" id="attendanceAddCommentBtn">
+                                <i class="fas fa-comment-dots"></i> Comentar
+                            </button>
+                        </div>
+                    </section>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="saveAttendanceBtn">Salvar</button>
+                        <button type="button" class="btn btn-danger" id="deleteAttendanceBtn" style="display:none;">Excluir</button>
+                        <button type="button" class="btn btn-secondary" id="cancelAttendanceBtn">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="globalLoading" class="loading-overlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+        </div>
+        <span>Carregando...</span>
+    </div>
+
+    <script src="scripts/local-db-client.js"></script>
+    <script src="scripts/db-client-config.js"></script>
+    <script src="scripts/permission-service.js"></script>
+    <script src="scripts/auth.js"></script>
+    <script src="scripts/component-loader.js"></script>
+    <script src="scripts/page-bootstrap.js"></script>
+    <script src="scripts/profile-modal.js"></script>
+    <script src="scripts/chat.js"></script>
+</body>
+</html>

@@ -43,9 +43,9 @@ const SortModule = (() => {
     let cachedUsersById = {};
 
     const manualStateByLevel = {
-        1: { draggedEl: null },
-        2: { draggedEl: null },
-        3: { draggedEl: null },
+        1: { draggedEl: null, rafId: null },
+        2: { draggedEl: null, rafId: null },
+        3: { draggedEl: null, rafId: null },
     };
 
     const elements = {
@@ -214,6 +214,37 @@ const SortModule = (() => {
 
         const state = manualStateByLevel[level];
 
+        const clearDragTargets = () => {
+            listEl.querySelectorAll('.sort-manual-item.drag-target').forEach((item) => {
+                item.classList.remove('drag-target');
+            });
+        };
+
+        const animateListReorder = (mutate) => {
+            const items = [...listEl.querySelectorAll('.sort-manual-item')];
+            const firstRects = new Map(items.map((item) => [item, item.getBoundingClientRect()]));
+            mutate();
+            const afterItems = [...listEl.querySelectorAll('.sort-manual-item')];
+            afterItems.forEach((item) => {
+                const first = firstRects.get(item);
+                if (!first) return;
+                const last = item.getBoundingClientRect();
+                const dx = first.left - last.left;
+                const dy = first.top - last.top;
+                if (!dx && !dy) return;
+                item.style.transition = 'none';
+                item.style.transform = `translate(${dx}px, ${dy}px)`;
+                item.getBoundingClientRect();
+                item.style.transition = 'transform 180ms ease';
+                item.style.transform = '';
+                const clearTransition = () => {
+                    item.style.transition = '';
+                    item.removeEventListener('transitionend', clearTransition);
+                };
+                item.addEventListener('transitionend', clearTransition);
+            });
+        };
+
         listEl.addEventListener('dragstart', (event) => {
             const item = event.target.closest('.sort-manual-item');
             if (!item) return;
@@ -228,41 +259,70 @@ const SortModule = (() => {
         listEl.addEventListener('dragend', () => {
             const dragging = listEl.querySelector('.sort-manual-item.dragging');
             if (dragging) dragging.classList.remove('dragging');
+            clearDragTargets();
+            if (state.rafId) {
+                cancelAnimationFrame(state.rafId);
+                state.rafId = null;
+            }
             state.draggedEl = null;
         });
 
         listEl.addEventListener('dragover', (event) => {
             event.preventDefault();
+            if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
             const dragged = state.draggedEl;
             if (!dragged) return;
 
-            const targetItem = event.target.closest('.sort-manual-item');
-            if (targetItem && targetItem !== dragged && targetItem.parentElement === listEl) {
-                const rect = targetItem.getBoundingClientRect();
-                const isAfter =
-                    Math.abs(event.clientY - (rect.top + rect.height / 2)) > Math.abs(event.clientX - (rect.left + rect.width / 2))
-                        ? event.clientY > rect.top + rect.height / 2
-                        : event.clientX > rect.left + rect.width / 2;
+            if (state.rafId) return;
+            const pointerX = event.clientX;
+            const pointerY = event.clientY;
+            const pointerTarget = event.target;
+            state.rafId = requestAnimationFrame(() => {
+                state.rafId = null;
+                clearDragTargets();
 
-                if (isAfter) {
-                    listEl.insertBefore(dragged, targetItem.nextSibling);
-                } else {
-                    listEl.insertBefore(dragged, targetItem);
+                const targetItem = pointerTarget && typeof pointerTarget.closest === 'function'
+                    ? pointerTarget.closest('.sort-manual-item')
+                    : null;
+                if (targetItem && targetItem !== dragged && targetItem.parentElement === listEl) {
+                    targetItem.classList.add('drag-target');
+                    const rect = targetItem.getBoundingClientRect();
+                    const isAfter = pointerY > rect.top + rect.height / 2;
+
+                    animateListReorder(() => {
+                        if (isAfter) {
+                            listEl.insertBefore(dragged, targetItem.nextSibling);
+                        } else {
+                            listEl.insertBefore(dragged, targetItem);
+                        }
+                    });
+                    return;
                 }
-                return;
-            }
 
-            const afterElement = getDragAfterElementByPointer(listEl, event.clientX, event.clientY);
-            if (afterElement) {
-                listEl.insertBefore(dragged, afterElement);
-                return;
-            }
+                const afterElement = getDragAfterElementByPointer(listEl, pointerX, pointerY);
+                if (afterElement) {
+                    afterElement.classList.add('drag-target');
+                    animateListReorder(() => {
+                        listEl.insertBefore(dragged, afterElement);
+                    });
+                    return;
+                }
 
-            listEl.appendChild(dragged);
+                animateListReorder(() => {
+                    listEl.appendChild(dragged);
+                });
+            });
+        });
+
+        listEl.addEventListener('dragleave', (event) => {
+            const related = event.relatedTarget;
+            if (related instanceof Node && listEl.contains(related)) return;
+            clearDragTargets();
         });
 
         listEl.addEventListener('drop', (event) => {
             event.preventDefault();
+            clearDragTargets();
         });
     };
 
@@ -459,9 +519,18 @@ const SortModule = (() => {
         const selectedField = field.value;
         const isEmpty = !selectedField;
         const isFixed = FIXED_FIELDS.has(selectedField);
+        const cardEl = field.closest('.sort-priority-item');
+        const rightColumnEl = cardEl ? cardEl.querySelector('.sort-priority-right') : null;
 
         if (directionGroup) directionGroup.style.display = !isEmpty && !isFixed ? '' : 'none';
         if (manualGroup) manualGroup.style.display = !isEmpty && isFixed ? '' : 'none';
+        if (rightColumnEl) {
+            rightColumnEl.classList.toggle('single-combo', !isEmpty && !isFixed);
+        }
+        if (cardEl) {
+            cardEl.classList.toggle('manual-mode', !isEmpty && isFixed);
+            cardEl.classList.toggle('direction-mode', !isEmpty && !isFixed);
+        }
 
         if (manualList && !isEmpty && isFixed) {
             renderManualList(level, selectedField, Array.isArray(savedOrder) ? savedOrder : []);

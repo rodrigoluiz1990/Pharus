@@ -320,6 +320,23 @@
         return eventStart <= dayEnd && eventEnd >= dayStart;
     };
 
+    const compareEventsForDay = (a, b) => {
+        const aIsHoliday = String(a?.event_type || '') === 'holiday';
+        const bIsHoliday = String(b?.event_type || '') === 'holiday';
+        if (aIsHoliday !== bIsHoliday) return aIsHoliday ? -1 : 1;
+
+        const aAllDay = Boolean(a?.is_all_day);
+        const bAllDay = Boolean(b?.is_all_day);
+        if (aAllDay !== bAllDay) return aAllDay ? -1 : 1;
+
+        const aDate = parseDateSafe(a?.start_at);
+        const bDate = parseDateSafe(b?.start_at);
+        const byStart = (aDate?.getTime() || 0) - (bDate?.getTime() || 0);
+        if (byStart !== 0) return byStart;
+
+        return String(a?.title || '').localeCompare(String(b?.title || ''), 'pt-BR');
+    };
+
     const getEventsForDay = (dayDate) => {
         const dateKey = toDateKey(dayDate);
         const holidays = holidayEventsByDate.get(dateKey) || [];
@@ -327,11 +344,7 @@
             .filter((event) => eventOccursOnDay(event, dayDate))
             ;
 
-        return [...holidays, ...persisted].sort((a, b) => {
-            const aDate = parseDateSafe(a.start_at);
-            const bDate = parseDateSafe(b.start_at);
-            return (aDate?.getTime() || 0) - (bDate?.getTime() || 0);
-        });
+        return [...holidays, ...persisted].sort(compareEventsForDay);
     };
 
     const hasHolidayEvent = (events) => (Array.isArray(events) ? events : []).some((event) => String(event?.event_type || '') === 'holiday');

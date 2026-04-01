@@ -93,6 +93,8 @@ const FilterModule = (() => {
     const filterAssignee = document.getElementById('filterAssignee');
     const filterPriority = document.getElementById('filterPriority');
     const filterType = document.getElementById('filterType');
+    const filterStatus = document.getElementById('filterStatus');
+    const multiFilterCombos = new Map();
     const ensureFilterPermission = (message) => {
         if (typeof PermissionService === 'undefined' || typeof PermissionService.ensure !== 'function') return true;
         return PermissionService.ensure('quadro_tarefas', 'filter', message || 'Você não tem permissão para filtrar tarefas.');
@@ -126,6 +128,154 @@ const FilterModule = (() => {
         ];
     };
 
+    const updateMultiFilterSummary = (combo) => {
+        if (!combo?.summaryEl || !combo?.selectEl) return;
+        const labels = Array.from(combo.selectEl.selectedOptions).map((option) => String(option.textContent || '').trim()).filter(Boolean);
+        if (!labels.length) {
+            combo.summaryEl.textContent = combo.placeholder;
+            return;
+        }
+        if (labels.length <= 2) {
+            combo.summaryEl.textContent = labels.join(', ');
+            return;
+        }
+        combo.summaryEl.textContent = `${labels.length} selecionados`;
+    };
+
+    const renderMultiFilterOptions = (combo) => {
+        if (!combo?.optionsEl || !combo?.selectEl) return;
+        combo.optionsEl.innerHTML = '';
+        Array.from(combo.selectEl.options).forEach((option, index) => {
+            const item = document.createElement('label');
+            item.className = 'filter-multi-option';
+            item.innerHTML = `
+                <input type="checkbox" data-filter-multi-index="${index}" ${option.selected ? 'checked' : ''}>
+                <span>${option.textContent || ''}</span>
+            `;
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+                checkbox.addEventListener('change', () => {
+                    option.selected = checkbox.checked;
+                    updateMultiFilterSummary(combo);
+                });
+            }
+            combo.optionsEl.appendChild(item);
+        });
+        updateMultiFilterSummary(combo);
+    };
+
+    const closeAllMultiFilterPanels = () => {
+        multiFilterCombos.forEach((combo) => {
+            combo.panelEl.style.display = 'none';
+            combo.panelEl.style.position = '';
+            combo.panelEl.style.top = '';
+            combo.panelEl.style.left = '';
+            combo.panelEl.style.width = '';
+            combo.panelEl.classList.remove('open-upward');
+            combo.toggleEl.classList.remove('open');
+            combo.toggleEl.classList.remove('open-upward');
+            combo.toggleEl.setAttribute('aria-expanded', 'false');
+        });
+    };
+
+    const positionMultiFilterPanel = (combo) => {
+        if (!combo?.toggleEl || !combo?.panelEl || combo.panelEl.style.display === 'none') return;
+        const rect = combo.toggleEl.getBoundingClientRect();
+        const viewportPadding = 8;
+        const panelHeight = Math.min(combo.optionsEl?.scrollHeight || 0, 220) + 12;
+        const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
+        const spaceAbove = rect.top - viewportPadding;
+        const openUpward = panelHeight > spaceBelow && spaceAbove > spaceBelow;
+
+        combo.panelEl.style.position = 'fixed';
+        combo.panelEl.style.left = `${Math.round(rect.left)}px`;
+        combo.panelEl.style.width = `${Math.round(rect.width)}px`;
+        combo.panelEl.style.top = openUpward
+            ? `${Math.max(viewportPadding, Math.round(rect.top - panelHeight + 1))}px`
+            : `${Math.round(rect.bottom - 1)}px`;
+        combo.panelEl.classList.toggle('open-upward', openUpward);
+        combo.toggleEl.classList.toggle('open-upward', openUpward);
+    };
+
+    const positionOpenedMultiFilterPanels = () => {
+        multiFilterCombos.forEach((combo) => {
+            positionMultiFilterPanel(combo);
+        });
+    };
+
+    const toggleMultiFilterPanel = (key) => {
+        const combo = multiFilterCombos.get(key);
+        if (!combo) return;
+        const willOpen = combo.panelEl.style.display === 'none';
+        closeAllMultiFilterPanels();
+        if (!willOpen) return;
+        combo.panelEl.style.display = '';
+        combo.toggleEl.classList.add('open');
+        combo.toggleEl.setAttribute('aria-expanded', 'true');
+        positionMultiFilterPanel(combo);
+    };
+
+    const syncAllMultiFilterCombos = () => {
+        multiFilterCombos.forEach((combo) => {
+            renderMultiFilterOptions(combo);
+        });
+    };
+
+    const createMultiFilterCombo = (key, selectEl, placeholder) => {
+        if (!selectEl || multiFilterCombos.has(key)) return;
+        selectEl.classList.add('filter-multi-native');
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'filter-multi-combo';
+
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'form-control filter-multi-toggle';
+        toggleBtn.setAttribute('aria-haspopup', 'listbox');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+        toggleBtn.innerHTML = `
+            <span class="filter-multi-summary">${placeholder}</span>
+            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+        `;
+
+        const panel = document.createElement('div');
+        panel.className = 'filter-multi-panel';
+        panel.style.display = 'none';
+
+        const options = document.createElement('div');
+        options.className = 'filter-multi-options';
+        panel.appendChild(options);
+
+        wrapper.appendChild(toggleBtn);
+        wrapper.appendChild(panel);
+        selectEl.insertAdjacentElement('afterend', wrapper);
+
+        const combo = {
+            key,
+            placeholder,
+            selectEl,
+            wrapperEl: wrapper,
+            toggleEl: toggleBtn,
+            panelEl: panel,
+            optionsEl: options,
+            summaryEl: toggleBtn.querySelector('.filter-multi-summary'),
+        };
+        multiFilterCombos.set(key, combo);
+
+        toggleBtn.addEventListener('click', () => {
+            toggleMultiFilterPanel(key);
+        });
+
+        renderMultiFilterOptions(combo);
+    };
+
+    const initMultiFilterCombos = () => {
+        createMultiFilterCombo('priority', filterPriority, 'Todas as prioridades');
+        createMultiFilterCombo('type', filterType, 'Todos os tipos');
+        createMultiFilterCombo('status', filterStatus, 'Todos os status');
+        syncAllMultiFilterCombos();
+    };
+
     const populateTaxonomyFilterOptions = () => {
         if (filterPriority) {
             const selected = new Set(currentFilters.priority || []);
@@ -148,6 +298,7 @@ const FilterModule = (() => {
             });
             filterType.size = Math.max(3, Math.min(8, filterType.options.length));
         }
+        syncAllMultiFilterCombos();
     };
 
     // Inicialização do módulo
@@ -158,6 +309,7 @@ const FilterModule = (() => {
         setupEventListeners();
         loadSavedFilters();
         populateTaxonomyFilterOptions();
+        initMultiFilterCombos();
         updateFilterBadge();
         window.addEventListener('pharus:task-taxonomy-icons-updated', populateTaxonomyFilterOptions);
         isInitialized = true;
@@ -185,6 +337,18 @@ const FilterModule = (() => {
                 }
             });
         }
+
+        document.addEventListener('click', (event) => {
+            const target = event.target;
+            if (!(target instanceof Node)) return;
+            const clickedInside = Array.from(multiFilterCombos.values()).some((combo) => combo.wrapperEl.contains(target));
+            if (!clickedInside) {
+                closeAllMultiFilterPanels();
+            }
+        });
+
+        window.addEventListener('resize', positionOpenedMultiFilterPanels);
+        window.addEventListener('scroll', positionOpenedMultiFilterPanels, true);
     };
 
     // Mostrar modal de filtro
@@ -202,6 +366,7 @@ const FilterModule = (() => {
         if (filterModal) {
             filterModal.style.display = 'none';
         }
+        closeAllMultiFilterPanels();
     };
 
     // Popular filtro de responsáveis
@@ -263,6 +428,7 @@ const FilterModule = (() => {
                 option.selected = currentFilters.type.includes(option.value);
             });
         }
+        syncAllMultiFilterCombos();
 
         // Responsável
         if (filterAssignee) {

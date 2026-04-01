@@ -312,94 +312,106 @@
 
                         <div class="sort-priority-list">
                             <div class="sort-priority-item">
-                                <div class="sort-level">Nível 1</div>
-                                <div class="form-group">
-                                    <label for="sortField1">Campo</label>
-                                    <select id="sortField1" class="form-control">
-                                        <option value="created_at">Data de Criação</option>
-                                        <option value="updated_at">Data de Atualização</option>
-                                        <option value="request_date">Data de Solicitação</option>
-                                        <option value="due_date">Data de Entrega</option>
-                                        <option value="title">Título</option>
-                                        <option value="status">Status</option>
-                                        <option value="priority">Prioridade</option>
-                                        <option value="type">Tipo</option>
-                                        <option value="assignee">Responsável</option>
-                                        <option value="client">Cliente</option>
-                                    </select>
+                                <div class="sort-priority-left">
+                                    <div class="sort-level">Nível 1</div>
+                                    <div class="form-group" id="sortFieldGroup1">
+                                        <label for="sortField1">Campo</label>
+                                        <select id="sortField1" class="form-control">
+                                            <option value="created_at">Data de Criação</option>
+                                            <option value="updated_at">Data de Atualização</option>
+                                            <option value="request_date">Data de Solicitação</option>
+                                            <option value="due_date">Data de Entrega</option>
+                                            <option value="title">Título</option>
+                                            <option value="status">Status</option>
+                                            <option value="priority">Prioridade</option>
+                                            <option value="type">Tipo</option>
+                                            <option value="assignee">Responsável</option>
+                                            <option value="client">Cliente</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="form-group" id="sortDirectionGroup1">
-                                    <label for="sortDirection1">Direção</label>
-                                    <select id="sortDirection1" class="form-control">
-                                        <option value="desc">Decrescente</option>
-                                        <option value="asc">Crescente</option>
-                                    </select>
-                                </div>
-                                <div class="form-group sort-manual-group" id="sortManualGroup1" style="display:none;">
-                                    <label>Ordem Manual (arraste para reordenar)</label>
-                                    <ul class="sort-manual-list" id="sortManualList1"></ul>
-                                </div>
-                            </div>
-
-                            <div class="sort-priority-item">
-                                <div class="sort-level">Nível 2</div>
-                                <div class="form-group">
-                                    <label for="sortField2">Campo</label>
-                                    <select id="sortField2" class="form-control">
-                                        <option value="">(Nenhum)</option>
-                                        <option value="created_at">Data de Criação</option>
-                                        <option value="updated_at">Data de Atualização</option>
-                                        <option value="request_date">Data de Solicitação</option>
-                                        <option value="due_date">Data de Entrega</option>
-                                        <option value="title">Título</option>
-                                        <option value="status">Status</option>
-                                        <option value="priority">Prioridade</option>
-                                        <option value="type">Tipo</option>
-                                        <option value="assignee">Responsável</option>
-                                        <option value="client">Cliente</option>
-                                    </select>
-                                </div>
-                                <div class="form-group" id="sortDirectionGroup2">
-                                    <label for="sortDirection2">Direção</label>
-                                    <select id="sortDirection2" class="form-control">
-                                        <option value="desc">Decrescente</option>
-                                        <option value="asc">Crescente</option>
-                                    </select>
-                                </div>
-                                <div class="form-group sort-manual-group" id="sortManualGroup2" style="display:none;">
-                                    <label>Ordem Manual (arraste para reordenar)</label>
-                                    <ul class="sort-manual-list" id="sortManualList2"></ul>
+                                <div class="sort-priority-right">
+                                    <div class="form-group" id="sortDirectionGroup1">
+                                        <label for="sortDirection1">Direção</label>
+                                        <select id="sortDirection1" class="form-control">
+                                            <option value="desc">Decrescente</option>
+                                            <option value="asc">Crescente</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group sort-manual-group" id="sortManualGroup1" style="display:none;">
+                                        <label>Ordem Manual (arraste para reordenar)</label>
+                                        <ul class="sort-manual-list" id="sortManualList1"></ul>
+                                    </div>
                                 </div>
                             </div>
 
                             <div class="sort-priority-item">
-                                <div class="sort-level">Nível 3</div>
-                                <div class="form-group">
-                                    <label for="sortField3">Campo</label>
-                                    <select id="sortField3" class="form-control">
-                                        <option value="">(Nenhum)</option>
-                                        <option value="created_at">Data de Criação</option>
-                                        <option value="updated_at">Data de Atualização</option>
-                                        <option value="request_date">Data de Solicitação</option>
-                                        <option value="due_date">Data de Entrega</option>
-                                        <option value="title">Título</option>
-                                        <option value="status">Status</option>
-                                        <option value="priority">Prioridade</option>
-                                        <option value="type">Tipo</option>
-                                        <option value="assignee">Responsável</option>
-                                        <option value="client">Cliente</option>
-                                    </select>
+                                <div class="sort-priority-left">
+                                    <div class="sort-level">Nível 2</div>
+                                    <div class="form-group" id="sortFieldGroup2">
+                                        <label for="sortField2">Campo</label>
+                                        <select id="sortField2" class="form-control">
+                                            <option value="">(Nenhum)</option>
+                                            <option value="created_at">Data de Criação</option>
+                                            <option value="updated_at">Data de Atualização</option>
+                                            <option value="request_date">Data de Solicitação</option>
+                                            <option value="due_date">Data de Entrega</option>
+                                            <option value="title">Título</option>
+                                            <option value="status">Status</option>
+                                            <option value="priority">Prioridade</option>
+                                            <option value="type">Tipo</option>
+                                            <option value="assignee">Responsável</option>
+                                            <option value="client">Cliente</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="form-group" id="sortDirectionGroup3">
-                                    <label for="sortDirection3">Direção</label>
-                                    <select id="sortDirection3" class="form-control">
-                                        <option value="desc">Decrescente</option>
-                                        <option value="asc">Crescente</option>
-                                    </select>
+                                <div class="sort-priority-right">
+                                    <div class="form-group" id="sortDirectionGroup2">
+                                        <label for="sortDirection2">Direção</label>
+                                        <select id="sortDirection2" class="form-control">
+                                            <option value="desc">Decrescente</option>
+                                            <option value="asc">Crescente</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group sort-manual-group" id="sortManualGroup2" style="display:none;">
+                                        <label>Ordem Manual (arraste para reordenar)</label>
+                                        <ul class="sort-manual-list" id="sortManualList2"></ul>
+                                    </div>
                                 </div>
-                                <div class="form-group sort-manual-group" id="sortManualGroup3" style="display:none;">
-                                    <label>Ordem Manual (arraste para reordenar)</label>
-                                    <ul class="sort-manual-list" id="sortManualList3"></ul>
+                            </div>
+
+                            <div class="sort-priority-item">
+                                <div class="sort-priority-left">
+                                    <div class="sort-level">Nível 3</div>
+                                    <div class="form-group" id="sortFieldGroup3">
+                                        <label for="sortField3">Campo</label>
+                                        <select id="sortField3" class="form-control">
+                                            <option value="">(Nenhum)</option>
+                                            <option value="created_at">Data de Criação</option>
+                                            <option value="updated_at">Data de Atualização</option>
+                                            <option value="request_date">Data de Solicitação</option>
+                                            <option value="due_date">Data de Entrega</option>
+                                            <option value="title">Título</option>
+                                            <option value="status">Status</option>
+                                            <option value="priority">Prioridade</option>
+                                            <option value="type">Tipo</option>
+                                            <option value="assignee">Responsável</option>
+                                            <option value="client">Cliente</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="sort-priority-right">
+                                    <div class="form-group" id="sortDirectionGroup3">
+                                        <label for="sortDirection3">Direção</label>
+                                        <select id="sortDirection3" class="form-control">
+                                            <option value="desc">Decrescente</option>
+                                            <option value="asc">Crescente</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group sort-manual-group" id="sortManualGroup3" style="display:none;">
+                                        <label>Ordem Manual (arraste para reordenar)</label>
+                                        <ul class="sort-manual-list" id="sortManualList3"></ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>
